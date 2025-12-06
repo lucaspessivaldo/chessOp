@@ -1,0 +1,501 @@
+import { Chess } from '@jackstenglein/chess'
+import type { Move as ChessMove } from '@jackstenglein/chess'
+import type { OpeningMoveNode, OpeningStudy, PredefinedOpening } from '@/types/opening'
+
+const STORAGE_KEY = 'chessop-openings'
+
+/**
+ * Generate a unique ID for nodes
+ */
+export function generateNodeId(): string {
+  return Math.random().toString(36).substring(2, 11)
+}
+
+/**
+ * Initial position FEN
+ */
+export const INITIAL_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
+
+/**
+ * Convert a Chess.js move to UCI format
+ */
+function moveToUci(move: ChessMove): string {
+  let uci = move.from + move.to
+  if (move.promotion) {
+    uci += move.promotion
+  }
+  return uci
+}
+
+/**
+ * Parse a PGN string into an opening tree structure
+ * Uses @jackstenglein/chess which supports variations
+ */
+export function parsePgnToTree(pgn: string, startFen?: string): OpeningMoveNode[] {
+  const chess = new Chess({ fen: startFen })
+
+  try {
+    chess.loadPgn(pgn)
+  } catch (e) {
+    console.error('Failed to parse PGN:', e)
+    return []
+  }
+
+  // Get the root move (first move in the game)
+  const firstMove = chess.firstMove()
+  if (!firstMove) {
+    return []
+  }
+
+  // Recursively build the tree from the chess moves
+  function buildTree(move: ChessMove | null, isMainLine: boolean): OpeningMoveNode | null {
+    if (!move) return null
+
+    const node: OpeningMoveNode = {
+      id: generateNodeId(),
+      san: move.san,
+      uci: moveToUci(move),
+      fen: move.after,
+      comment: move.commentAfter || undefined,
+      nags: move.nags && move.nags.length > 0 ? [...move.nags] : undefined,
+      children: [],
+      isMainLine,
+    }
+
+    // Add main continuation
+    const next = move.next
+    if (next) {
+      const nextNode = buildTree(next, isMainLine)
+      if (nextNode) {
+        node.children.push(nextNode)
+      }
+    }
+
+    // Add variations (alternatives to the next move)
+    // variations is Move[][] - each element is an array of moves representing a variation line
+    if (move.variations && move.variations.length > 0) {
+      for (const variationLine of move.variations) {
+        if (variationLine.length > 0) {
+          const varNode = buildTree(variationLine[0], false)
+          if (varNode) {
+            node.children.push(varNode)
+          }
+        }
+      }
+    }
+
+    return node
+  }
+
+  // Build tree starting from first move
+  const rootNode = buildTree(firstMove, true)
+  if (!rootNode) {
+    return []
+  }
+
+  // Handle variations at the first move level
+  const result: OpeningMoveNode[] = [rootNode]
+
+  // Check for variations on the first move itself
+  if (firstMove.variations && firstMove.variations.length > 0) {
+    for (const variationLine of firstMove.variations) {
+      if (variationLine.length > 0) {
+        const varNode = buildTree(variationLine[0], false)
+        if (varNode) {
+          result.push(varNode)
+        }
+      }
+    }
+  }
+
+  return result
+}
+
+/**
+ * Export opening tree to PGN format
+ */
+export function exportTreeToPgn(nodes: OpeningMoveNode[], headers?: Record<string, string>): string {
+  if (nodes.length === 0) return ''
+
+  const chess = new Chess()
+
+  // Set headers if provided
+  if (headers) {
+    for (const [key, value] of Object.entries(headers)) {
+      chess.setHeader(key, value)
+    }
+  }
+
+  function addMovesToChess(node: OpeningMoveNode, parentMove: ChessMove | null): void {
+    // Navigate to parent position
+    if (parentMove) {
+      chess.seek(parentMove)
+    } else {
+      chess.seek(null) // Go to start
+    }
+
+    // Make the move
+    const move = chess.move(node.san)
+    if (!move) {
+      console.error('Failed to add move:', node.san)
+      return
+    }
+
+    // Add comment if present
+    if (node.comment) {
+      chess.setComment(node.comment)
+    }
+
+    // Add NAGs if present
+    if (node.nags && node.nags.length > 0) {
+      chess.setNags(node.nags)
+    }
+
+    // Process children
+    const mainChild = node.children.find(c => c.isMainLine)
+    const variations = node.children.filter(c => !c.isMainLine)
+
+    // Add main line continuation first
+    if (mainChild) {
+      addMovesToChess(mainChild, move)
+    }
+
+    // Add variations
+    for (const variation of variations) {
+      addMovesToChess(variation, move)
+    }
+  }
+
+  // Process all root moves
+  const mainRoot = nodes.find(n => n.isMainLine) || nodes[0]
+  addMovesToChess(mainRoot, null)
+
+  // Add variations at root level
+  for (const node of nodes) {
+    if (node !== mainRoot) {
+      addMovesToChess(node, null)
+    }
+  }
+
+  return chess.pgn.render()
+}
+
+/**
+ * Find a node by ID in the tree
+ */
+export function findNodeById(nodes: OpeningMoveNode[], id: string): OpeningMoveNode | null {
+  for (const node of nodes) {
+    if (node.id === id) return node
+
+    const found = findNodeById(node.children, id)
+    if (found) return found
+  }
+  return null
+}
+
+/**
+ * Get the main line as a flat array of moves
+ */
+export function getMainLine(nodes: OpeningMoveNode[]): OpeningMoveNode[] {
+  const result: OpeningMoveNode[] = []
+
+  let current = nodes.find(n => n.isMainLine) || nodes[0]
+  while (current) {
+    result.push(current)
+    current = current.children.find(c => c.isMainLine) || current.children[0]
+    if (!current) break
+  }
+
+  return result
+}
+
+/**
+ * Get all possible lines (complete paths through the tree)
+ */
+export function getAllLines(nodes: OpeningMoveNode[]): OpeningMoveNode[][] {
+  const lines: OpeningMoveNode[][] = []
+
+  function traverse(node: OpeningMoveNode, currentPath: OpeningMoveNode[]): void {
+    const newPath = [...currentPath, node]
+
+    if (node.children.length === 0) {
+      // Leaf node - complete line
+      lines.push(newPath)
+    } else {
+      // Continue traversing all children
+      for (const child of node.children) {
+        traverse(child, newPath)
+      }
+    }
+  }
+
+  for (const rootNode of nodes) {
+    traverse(rootNode, [])
+  }
+
+  return lines
+}
+
+/**
+ * Get the path (array of node IDs) from root to a specific node
+ */
+export function getPathToNode(nodes: OpeningMoveNode[], targetId: string): string[] {
+  function findPath(node: OpeningMoveNode, currentPath: string[]): string[] | null {
+    const newPath = [...currentPath, node.id]
+
+    if (node.id === targetId) {
+      return newPath
+    }
+
+    for (const child of node.children) {
+      const found = findPath(child, newPath)
+      if (found) return found
+    }
+
+    return null
+  }
+
+  for (const rootNode of nodes) {
+    const path = findPath(rootNode, [])
+    if (path) return path
+  }
+
+  return []
+}
+
+/**
+ * Get node at a specific path
+ */
+export function getNodeAtPath(nodes: OpeningMoveNode[], path: string[]): OpeningMoveNode | null {
+  if (path.length === 0) return null
+
+  let currentNodes = nodes
+  let result: OpeningMoveNode | null = null
+
+  for (const id of path) {
+    const found = currentNodes.find(n => n.id === id)
+    if (!found) return null
+    result = found
+    currentNodes = found.children
+  }
+
+  return result
+}
+
+/**
+ * Get parent node for a given node ID
+ */
+export function getParentNode(nodes: OpeningMoveNode[], targetId: string): OpeningMoveNode | null {
+  function findParent(node: OpeningMoveNode, parent: OpeningMoveNode | null): OpeningMoveNode | null {
+    if (node.id === targetId) {
+      return parent
+    }
+
+    for (const child of node.children) {
+      const found = findParent(child, node)
+      if (found !== undefined) return found
+    }
+
+    return null
+  }
+
+  for (const rootNode of nodes) {
+    if (rootNode.id === targetId) return null // Root has no parent
+    const parent = findParent(rootNode, null)
+    if (parent) return parent
+  }
+
+  return null
+}
+
+/**
+ * Get the line (path of nodes) from root to a given node
+ */
+export function getLineToNode(nodes: OpeningMoveNode[], targetId: string): OpeningMoveNode[] {
+  const path = getPathToNode(nodes, targetId)
+  return path.map(id => findNodeById(nodes, id)).filter((n): n is OpeningMoveNode => n !== null)
+}
+
+/**
+ * Add a move to the tree at a specific position
+ */
+export function addMoveToTree(
+  nodes: OpeningMoveNode[],
+  parentId: string | null,
+  san: string,
+  uci: string,
+  fen: string,
+  isMainLine: boolean = false
+): OpeningMoveNode[] {
+  const newNode: OpeningMoveNode = {
+    id: generateNodeId(),
+    san,
+    uci,
+    fen,
+    children: [],
+    isMainLine,
+  }
+
+  if (parentId === null) {
+    // Adding to root level
+    return [...nodes, newNode]
+  }
+
+  // Deep clone and add to parent
+  function addToParent(nodeList: OpeningMoveNode[]): OpeningMoveNode[] {
+    return nodeList.map(node => {
+      if (node.id === parentId) {
+        return {
+          ...node,
+          children: [...node.children, newNode],
+        }
+      }
+      return {
+        ...node,
+        children: addToParent(node.children),
+      }
+    })
+  }
+
+  return addToParent(nodes)
+}
+
+/**
+ * Update a node's comment
+ */
+export function updateNodeComment(
+  nodes: OpeningMoveNode[],
+  nodeId: string,
+  comment: string | undefined
+): OpeningMoveNode[] {
+  function update(nodeList: OpeningMoveNode[]): OpeningMoveNode[] {
+    return nodeList.map(node => {
+      if (node.id === nodeId) {
+        return { ...node, comment }
+      }
+      return {
+        ...node,
+        children: update(node.children),
+      }
+    })
+  }
+
+  return update(nodes)
+}
+
+/**
+ * Delete a node and all its descendants from the tree
+ */
+export function deleteNode(nodes: OpeningMoveNode[], nodeId: string): OpeningMoveNode[] {
+  function remove(nodeList: OpeningMoveNode[]): OpeningMoveNode[] {
+    return nodeList
+      .filter(node => node.id !== nodeId)
+      .map(node => ({
+        ...node,
+        children: remove(node.children),
+      }))
+  }
+
+  return remove(nodes)
+}
+
+/**
+ * Convert a predefined opening to an OpeningStudy
+ */
+export function predefinedToStudy(predefined: PredefinedOpening): OpeningStudy {
+  const moves = parsePgnToTree(predefined.pgn)
+
+  return {
+    id: predefined.id,
+    name: predefined.name,
+    description: predefined.description,
+    color: predefined.color,
+    rootFen: INITIAL_FEN,
+    moves,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  }
+}
+
+/**
+ * Save an opening study to localStorage
+ */
+export function saveOpeningStudy(study: OpeningStudy): void {
+  const studies = loadOpeningStudies()
+  const existingIndex = studies.findIndex(s => s.id === study.id)
+
+  if (existingIndex >= 0) {
+    studies[existingIndex] = { ...study, updatedAt: Date.now() }
+  } else {
+    studies.push(study)
+  }
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(studies))
+}
+
+/**
+ * Load all opening studies from localStorage
+ */
+export function loadOpeningStudies(): OpeningStudy[] {
+  const data = localStorage.getItem(STORAGE_KEY)
+  if (!data) return []
+
+  try {
+    return JSON.parse(data)
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Delete an opening study from localStorage
+ */
+export function deleteOpeningStudy(id: string): void {
+  const studies = loadOpeningStudies()
+  const filtered = studies.filter(s => s.id !== id)
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered))
+}
+
+/**
+ * Get FEN at a specific position in the tree
+ * If path is empty, returns the root FEN
+ */
+export function getFenAtPath(nodes: OpeningMoveNode[], path: string[], rootFen: string): string {
+  if (path.length === 0) return rootFen
+
+  const node = getNodeAtPath(nodes, path)
+  return node?.fen || rootFen
+}
+
+/**
+ * Check if a move exists as a child of the current position
+ */
+export function findChildByMove(
+  nodes: OpeningMoveNode[],
+  parentPath: string[],
+  uci: string
+): OpeningMoveNode | null {
+  if (parentPath.length === 0) {
+    // Looking at root level
+    return nodes.find(n => n.uci === uci) || null
+  }
+
+  const parent = getNodeAtPath(nodes, parentPath)
+  if (!parent) return null
+
+  return parent.children.find(c => c.uci === uci) || null
+}
+
+/**
+ * Get siblings (alternative moves) at a position
+ */
+export function getSiblings(nodes: OpeningMoveNode[], nodeId: string): OpeningMoveNode[] {
+  const parent = getParentNode(nodes, nodeId)
+
+  if (!parent) {
+    // Node is at root level
+    return nodes.filter(n => n.id !== nodeId)
+  }
+
+  return parent.children.filter(c => c.id !== nodeId)
+}

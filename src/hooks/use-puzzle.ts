@@ -48,6 +48,10 @@ export function usePuzzle(options: UsePuzzleOptions) {
   const [hintForMoveIndex, setHintForMoveIndex] = useState<number | null>(null)
   // Key to force chessground re-render when needed
   const [boardKey, setBoardKey] = useState(0)
+  // Track wrong attempts count
+  const [wrongAttempts, setWrongAttempts] = useState(0)
+  // Flag to show wrong move feedback
+  const [showWrongMove, setShowWrongMove] = useState(false)
 
   const moves = useMemo(() => parseMoves(puzzle.Moves), [puzzle.Moves])
   const userColor = useMemo(() => getUserColor(puzzle.FEN), [puzzle.FEN])
@@ -168,30 +172,43 @@ export function usePuzzle(options: UsePuzzleOptions) {
       const validatedMove = chess.validateMove({ from: from as Square, to: to as Square, promotion })
 
       if (!validatedMove) {
-        // Illegal move
-        setStatus('failed')
+        // Illegal move - show feedback but allow retry
+        setWrongAttempts((prev) => prev + 1)
+        setShowWrongMove(true)
+        setBoardKey((k) => k + 1)
+        setTimeout(() => setShowWrongMove(false), 500)
         onFail?.()
         return false
       }
 
-      // Now make the move to check if it results in checkmate
-      const move = chess.move({ from: from as Square, to: to as Square, promotion })
+      // Save the current position before making the move
+      const moveBeforeAttempt = chess.currentMove()
 
-      if (!move) {
-        setStatus('failed')
+      // Check if move matches expected OR if it results in checkmate
+      // We need to temporarily make the move to check for checkmate
+      const tempMove = chess.move({ from: from as Square, to: to as Square, promotion })
+      if (!tempMove) {
+        // Should not happen since we validated, but handle it
+        setWrongAttempts((prev) => prev + 1)
+        setShowWrongMove(true)
+        setBoardKey((k) => k + 1)
+        setTimeout(() => setShowWrongMove(false), 500)
         onFail?.()
         return false
       }
 
-      // Check if this move results in checkmate - if so, it's always correct!
       const isMate = isCheckmate(chess)
 
-      // If not checkmate, verify it matches the expected move
+      // If not correct move and not checkmate, undo and show error
       if (!isMate && userUci !== expectedUci) {
-        // Delete the wrong move and go back
-        chess.delete()
-        chess.seek(chess.previousMove())
-        setStatus('failed')
+        // Undo: seek back to position before the wrong move, then delete the wrong move
+        chess.seek(moveBeforeAttempt)
+        chess.delete(tempMove)
+        // Show feedback but allow retry
+        setWrongAttempts((prev) => prev + 1)
+        setShowWrongMove(true)
+        setBoardKey((k) => k + 1)
+        setTimeout(() => setShowWrongMove(false), 500)
         onFail?.()
         return false
       }
@@ -206,10 +223,10 @@ export function usePuzzle(options: UsePuzzleOptions) {
 
       // Play sound
       const soundType = getMoveSound({
-        isCapture: !!move.captured,
-        isCastle: move.san === 'O-O' || move.san === 'O-O-O',
+        isCapture: !!tempMove.captured,
+        isCastle: tempMove.san === 'O-O' || tempMove.san === 'O-O-O',
         isCheck: checkAfterMove,
-        isPromotion: !!move.promotion,
+        isPromotion: !!tempMove.promotion,
       })
       playSound(soundType)
 
@@ -311,6 +328,8 @@ export function usePuzzle(options: UsePuzzleOptions) {
     premoveRef.current = null
     setPremove(null)
     setHintForMoveIndex(null)
+    setWrongAttempts(0)
+    setShowWrongMove(false)
 
     // Play first move again after reset
     setTimeout(() => {
@@ -408,5 +427,8 @@ export function usePuzzle(options: UsePuzzleOptions) {
     requestHint,
     // Board key for forcing re-render
     boardKey,
+    // Wrong move tracking
+    wrongAttempts,
+    showWrongMove,
   }
 }

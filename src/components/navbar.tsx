@@ -1,5 +1,5 @@
 import { Link, useRouterState } from '@tanstack/react-router'
-import { Puzzle, Home } from 'lucide-react'
+import { Puzzle, Home, BookOpen } from 'lucide-react'
 
 export function Navbar() {
   const routerState = useRouterState()
@@ -8,6 +8,7 @@ export function Navbar() {
   const navItems = [
     { path: '/', label: 'Home', icon: Home },
     { path: '/puzzles', label: 'Puzzles', icon: Puzzle },
+    { path: '/openings', label: 'Openings', icon: BookOpen },
   ]
 
   return (
@@ -27,8 +28,8 @@ export function Navbar() {
                 key={path}
                 to={path}
                 className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${isActive
-                    ? 'bg-zinc-800 text-white'
-                    : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-white'
+                  ? 'bg-zinc-800 text-white'
+                  : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-white'
                   }`}
               >
                 <Icon className="h-4 w-4" />

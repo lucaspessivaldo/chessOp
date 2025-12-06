@@ -172,6 +172,8 @@ function PuzzleView({
     showHint,
     requestHint,
     boardKey,
+    wrongAttempts,
+    showWrongMove,
   } = usePuzzle({
     puzzle,
     chessgroundRef,
@@ -196,7 +198,7 @@ function PuzzleView({
 
       <div className="mx-auto flex items-center gap-8">
         {/* Chessboard */}
-        <div className="h-[600px] w-[600px] shrink-0">
+        <div className={`h-[600px] w-[600px] shrink-0 rounded-sm transition-all duration-200 ${showWrongMove ? 'ring-4 ring-red-500 animate-shake' : ''}`}>
           <Chessground key={boardKey} ref={chessgroundRef} config={chessgroundConfig} onMove={makeMove} />
         </div>
 
@@ -311,20 +313,33 @@ function PuzzleView({
           {/* Status */}
           <div className="mb-6 flex-1">
             {status === 'playing' && (
-              <div className="rounded-md bg-blue-500/20 p-4 text-center">
-                <p className="text-blue-400 font-medium">Your turn - find the best move!</p>
+              <div className={`rounded-md p-4 text-center transition-colors ${showWrongMove ? 'bg-red-500/20' : 'bg-blue-500/20'}`}>
+                {showWrongMove ? (
+                  <>
+                    <XCircle className="mx-auto mb-2 h-8 w-8 text-red-500" />
+                    <p className="text-red-400 font-medium">Wrong move! Try again.</p>
+                  </>
+                ) : wrongAttempts > 0 ? (
+                  <>
+                    <p className="text-blue-400 font-medium">Keep trying!</p>
+                    <p className="text-xs text-zinc-400 mt-1">
+                      {wrongAttempts} wrong {wrongAttempts === 1 ? 'attempt' : 'attempts'}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-blue-400 font-medium">Your turn - find the best move!</p>
+                )}
               </div>
             )}
             {status === 'completed' && (
               <div className="rounded-md bg-green-500/20 p-4 text-center">
                 <CheckCircle className="mx-auto mb-2 h-8 w-8 text-green-500" />
                 <p className="text-green-400 font-medium">Correct! Puzzle solved!</p>
-              </div>
-            )}
-            {status === 'failed' && (
-              <div className="rounded-md bg-red-500/20 p-4 text-center">
-                <XCircle className="mx-auto mb-2 h-8 w-8 text-red-500" />
-                <p className="text-red-400 font-medium">Incorrect move. Try again!</p>
+                {wrongAttempts > 0 && (
+                  <p className="text-xs text-zinc-400 mt-1">
+                    Solved with {wrongAttempts} wrong {wrongAttempts === 1 ? 'attempt' : 'attempts'}
+                  </p>
+                )}
               </div>
             )}
           </div>
