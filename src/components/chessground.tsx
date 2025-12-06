@@ -2,6 +2,7 @@ import { useEffect, useRef, useImperativeHandle, forwardRef } from 'react'
 import { Chessground as ChessgroundApi } from '@lichess-org/chessground'
 import type { Api } from '@lichess-org/chessground/api'
 import type { Config } from '@lichess-org/chessground/config'
+import type { Key } from '@lichess-org/chessground/types'
 
 // Import chessground styles
 import '@lichess-org/chessground/assets/chessground.base.css'
@@ -15,7 +16,7 @@ export interface ChessgroundRef {
 export interface ChessgroundProps {
   config?: Config
   className?: string
-  onMove?: (orig: string, dest: string) => void
+  onMove?: (orig: Key, dest: Key) => void
 }
 
 export const Chessground = forwardRef<ChessgroundRef, ChessgroundProps>(
