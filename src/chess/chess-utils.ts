@@ -3,11 +3,11 @@ import type { Move } from '@jackstenglein/chess'
 import type { Key } from '@lichess-org/chessground/types'
 
 /**
- * Create a new Chess instance with optional FEN or PGN
+ * Create a new Chess instance with optional FEN
  * Null moves (Z0) are disabled
  */
-export function createChess(fenOrPgn?: string): Chess {
-  return new Chess({ pgn: fenOrPgn, disableNullMoves: true })
+export function createChess(fen?: string): Chess {
+  return new Chess({ fen, disableNullMoves: true })
 }
 
 /**
