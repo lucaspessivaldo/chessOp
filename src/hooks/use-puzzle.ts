@@ -38,6 +38,8 @@ export function usePuzzle(options: UsePuzzleOptions) {
   const [status, setStatus] = useState<PuzzleStatus>('playing')
   const [moveIndex, setMoveIndex] = useState(0)
   const moveIndexRef = useRef(0)
+  const [premove, setPremove] = useState<[Key, Key] | null>(null)
+  const premoveRef = useRef<[Key, Key] | null>(null)
 
   const moves = useMemo(() => parseMoves(puzzle.Moves), [puzzle.Moves])
   const userColor = useMemo(() => getUserColor(puzzle.FEN), [puzzle.FEN])
@@ -52,6 +54,9 @@ export function usePuzzle(options: UsePuzzleOptions) {
     const promotion = uci.length > 4 ? (uci[4] as PromotionPiece) : undefined
     return { from, to, promotion }
   }
+
+  // Ref to store executeMove for use in playMachineMove (avoids circular dependency)
+  const executeMoveRef = useRef<(from: Key, to: Key, promotion?: PromotionPiece) => boolean>(() => false)
 
   // Play machine move at given index
   const playMachineMove = useCallback(
@@ -84,6 +89,17 @@ export function usePuzzle(options: UsePuzzleOptions) {
         const nextIndex = index + 1
         moveIndexRef.current = nextIndex
         setMoveIndex(nextIndex)
+
+        // Check for premove and execute it after a short delay
+        const storedPremove = premoveRef.current
+        if (storedPremove) {
+          premoveRef.current = null
+          setPremove(null)
+          // Execute premove after a brief delay for visual feedback
+          setTimeout(() => {
+            executeMoveRef.current(storedPremove[0], storedPremove[1])
+          }, 100)
+        }
       }
     },
     [moves]
@@ -125,6 +141,10 @@ export function usePuzzle(options: UsePuzzleOptions) {
       const userUci = `${from}${to}${promotion || ''}`
 
       console.log('User move:', userUci, 'Expected:', expectedUci, 'Index:', currentIndex)
+
+      // Clear any premove
+      premoveRef.current = null
+      setPremove(null)
 
       // Check if move matches expected
       if (userUci !== expectedUci) {
@@ -180,6 +200,23 @@ export function usePuzzle(options: UsePuzzleOptions) {
     [moves, onComplete, onFail, playMachineMove]
   )
 
+  // Keep executeMoveRef in sync
+  useEffect(() => {
+    executeMoveRef.current = executeMove
+  }, [executeMove])
+
+  // Handle premove set
+  const handlePremove = useCallback((orig: Key, dest: Key) => {
+    premoveRef.current = [orig, dest]
+    setPremove([orig, dest])
+  }, [])
+
+  // Handle premove unset
+  const handlePremoveUnset = useCallback(() => {
+    premoveRef.current = null
+    setPremove(null)
+  }, [])
+
   // Handle move from chessground
   const makeMove = useCallback(
     (from: Key, to: Key) => {
@@ -223,6 +260,8 @@ export function usePuzzle(options: UsePuzzleOptions) {
     setStatus('playing')
     moveIndexRef.current = 0
     setMoveIndex(0)
+    premoveRef.current = null
+    setPremove(null)
 
     // Play first move again after reset
     setTimeout(() => {
@@ -245,14 +284,20 @@ export function usePuzzle(options: UsePuzzleOptions) {
         showDests: true,
       },
       premovable: {
-        enabled: false,
+        enabled: status === 'playing',
+        showDests: true,
+        castle: true,
+        events: {
+          set: handlePremove,
+          unset: handlePremoveUnset,
+        },
       },
       animation: {
         enabled: true,
         duration: 200,
       },
     }),
-    [fen, orientation, turnColor, lastMove, inCheck, legalDests, status, userColor]
+    [fen, orientation, turnColor, lastMove, inCheck, legalDests, status, userColor, handlePremove, handlePremoveUnset]
   )
 
   return {
@@ -275,5 +320,7 @@ export function usePuzzle(options: UsePuzzleOptions) {
     pendingPromotion,
     completePromotion,
     cancelPromotion,
+    // Premove
+    premove,
   }
 }
