@@ -12,6 +12,7 @@
   "dependencies": {
     "@jackstenglein/chess": "^2.2.13",
     "@lichess-org/chessground": "^9.9.0",
+    "@radix-ui/react-slider": "^1.3.6",
     "@tanstack/react-router": "^1.139.14",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
