@@ -198,7 +198,8 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
   const executeMove = useCallback((from: Key, to: Key, promotion?: PromotionPiece) => {
     const chess = chessRef.current
     const currentIndex = moveIndexRef.current
-    const expectedUci = moves[currentIndex]
+    const currentMoves = movesRef.current
+    const expectedUci = currentMoves[currentIndex]
 
     if (!expectedUci) return false
 
@@ -248,7 +249,7 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
       moveIndexRef.current = nextIndex
       setMoveIndex(nextIndex)
 
-      if (nextIndex >= moves.length) {
+      if (nextIndex >= currentMoves.length) {
         setIsComplete(true)
         setStatus('line-complete')
         setCompletedLines(prev => new Set([...prev, currentLineIndex]))
@@ -269,7 +270,7 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
     }
 
     return false
-  }, [moves, playMachineMove, wrongAttempts])
+  }, [playMachineMove, wrongAttempts, currentLineIndex, completedLines.size, allLines.length, onLineComplete, onAllLinesComplete])
 
   // Handle move from chessground
   const makeMove = useCallback((from: Key, to: Key) => {
