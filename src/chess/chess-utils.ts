@@ -4,9 +4,10 @@ import type { Key } from '@lichess-org/chessground/types'
 
 /**
  * Create a new Chess instance with optional FEN or PGN
+ * Null moves (Z0) are disabled
  */
 export function createChess(fenOrPgn?: string): Chess {
-  return new Chess({ pgn: fenOrPgn })
+  return new Chess({ pgn: fenOrPgn, disableNullMoves: true })
 }
 
 /**
