@@ -304,7 +304,6 @@ function PracticeView({ study, onComplete }: PracticeViewProps) {
     turnColor,
   } = useOpeningPractice({
     study,
-    chessgroundRef,
     onLineComplete: () => {
       console.log('Line completed!')
     },

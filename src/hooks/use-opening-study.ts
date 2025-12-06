@@ -6,7 +6,6 @@ import type { Key } from '@lichess-org/chessground/types'
 import type { DrawShape } from '@lichess-org/chessground/draw'
 import type { OpeningStudy, OpeningMoveNode } from '@/types/opening'
 import type { PromotionPiece } from '@/components/promotion-dialog'
-import { getAllLines } from '@/lib/opening-utils'
 import {
   createChess,
   getTurnColor,
@@ -24,85 +23,128 @@ export interface UseOpeningStudyOptions {
   study: OpeningStudy
 }
 
+/**
+ * Get current path in tree format for MoveList component
+ */
+function getCurrentPathIds(moveIndex: number, line: OpeningMoveNode[]): string[] {
+  // Return node IDs up to current move index
+  return line.slice(0, moveIndex).map(node => node.id)
+}
+
+/**
+ * Extract all lines from opening tree as arrays of UCI moves
+ * Each line is a complete path from root to leaf
+ */
+function extractAllLines(nodes: OpeningMoveNode[]): string[][] {
+  const lines: string[][] = []
+
+  function traverse(node: OpeningMoveNode, currentLine: string[]) {
+    const newLine = [...currentLine, node.uci]
+
+    if (node.children.length === 0) {
+      // Leaf node - complete line
+      lines.push(newLine)
+    } else {
+      for (const child of node.children) {
+        traverse(child, newLine)
+      }
+    }
+  }
+
+  for (const root of nodes) {
+    traverse(root, [])
+  }
+
+  return lines
+}
+
+/**
+ * Get node info for a line (for display purposes)
+ */
+function getLineNodes(nodes: OpeningMoveNode[]): OpeningMoveNode[][] {
+  const lines: OpeningMoveNode[][] = []
+
+  function traverse(node: OpeningMoveNode, currentLine: OpeningMoveNode[]) {
+    const newLine = [...currentLine, node]
+
+    if (node.children.length === 0) {
+      lines.push(newLine)
+    } else {
+      for (const child of node.children) {
+        traverse(child, newLine)
+      }
+    }
+  }
+
+  for (const root of nodes) {
+    traverse(root, [])
+  }
+
+  return lines
+}
+
 export function useOpeningStudy(options: UseOpeningStudyOptions) {
   const { study } = options
 
-  // Get all possible lines from the study (use first line for study mode)
-  const allLines = useMemo(() => getAllLines(study.moves), [study.moves])
+  // Extract all lines as UCI move arrays (like puzzle moves)
+  const allLines = useMemo(() => extractAllLines(study.moves), [study.moves])
+  const allLineNodes = useMemo(() => getLineNodes(study.moves), [study.moves])
 
-  // Current line being studied (index in allLines)
+  // Current line index
   const [currentLineIndex, setCurrentLineIndex] = useState(0)
 
-  // Current move index within the line
-  const [moveIndex, setMoveIndex] = useState(0)
-  const moveIndexRef = useRef(0)
+  // Current line (array of UCI moves, just like puzzle)
+  const moves = useMemo(() => allLines[currentLineIndex] || [], [allLines, currentLineIndex])
+  const movesRef = useRef(moves)
+  movesRef.current = moves // Always keep ref in sync
+  const currentLineNodes = useMemo(() => allLineNodes[currentLineIndex] || [], [allLineNodes, currentLineIndex])
 
-  // Current line
-  const currentLine = useMemo(() => allLines[currentLineIndex] || [], [allLines, currentLineIndex])
-
-  // Chess instance
+  // Chess state (same as puzzle)
   const chessRef = useRef<Chess>(createChess(study.rootFen))
-
-  // State
   const [fen, setFen] = useState(() => toChessgroundFen(chessRef.current))
   const [turnColor, setTurnColor] = useState(() => getTurnColor(chessRef.current))
   const [lastMove, setLastMove] = useState<[Key, Key] | undefined>()
   const [inCheck, setInCheck] = useState(() => isCheck(chessRef.current))
   const [pendingPromotion, setPendingPromotion] = useState<PendingPromotion | null>(null)
+  const [moveIndex, setMoveIndex] = useState(0)
+  const moveIndexRef = useRef(0)
+  const [boardKey, setBoardKey] = useState(0)
   const [isComplete, setIsComplete] = useState(false)
 
-  // User color from study
+  // User color and orientation
   const userColor = study.color
   const orientation = userColor
 
-  // Check if it's the user's turn
+  // Parse UCI move
+  const parseUci = (uci: string) => {
+    const from = uci.slice(0, 2) as Square
+    const to = uci.slice(2, 4) as Square
+    const promotion = uci.length > 4 ? (uci[4] as PromotionPiece) : undefined
+    return { from, to, promotion }
+  }
+
+  // Check if it's user's turn
   const isUserTurn = useCallback(() => {
-    const currentTurn = getTurnColor(chessRef.current)
-    return currentTurn === userColor
+    return getTurnColor(chessRef.current) === userColor
   }, [userColor])
 
-  // Get the expected move at current index
-  const getExpectedMove = useCallback((): OpeningMoveNode | null => {
-    return currentLine[moveIndexRef.current] || null
-  }, [currentLine])
+  // Ref to store executeMove
+  const executeMoveRef = useRef<(from: Key, to: Key, promotion?: PromotionPiece) => boolean>(() => false)
 
-  // Get available moves (for arrows) - all moves that could be played from current position
-  const getAvailableMoves = useCallback((): OpeningMoveNode[] => {
-    // In study mode, we show arrows for expected moves
-    const expected = getExpectedMove()
-    return expected ? [expected] : []
-  }, [getExpectedMove])
-
-  // Generate arrows for available moves (study mode feature)
-  const moveArrows = useMemo((): DrawShape[] => {
-    // Only show arrows when it's user's turn
-    if (!isUserTurn()) return []
-
-    const availableMoves = getAvailableMoves()
-    return availableMoves.map((move) => {
-      const from = move.uci.slice(0, 2) as Key
-      const to = move.uci.slice(2, 4) as Key
-
-      return {
-        orig: from,
-        dest: to,
-        brush: 'green',
-      }
-    })
-  }, [fen, getAvailableMoves, isUserTurn]) // fen dependency to recalculate when position changes
-
-  // Play machine move
-  const playMachineMove = useCallback(() => {
-    const expectedMove = currentLine[moveIndexRef.current]
-    if (!expectedMove) return
-
+  // Play machine move at given index (same as puzzle)
+  const playMachineMove = useCallback((index: number) => {
     const chess = chessRef.current
-    const move = chess.move(expectedMove.san)
+    const currentMoves = movesRef.current
+    const uciMove = currentMoves[index]
+    if (!uciMove) return
+
+    const { from, to, promotion } = parseUci(uciMove)
+    const move = chess.move({ from, to, promotion })
 
     if (move) {
       setFen(toChessgroundFen(chess))
       setTurnColor(getTurnColor(chess))
-      setLastMove([move.from as Key, move.to as Key])
+      setLastMove([from as Key, to as Key])
 
       const checkAfterMove = isCheck(chess)
       setInCheck(checkAfterMove)
@@ -116,141 +158,124 @@ export function useOpeningStudy(options: UseOpeningStudyOptions) {
       })
       playSound(soundType)
 
-      const nextIndex = moveIndexRef.current + 1
+      const nextIndex = index + 1
       moveIndexRef.current = nextIndex
       setMoveIndex(nextIndex)
 
       // Check if line is complete
-      if (nextIndex >= currentLine.length) {
+      if (nextIndex >= currentMoves.length) {
         setIsComplete(true)
         return
       }
 
-      // If it's still not user's turn, play next machine move
-      if (!isUserTurn()) {
-        setTimeout(() => {
-          playMachineMove()
-        }, 400)
+      // If still not user's turn, play next machine move
+      if (getTurnColor(chess) !== userColor) {
+        setTimeout(() => playMachineMove(nextIndex), 400)
       }
     }
-  }, [currentLine, isUserTurn])
+  }, [userColor])
 
-  // Initialize: play opponent moves until it's user's turn
+  // Play first machine move if opponent starts
   useEffect(() => {
-    if (moveIndexRef.current === 0 && currentLine.length > 0 && !isComplete) {
-      // Small delay for better UX
+    if (moveIndexRef.current === 0 && moves.length > 0 && !isComplete) {
       const timeout = setTimeout(() => {
         if (!isUserTurn()) {
-          playMachineMove()
+          playMachineMove(0)
         }
       }, 500)
       return () => clearTimeout(timeout)
     }
-  }, [currentLineIndex]) // Reset when line changes
+  }, [currentLineIndex, moves, isComplete, isUserTurn, playMachineMove])
 
-  // Check if a move is a promotion
+  // Check if move is promotion
   const isPromotionMove = useCallback((from: Key, to: Key): boolean => {
-    const chess = chessRef.current
-    const piece = chess.get(from as Square)
-
+    const piece = chessRef.current.get(from as Square)
     if (!piece || piece.type !== 'p') return false
-
     const toRank = to[1]
-    const isWhitePromotion = piece.color === 'w' && toRank === '8'
-    const isBlackPromotion = piece.color === 'b' && toRank === '1'
-
-    return isWhitePromotion || isBlackPromotion
+    return (piece.color === 'w' && toRank === '8') || (piece.color === 'b' && toRank === '1')
   }, [])
 
-  // Execute user move
-  const executeMove = useCallback(
-    (from: Key, to: Key, promotion?: PromotionPiece) => {
-      const chess = chessRef.current
-      const expectedMove = getExpectedMove()
+  // Execute user move (same logic as puzzle - validate against expected)
+  const executeMove = useCallback((from: Key, to: Key, promotion?: PromotionPiece) => {
+    const chess = chessRef.current
+    const currentIndex = moveIndexRef.current
+    const expectedUci = moves[currentIndex]
 
-      if (!expectedMove) return false
+    if (!expectedUci) return false
 
-      // Build user's UCI string
-      const userUci = `${from}${to}${promotion || ''}`
-      const expectedUci = expectedMove.uci
+    // Build user's UCI string
+    const userUci = `${from}${to}${promotion || ''}`
 
-      // Check if move matches expected
-      if (userUci !== expectedUci) {
-        // In study mode, we don't allow wrong moves
-        return false
-      }
+    // In study mode, only allow the expected move
+    if (userUci !== expectedUci) {
+      return false
+    }
 
-      // Correct move!
-      const move = chess.move({ from: from as Square, to: to as Square, promotion })
+    // Correct move!
+    const move = chess.move({ from: from as Square, to: to as Square, promotion })
 
-      if (move) {
-        setFen(toChessgroundFen(chess))
-        setTurnColor(getTurnColor(chess))
-        setLastMove([from, to])
+    if (move) {
+      setFen(toChessgroundFen(chess))
+      setTurnColor(getTurnColor(chess))
+      setLastMove([from, to])
 
-        const checkAfterMove = isCheck(chess)
-        setInCheck(checkAfterMove)
+      const checkAfterMove = isCheck(chess)
+      setInCheck(checkAfterMove)
 
-        // Play sound
-        const soundType = getMoveSound({
-          isCapture: !!move.captured,
-          isCastle: move.san === 'O-O' || move.san === 'O-O-O',
-          isCheck: checkAfterMove,
-          isPromotion: !!move.promotion,
-        })
-        playSound(soundType)
+      // Play sound
+      const soundType = getMoveSound({
+        isCapture: !!move.captured,
+        isCastle: move.san === 'O-O' || move.san === 'O-O-O',
+        isCheck: checkAfterMove,
+        isPromotion: !!move.promotion,
+      })
+      playSound(soundType)
 
-        const nextIndex = moveIndexRef.current + 1
-        moveIndexRef.current = nextIndex
-        setMoveIndex(nextIndex)
+      const nextIndex = currentIndex + 1
+      moveIndexRef.current = nextIndex
+      setMoveIndex(nextIndex)
 
-        // Check if line is complete
-        if (nextIndex >= currentLine.length) {
-          setIsComplete(true)
-          return true
-        }
-
-        // Play machine's next move after a delay
-        setTimeout(() => {
-          playMachineMove()
-        }, 400)
-
+      // Check if line is complete
+      if (nextIndex >= moves.length) {
+        setIsComplete(true)
         return true
       }
 
-      return false
-    },
-    [getExpectedMove, currentLine, playMachineMove]
-  )
+      // Play machine's next move
+      setTimeout(() => playMachineMove(nextIndex), 400)
+
+      return true
+    }
+
+    return false
+  }, [moves, playMachineMove])
+
+  // Keep ref in sync
+  useEffect(() => {
+    executeMoveRef.current = executeMove
+  }, [executeMove])
 
   // Handle move from chessground
-  const makeMove = useCallback(
-    (from: Key, to: Key) => {
-      if (isComplete) return false
+  const makeMove = useCallback((from: Key, to: Key) => {
+    if (isComplete) return false
 
-      if (isPromotionMove(from, to)) {
-        setPendingPromotion({ from, to })
-        return false
-      }
+    if (isPromotionMove(from, to)) {
+      setPendingPromotion({ from, to })
+      setBoardKey(k => k + 1)
+      return false
+    }
 
-      return executeMove(from, to)
-    },
-    [isComplete, isPromotionMove, executeMove]
-  )
+    return executeMove(from, to)
+  }, [isComplete, isPromotionMove, executeMove])
 
-  // Complete a pending promotion
-  const completePromotion = useCallback(
-    (piece: PromotionPiece) => {
-      if (!pendingPromotion) return
+  // Complete promotion
+  const completePromotion = useCallback((piece: PromotionPiece) => {
+    if (!pendingPromotion) return
+    executeMove(pendingPromotion.from, pendingPromotion.to, piece)
+    setPendingPromotion(null)
+  }, [pendingPromotion, executeMove])
 
-      const { from, to } = pendingPromotion
-      executeMove(from, to, piece)
-      setPendingPromotion(null)
-    },
-    [pendingPromotion, executeMove]
-  )
-
-  // Cancel a pending promotion
+  // Cancel promotion
   const cancelPromotion = useCallback(() => {
     setPendingPromotion(null)
     setFen(toChessgroundFen(chessRef.current))
@@ -271,35 +296,10 @@ export function useOpeningStudy(options: UseOpeningStudyOptions) {
     // Play first machine move if needed
     setTimeout(() => {
       if (!isUserTurn()) {
-        playMachineMove()
+        playMachineMove(0)
       }
     }, 500)
   }, [study.rootFen, isUserTurn, playMachineMove])
-
-  // Go to end (play all moves)
-  const goToEnd = useCallback(() => {
-    chessRef.current = createChess(study.rootFen)
-
-    // Play all moves in the line
-    for (const moveNode of currentLine) {
-      chessRef.current.move(moveNode.san)
-    }
-
-    setFen(toChessgroundFen(chessRef.current))
-    setTurnColor(getTurnColor(chessRef.current))
-    setInCheck(isCheck(chessRef.current))
-    setIsComplete(true)
-    moveIndexRef.current = currentLine.length
-    setMoveIndex(currentLine.length)
-
-    // Set last move highlight
-    if (currentLine.length > 0) {
-      const lastMoveNode = currentLine[currentLine.length - 1]
-      const from = lastMoveNode.uci.slice(0, 2) as Key
-      const to = lastMoveNode.uci.slice(2, 4) as Key
-      setLastMove([from, to])
-    }
-  }, [study.rootFen, currentLine])
 
   // Select a specific line
   const selectLine = useCallback((lineIndex: number) => {
@@ -318,62 +318,91 @@ export function useOpeningStudy(options: UseOpeningStudyOptions) {
     setCurrentLineIndex(lineIndex)
   }, [allLines.length, study.rootFen])
 
-  // Move info for UI
-  const moveInfo = useMemo(() => ({
-    current: moveIndex,
-    total: currentLine.length,
-    isMainLine: true,
-  }), [moveIndex, currentLine.length])
+  // Go to next line
+  const nextLine = useCallback(() => {
+    if (currentLineIndex < allLines.length - 1) {
+      selectLine(currentLineIndex + 1)
+    }
+  }, [currentLineIndex, allLines.length, selectLine])
+
+  // Go to previous line
+  const previousLine = useCallback(() => {
+    if (currentLineIndex > 0) {
+      selectLine(currentLineIndex - 1)
+    }
+  }, [currentLineIndex, selectLine])
+
+  // Arrow showing expected move (like puzzle hint)
+  const moveArrows = useMemo((): DrawShape[] => {
+    if (isComplete || !isUserTurn()) return []
+
+    const expectedUci = moves[moveIndexRef.current]
+    if (!expectedUci) return []
+
+    const from = expectedUci.slice(0, 2) as Key
+    const to = expectedUci.slice(2, 4) as Key
+
+    return [{
+      orig: from,
+      dest: to,
+      brush: 'green',
+    }]
+  }, [moves, moveIndex, isComplete, isUserTurn])
 
   // Study destinations - only allow the expected move
   const studyDests = useMemo(() => {
-    const expectedMove = getExpectedMove()
-    if (!expectedMove || !isUserTurn()) return new Map<Key, Key[]>()
+    if (isComplete || !isUserTurn()) return new Map<Key, Key[]>()
 
-    const from = expectedMove.uci.slice(0, 2) as Key
-    const to = expectedMove.uci.slice(2, 4) as Key
+    const expectedUci = moves[moveIndexRef.current]
+    if (!expectedUci) return new Map<Key, Key[]>()
+
+    const from = expectedUci.slice(0, 2) as Key
+    const to = expectedUci.slice(2, 4) as Key
 
     return new Map<Key, Key[]>([[from, [to]]])
-  }, [fen, getExpectedMove, isUserTurn])
+  }, [moves, moveIndex, isComplete, isUserTurn])
 
-  // Build Chessground config
-  const chessgroundConfig: Config = useMemo(
-    () => ({
-      fen,
-      orientation,
-      turnColor,
-      lastMove,
-      check: inCheck,
-      movable: {
-        free: false,
-        color: !isComplete && isUserTurn() ? userColor : undefined,
-        dests: !isComplete && isUserTurn() ? studyDests : new Map(),
-        showDests: true,
-      },
-      premovable: {
-        enabled: false,
-      },
-      drawable: {
-        enabled: true,
-        autoShapes: moveArrows,
-      },
-      animation: {
-        enabled: true,
-        duration: 200,
-      },
-    }),
-    [fen, orientation, turnColor, lastMove, inCheck, studyDests, moveArrows, isComplete, isUserTurn, userColor]
-  )
-
-  // Current comment (from expected move)
+  // Current comment
   const currentComment = useMemo(() => {
     if (moveIndex === 0) return null
-    const prevMove = currentLine[moveIndex - 1]
-    return prevMove?.comment || null
-  }, [currentLine, moveIndex])
+    const prevNode = currentLineNodes[moveIndex - 1]
+    return prevNode?.comment || null
+  }, [currentLineNodes, moveIndex])
+
+  // Available moves at current position (for determining if complete)
+  const availableMoves = useMemo(() => {
+    if (moveIndex >= moves.length) return []
+    return [moves[moveIndex]] // Just one expected move
+  }, [moves, moveIndex])
+
+  // Current path (for MoveList highlighting)
+  const currentPath = useMemo(() => {
+    return getCurrentPathIds(moveIndex, currentLineNodes)
+  }, [moveIndex, currentLineNodes])
+
+  // Chessground config
+  const chessgroundConfig: Config = useMemo(() => ({
+    fen,
+    orientation,
+    turnColor,
+    lastMove,
+    check: inCheck,
+    movable: {
+      free: false,
+      color: !isComplete && isUserTurn() ? userColor : undefined,
+      dests: !isComplete && isUserTurn() ? studyDests : new Map(),
+      showDests: true,
+    },
+    premovable: { enabled: false },
+    drawable: {
+      enabled: true,
+      autoShapes: moveArrows,
+    },
+    animation: { enabled: true, duration: 200 },
+  }), [fen, orientation, turnColor, lastMove, inCheck, studyDests, moveArrows, isComplete, isUserTurn, userColor])
 
   return {
-    // Position state
+    // State
     fen,
     turnColor,
     lastMove,
@@ -383,20 +412,28 @@ export function useOpeningStudy(options: UseOpeningStudyOptions) {
 
     // Navigation
     goToStart,
-    goToEnd,
-    selectLine,
-    goToMainLine: goToStart, // Alias for compatibility
+    goToEnd: goToStart, // Not implemented, just restart
+    goToPreviousMove: goToStart, // Just restart for simplicity
+    goToNode: () => { }, // Not used
+    goToMainLine: goToStart,
 
     // Move info
-    moveInfo,
+    moveInfo: {
+      current: moveIndex,
+      total: moves.length,
+      isMainLine: currentLineIndex === 0,
+    },
     currentComment,
-    availableMoves: getAvailableMoves(),
-    currentPath: [], // For compatibility
+    availableMoves,
+    currentPath,
 
     // Line info
-    currentLine,
+    currentLine: currentLineNodes,
     currentLineIndex,
     allLines,
+    selectLine,
+    nextLine,
+    previousLine,
 
     // Actions
     makeMove,
@@ -409,10 +446,9 @@ export function useOpeningStudy(options: UseOpeningStudyOptions) {
     // Config
     chessgroundConfig,
     moveArrows,
+    boardKey,
 
-    // For UI compatibility
+    // UI helpers
     isUserTurn: isUserTurn(),
-    goToPreviousMove: goToStart, // Simplified - just restart
-    goToNode: () => { }, // Not used in this simplified version
   }
 }

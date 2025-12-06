@@ -49,6 +49,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
 
   // Chess state
   const chessRef = useRef<Chess>(createChess(INITIAL_FEN))
+  const [fen, setFen] = useState(INITIAL_FEN)
   const [lastMove, setLastMove] = useState<[Key, Key] | undefined>()
   const [pendingPromotion, setPendingPromotion] = useState<PendingPromotion | null>(null)
 
@@ -59,12 +60,10 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
   // Get current node
   const currentNode = currentPath.length > 0 ? getNodeAtPath(moves, currentPath) : null
 
-  // Get current FEN
-  const currentFen = currentNode?.fen || INITIAL_FEN
-
   // Sync chess instance with current position
   const syncChess = useCallback((targetFen: string) => {
     chessRef.current = createChess(targetFen)
+    setFen(targetFen)
   }, [])
 
   // Legal destinations
@@ -81,6 +80,9 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
 
     const newFen = toChessgroundFen(chess)
     const uci = `${from}${to}${promotion || ''}`
+
+    // Update FEN state immediately so the board reflects the new position
+    setFen(newFen)
 
     // Use ref to get the latest path (avoids stale closure issues)
     const latestPath = currentPathRef.current
@@ -292,7 +294,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
 
   // Chessground config
   const config: Config = {
-    fen: currentFen,
+    fen,
     orientation: color,
     turnColor,
     lastMove,
@@ -305,11 +307,6 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
     },
     premovable: { enabled: false },
     animation: { enabled: true, duration: 200 },
-  }
-
-  // Sync chess when currentFen changes
-  if (chessRef.current.fen() !== currentFen) {
-    chessRef.current = createChess(currentFen)
   }
 
   return (
