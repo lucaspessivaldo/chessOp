@@ -86,6 +86,8 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
 
   // Current line index
   const [currentLineIndex, setCurrentLineIndex] = useState(0)
+  const currentLineIndexRef = useRef(currentLineIndex)
+  currentLineIndexRef.current = currentLineIndex // Always keep ref in sync
 
   // Current line (array of UCI moves)
   const moves = useMemo(() => allLines[currentLineIndex] || [], [allLines, currentLineIndex])
@@ -252,7 +254,7 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
       if (nextIndex >= currentMoves.length) {
         setIsComplete(true)
         setStatus('line-complete')
-        setCompletedLines(prev => new Set([...prev, currentLineIndex]))
+        setCompletedLines(prev => new Set([...prev, currentLineIndexRef.current]))
         onLineComplete?.()
 
         // Check if all lines are complete

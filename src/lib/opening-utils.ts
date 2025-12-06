@@ -1,6 +1,6 @@
 import { Chess } from '@jackstenglein/chess'
 import type { Move as ChessMove } from '@jackstenglein/chess'
-import type { OpeningMoveNode, OpeningStudy, PredefinedOpening } from '@/types/opening'
+import type { OpeningMoveNode, OpeningStudy } from '@/types/opening'
 
 const STORAGE_KEY = 'chessop-openings'
 
@@ -397,24 +397,6 @@ export function deleteNode(nodes: OpeningMoveNode[], nodeId: string): OpeningMov
   }
 
   return remove(nodes)
-}
-
-/**
- * Convert a predefined opening to an OpeningStudy
- */
-export function predefinedToStudy(predefined: PredefinedOpening): OpeningStudy {
-  const moves = parsePgnToTree(predefined.pgn)
-
-  return {
-    id: predefined.id,
-    name: predefined.name,
-    description: predefined.description,
-    color: predefined.color,
-    rootFen: INITIAL_FEN,
-    moves,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  }
 }
 
 /**
