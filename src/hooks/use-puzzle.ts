@@ -44,7 +44,10 @@ export function usePuzzle(options: UsePuzzleOptions) {
   const moveIndexRef = useRef(0)
   const [premove, setPremove] = useState<[Key, Key] | null>(null)
   const premoveRef = useRef<[Key, Key] | null>(null)
-  const [showHint, setShowHint] = useState(false)
+  // Store the move index for which hint was requested (null = no hint)
+  const [hintForMoveIndex, setHintForMoveIndex] = useState<number | null>(null)
+  // Key to force chessground re-render when needed
+  const [boardKey, setBoardKey] = useState(0)
 
   const moves = useMemo(() => parseMoves(puzzle.Moves), [puzzle.Moves])
   const userColor = useMemo(() => getUserColor(puzzle.FEN), [puzzle.FEN])
@@ -267,6 +270,8 @@ export function usePuzzle(options: UsePuzzleOptions) {
 
       if (isPromotionMove(from, to)) {
         setPendingPromotion({ from, to })
+        // Force chessground to re-mount with correct state by changing the key
+        setBoardKey((k) => k + 1)
         return false
       }
 
@@ -305,6 +310,7 @@ export function usePuzzle(options: UsePuzzleOptions) {
     setMoveIndex(0)
     premoveRef.current = null
     setPremove(null)
+    setHintForMoveIndex(null)
 
     // Play first move again after reset
     setTimeout(() => {
@@ -312,11 +318,14 @@ export function usePuzzle(options: UsePuzzleOptions) {
     }, 500)
   }, [puzzle.FEN, playMachineMove])
 
-  // Get the hint arrow shape for the current expected move
+  // Get the hint arrow shape - only shows if hint was requested for current position
   const hintArrow: DrawShape[] = useMemo(() => {
-    if (!showHint || status !== 'playing') return []
-    const currentIndex = moveIndexRef.current
-    const expectedUci = moves[currentIndex]
+    // Only show hint if it was requested for this exact move index
+    if (hintForMoveIndex === null || hintForMoveIndex !== moveIndexRef.current || status !== 'playing') {
+      return []
+    }
+
+    const expectedUci = moves[hintForMoveIndex]
     if (!expectedUci) return []
 
     const from = expectedUci.slice(0, 2) as Key
@@ -327,12 +336,15 @@ export function usePuzzle(options: UsePuzzleOptions) {
       dest: to,
       brush: 'green',
     }]
-  }, [showHint, status, moves, fen]) // fen dependency to update after moves
+  }, [hintForMoveIndex, status, moves, moveIndex]) // moveIndex dependency to clear when position changes
 
-  // Toggle hint visibility
-  const toggleHint = useCallback(() => {
-    setShowHint((prev) => !prev)
+  // Request hint for current position
+  const requestHint = useCallback(() => {
+    setHintForMoveIndex(moveIndexRef.current)
   }, [])
+
+  // Computed value to check if hint is currently showing
+  const showHint = hintForMoveIndex !== null && hintForMoveIndex === moveIndexRef.current && status === 'playing'
 
   // Build Chessground config
   const chessgroundConfig: Config = useMemo(
@@ -393,6 +405,8 @@ export function usePuzzle(options: UsePuzzleOptions) {
     premove,
     // Hint
     showHint,
-    toggleHint,
+    requestHint,
+    // Board key for forcing re-render
+    boardKey,
   }
 }

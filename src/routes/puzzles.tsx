@@ -170,7 +170,8 @@ function PuzzleView({
     cancelPromotion,
     turnColor,
     showHint,
-    toggleHint,
+    requestHint,
+    boardKey,
   } = usePuzzle({
     puzzle,
     chessgroundRef,
@@ -196,7 +197,7 @@ function PuzzleView({
       <div className="mx-auto flex items-center gap-8">
         {/* Chessboard */}
         <div className="h-[600px] w-[600px] shrink-0">
-          <Chessground ref={chessgroundRef} config={chessgroundConfig} onMove={makeMove} />
+          <Chessground key={boardKey} ref={chessgroundRef} config={chessgroundConfig} onMove={makeMove} />
         </div>
 
         {/* Sidebar */}
@@ -251,8 +252,8 @@ function PuzzleView({
                   <button
                     onClick={() => onThemeFilterChange('all')}
                     className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${themeFilter === 'all'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-zinc-600 text-zinc-300 hover:bg-zinc-500'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-zinc-600 text-zinc-300 hover:bg-zinc-500'
                       }`}
                   >
                     All
@@ -260,8 +261,8 @@ function PuzzleView({
                   <button
                     onClick={() => onThemeFilterChange('promotion')}
                     className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${themeFilter === 'promotion'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-zinc-600 text-zinc-300 hover:bg-zinc-500'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-zinc-600 text-zinc-300 hover:bg-zinc-500'
                       }`}
                   >
                     Promotion
@@ -269,8 +270,8 @@ function PuzzleView({
                   <button
                     onClick={() => onThemeFilterChange('mate')}
                     className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${themeFilter === 'mate'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-zinc-600 text-zinc-300 hover:bg-zinc-500'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-zinc-600 text-zinc-300 hover:bg-zinc-500'
                       }`}
                   >
                     Mate in 1-2
@@ -341,7 +342,7 @@ function PuzzleView({
               </button>
               {status === 'playing' && (
                 <button
-                  onClick={toggleHint}
+                  onClick={requestHint}
                   className={`flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${showHint
                     ? 'bg-yellow-600 text-white hover:bg-yellow-500'
                     : 'bg-zinc-700 text-white hover:bg-zinc-600'
