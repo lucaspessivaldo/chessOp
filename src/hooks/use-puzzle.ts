@@ -1,14 +1,17 @@
-import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
+import { useState, useCallback, useMemo, useRef, useEffect, type RefObject } from 'react'
 import { Chess } from '@jackstenglein/chess'
 import type { Square } from '@jackstenglein/chess'
 import type { Config } from '@lichess-org/chessground/config'
 import type { Key } from '@lichess-org/chessground/types'
+import type { DrawShape } from '@lichess-org/chessground/draw'
+import type { ChessgroundRef } from '@/components/chessground'
 import {
   createChess,
   getLegalDests,
   getTurnColor,
   toChessgroundFen,
   isCheck,
+  isCheckmate,
 } from '@/chess/chess-utils'
 import { playSound, getMoveSound } from '@/lib/sounds'
 import { parseMoves, getUserColor } from '@/lib/puzzle-utils'
@@ -24,10 +27,11 @@ export interface UsePuzzleOptions {
   puzzle: Puzzle
   onComplete?: () => void
   onFail?: () => void
+  chessgroundRef?: RefObject<ChessgroundRef | null>
 }
 
 export function usePuzzle(options: UsePuzzleOptions) {
-  const { puzzle, onComplete, onFail } = options
+  const { puzzle, onComplete, onFail, chessgroundRef } = options
 
   const chessRef = useRef<Chess>(createChess(puzzle.FEN))
   const [fen, setFen] = useState(() => toChessgroundFen(chessRef.current))
@@ -40,6 +44,7 @@ export function usePuzzle(options: UsePuzzleOptions) {
   const moveIndexRef = useRef(0)
   const [premove, setPremove] = useState<[Key, Key] | null>(null)
   const premoveRef = useRef<[Key, Key] | null>(null)
+  const [showHint, setShowHint] = useState(false)
 
   const moves = useMemo(() => parseMoves(puzzle.Moves), [puzzle.Moves])
   const userColor = useMemo(() => getUserColor(puzzle.FEN), [puzzle.FEN])
@@ -105,6 +110,16 @@ export function usePuzzle(options: UsePuzzleOptions) {
     [moves]
   )
 
+  // Cancel premove when status changes to failed or completed
+  useEffect(() => {
+    if (status === 'failed' || status === 'completed') {
+      premoveRef.current = null
+      setPremove(null)
+      // Clear the visual premove highlight via chessground API
+      chessgroundRef?.current?.api?.cancelPremove()
+    }
+  }, [status, chessgroundRef])
+
   // Play first move (machine's move) after mount
   useEffect(() => {
     if (moveIndexRef.current === 0 && moves.length > 0) {
@@ -146,56 +161,84 @@ export function usePuzzle(options: UsePuzzleOptions) {
       premoveRef.current = null
       setPremove(null)
 
-      // Check if move matches expected
-      if (userUci !== expectedUci) {
+      // First validate the move is legal
+      const validatedMove = chess.validateMove({ from: from as Square, to: to as Square, promotion })
+
+      if (!validatedMove) {
+        // Illegal move
         setStatus('failed')
         onFail?.()
         return false
       }
 
-      // Execute the move
+      // Now make the move to check if it results in checkmate
       const move = chess.move({ from: from as Square, to: to as Square, promotion })
 
-      if (move) {
-        setFen(toChessgroundFen(chess))
-        setTurnColor(getTurnColor(chess))
-        setLastMove([from, to])
+      if (!move) {
+        setStatus('failed')
+        onFail?.()
+        return false
+      }
 
-        const checkAfterMove = isCheck(chess)
-        setInCheck(checkAfterMove)
+      // Check if this move results in checkmate - if so, it's always correct!
+      const isMate = isCheckmate(chess)
 
-        // Play sound
-        const soundType = getMoveSound({
-          isCapture: !!move.captured,
-          isCastle: move.san === 'O-O' || move.san === 'O-O-O',
-          isCheck: checkAfterMove,
-          isPromotion: !!move.promotion,
-        })
-        playSound(soundType)
+      // If not checkmate, verify it matches the expected move
+      if (!isMate && userUci !== expectedUci) {
+        // Delete the wrong move and go back
+        chess.delete()
+        chess.seek(chess.previousMove())
+        setStatus('failed')
+        onFail?.()
+        return false
+      }
 
-        const nextMoveIndex = currentIndex + 1
+      // Move is correct (either matches expected or is checkmate)
+      setFen(toChessgroundFen(chess))
+      setTurnColor(getTurnColor(chess))
+      setLastMove([from, to])
 
-        // Check if puzzle is complete
-        if (nextMoveIndex >= moves.length) {
-          setStatus('completed')
-          moveIndexRef.current = nextMoveIndex
-          setMoveIndex(nextMoveIndex)
-          onComplete?.()
-          return true
-        }
+      const checkAfterMove = isCheck(chess)
+      setInCheck(checkAfterMove)
 
-        moveIndexRef.current = nextMoveIndex
-        setMoveIndex(nextMoveIndex)
+      // Play sound
+      const soundType = getMoveSound({
+        isCapture: !!move.captured,
+        isCastle: move.san === 'O-O' || move.san === 'O-O-O',
+        isCheck: checkAfterMove,
+        isPromotion: !!move.promotion,
+      })
+      playSound(soundType)
 
-        // Play machine's next move after a delay
-        setTimeout(() => {
-          playMachineMove(nextMoveIndex)
-        }, 500)
-
+      // If checkmate, puzzle is complete immediately
+      if (isMate) {
+        setStatus('completed')
+        moveIndexRef.current = moves.length
+        setMoveIndex(moves.length)
+        onComplete?.()
         return true
       }
 
-      return false
+      const nextMoveIndex = currentIndex + 1
+
+      // Check if puzzle is complete
+      if (nextMoveIndex >= moves.length) {
+        setStatus('completed')
+        moveIndexRef.current = nextMoveIndex
+        setMoveIndex(nextMoveIndex)
+        onComplete?.()
+        return true
+      }
+
+      moveIndexRef.current = nextMoveIndex
+      setMoveIndex(nextMoveIndex)
+
+      // Play machine's next move after a delay
+      setTimeout(() => {
+        playMachineMove(nextMoveIndex)
+      }, 500)
+
+      return true
     },
     [moves, onComplete, onFail, playMachineMove]
   )
@@ -269,6 +312,28 @@ export function usePuzzle(options: UsePuzzleOptions) {
     }, 500)
   }, [puzzle.FEN, playMachineMove])
 
+  // Get the hint arrow shape for the current expected move
+  const hintArrow: DrawShape[] = useMemo(() => {
+    if (!showHint || status !== 'playing') return []
+    const currentIndex = moveIndexRef.current
+    const expectedUci = moves[currentIndex]
+    if (!expectedUci) return []
+
+    const from = expectedUci.slice(0, 2) as Key
+    const to = expectedUci.slice(2, 4) as Key
+
+    return [{
+      orig: from,
+      dest: to,
+      brush: 'green',
+    }]
+  }, [showHint, status, moves, fen]) // fen dependency to update after moves
+
+  // Toggle hint visibility
+  const toggleHint = useCallback(() => {
+    setShowHint((prev) => !prev)
+  }, [])
+
   // Build Chessground config
   const chessgroundConfig: Config = useMemo(
     () => ({
@@ -292,12 +357,16 @@ export function usePuzzle(options: UsePuzzleOptions) {
           unset: handlePremoveUnset,
         },
       },
+      drawable: {
+        enabled: true,
+        autoShapes: hintArrow,
+      },
       animation: {
         enabled: true,
         duration: 200,
       },
     }),
-    [fen, orientation, turnColor, lastMove, inCheck, legalDests, status, userColor, handlePremove, handlePremoveUnset]
+    [fen, orientation, turnColor, lastMove, inCheck, legalDests, status, userColor, handlePremove, handlePremoveUnset, hintArrow]
   )
 
   return {
@@ -322,5 +391,8 @@ export function usePuzzle(options: UsePuzzleOptions) {
     cancelPromotion,
     // Premove
     premove,
+    // Hint
+    showHint,
+    toggleHint,
   }
 }

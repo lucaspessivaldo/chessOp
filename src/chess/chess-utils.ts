@@ -58,3 +58,10 @@ export function isGameOver(chess: Chess): boolean {
 export function isCheck(chess: Chess): boolean {
   return chess.isCheck()
 }
+
+/**
+ * Check if the current position is checkmate
+ */
+export function isCheckmate(chess: Chess): boolean {
+  return chess.isCheckmate()
+}

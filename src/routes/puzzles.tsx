@@ -1,11 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState, useEffect, useMemo } from 'react'
-import { Chessground } from '@/components/chessground'
+import { useState, useEffect, useMemo, useRef } from 'react'
+import { Chessground, type ChessgroundRef } from '@/components/chessground'
 import { usePuzzle } from '@/hooks/use-puzzle'
 import { PromotionDialog } from '@/components/promotion-dialog'
 import { loadPuzzles } from '@/lib/puzzle-utils'
 import type { Puzzle } from '@/types/puzzle'
-import { ChevronLeft, ChevronRight, RotateCcw, CheckCircle, XCircle, SlidersHorizontal } from 'lucide-react'
+import { ChevronLeft, ChevronRight, RotateCcw, CheckCircle, XCircle, SlidersHorizontal, Lightbulb } from 'lucide-react'
 import { Slider } from '@/components/ui/slider'
 
 export const Route = createFileRoute('/puzzles')({
@@ -15,12 +15,15 @@ export const Route = createFileRoute('/puzzles')({
 const MIN_RATING = 400
 const MAX_RATING = 3000
 
+type ThemeFilter = 'all' | 'promotion' | 'mate'
+
 function PuzzlesPage() {
   const [allPuzzles, setAllPuzzles] = useState<Puzzle[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [loading, setLoading] = useState(true)
   const [ratingRange, setRatingRange] = useState<[number, number]>([800, 2000])
   const [showFilters, setShowFilters] = useState(false)
+  const [themeFilter, setThemeFilter] = useState<ThemeFilter>('all')
 
   useEffect(() => {
     loadPuzzles().then((data) => {
@@ -29,11 +32,26 @@ function PuzzlesPage() {
     })
   }, [])
 
-  // Filter and shuffle puzzles by rating range
+  // Filter and shuffle puzzles by rating range and theme
   const puzzles = useMemo(() => {
     const filtered = allPuzzles.filter((puzzle) => {
       const rating = parseInt(puzzle.Rating, 10)
-      return rating >= ratingRange[0] && rating <= ratingRange[1]
+      const inRatingRange = rating >= ratingRange[0] && rating <= ratingRange[1]
+
+      if (!inRatingRange) return false
+
+      // Theme filter
+      if (themeFilter === 'all') return true
+
+      const themes = puzzle.Themes?.toLowerCase() || ''
+      if (themeFilter === 'promotion') {
+        return themes.includes('promotion')
+      }
+      if (themeFilter === 'mate') {
+        return themes.includes('matein1') || themes.includes('matein2')
+      }
+
+      return true
     })
     // Shuffle using Fisher-Yates algorithm
     const shuffled = [...filtered]
@@ -42,12 +60,12 @@ function PuzzlesPage() {
         ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
     }
     return shuffled
-  }, [allPuzzles, ratingRange])
+  }, [allPuzzles, ratingRange, themeFilter])
 
   // Reset to first puzzle when filters change
   useEffect(() => {
     setCurrentIndex(0)
-  }, [ratingRange])
+  }, [ratingRange, themeFilter])
 
   const goToNext = () => {
     if (currentIndex < puzzles.length - 1) {
@@ -73,9 +91,12 @@ function PuzzlesPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-zinc-900">
         <div className="text-center">
-          <p className="text-white mb-4">No puzzles found in rating range {ratingRange[0]} - {ratingRange[1]}</p>
+          <p className="text-white mb-4">No puzzles found with current filters</p>
           <button
-            onClick={() => setRatingRange([MIN_RATING, MAX_RATING])}
+            onClick={() => {
+              setRatingRange([MIN_RATING, MAX_RATING])
+              setThemeFilter('all')
+            }}
             className="rounded-md bg-zinc-700 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
           >
             Reset Filters
@@ -99,6 +120,8 @@ function PuzzlesPage() {
       onRatingRangeChange={setRatingRange}
       showFilters={showFilters}
       onToggleFilters={() => setShowFilters(!showFilters)}
+      themeFilter={themeFilter}
+      onThemeFilterChange={setThemeFilter}
     />
   )
 }
@@ -115,6 +138,8 @@ interface PuzzleViewProps {
   onRatingRangeChange: (range: [number, number]) => void
   showFilters: boolean
   onToggleFilters: () => void
+  themeFilter: ThemeFilter
+  onThemeFilterChange: (filter: ThemeFilter) => void
 }
 
 function PuzzleView({
@@ -129,7 +154,11 @@ function PuzzleView({
   onRatingRangeChange,
   showFilters,
   onToggleFilters,
+  themeFilter,
+  onThemeFilterChange,
 }: PuzzleViewProps) {
+  const chessgroundRef = useRef<ChessgroundRef>(null)
+
   const {
     chessgroundConfig,
     makeMove,
@@ -140,8 +169,11 @@ function PuzzleView({
     completePromotion,
     cancelPromotion,
     turnColor,
+    showHint,
+    toggleHint,
   } = usePuzzle({
     puzzle,
+    chessgroundRef,
     onComplete: () => {
       console.log('Puzzle completed!')
     },
@@ -164,7 +196,7 @@ function PuzzleView({
       <div className="mx-auto flex items-center gap-8">
         {/* Chessboard */}
         <div className="h-[600px] w-[600px] shrink-0">
-          <Chessground config={chessgroundConfig} onMove={makeMove} />
+          <Chessground ref={chessgroundRef} config={chessgroundConfig} onMove={makeMove} />
         </div>
 
         {/* Sidebar */}
@@ -189,24 +221,61 @@ function PuzzleView({
 
           {/* Rating Filter */}
           {showFilters && (
-            <div className="mb-6 rounded-md bg-zinc-700/50 p-4">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-medium text-zinc-300">Rating Range</span>
-                <span className="text-sm text-zinc-400">
-                  {ratingRange[0]} - {ratingRange[1]}
-                </span>
+            <div className="mb-6 rounded-md bg-zinc-700/50 p-4 space-y-4">
+              {/* Rating Range */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium text-zinc-300">Rating Range</span>
+                  <span className="text-sm text-zinc-400">
+                    {ratingRange[0]} - {ratingRange[1]}
+                  </span>
+                </div>
+                <Slider
+                  value={ratingRange}
+                  onValueChange={(value) => onRatingRangeChange(value as [number, number])}
+                  min={MIN_RATING}
+                  max={MAX_RATING}
+                  step={50}
+                  className="w-full"
+                />
+                <div className="flex justify-between mt-2 text-xs text-zinc-500">
+                  <span>{MIN_RATING}</span>
+                  <span>{MAX_RATING}</span>
+                </div>
               </div>
-              <Slider
-                value={ratingRange}
-                onValueChange={(value) => onRatingRangeChange(value as [number, number])}
-                min={MIN_RATING}
-                max={MAX_RATING}
-                step={50}
-                className="w-full"
-              />
-              <div className="flex justify-between mt-2 text-xs text-zinc-500">
-                <span>{MIN_RATING}</span>
-                <span>{MAX_RATING}</span>
+
+              {/* Theme Filter */}
+              <div>
+                <span className="text-sm font-medium text-zinc-300 block mb-3">Theme</span>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => onThemeFilterChange('all')}
+                    className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${themeFilter === 'all'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-zinc-600 text-zinc-300 hover:bg-zinc-500'
+                      }`}
+                  >
+                    All
+                  </button>
+                  <button
+                    onClick={() => onThemeFilterChange('promotion')}
+                    className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${themeFilter === 'promotion'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-zinc-600 text-zinc-300 hover:bg-zinc-500'
+                      }`}
+                  >
+                    Promotion
+                  </button>
+                  <button
+                    onClick={() => onThemeFilterChange('mate')}
+                    className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${themeFilter === 'mate'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-zinc-600 text-zinc-300 hover:bg-zinc-500'
+                      }`}
+                  >
+                    Mate in 1-2
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -261,16 +330,28 @@ function PuzzleView({
 
           {/* Controls */}
           <div className="space-y-3">
-            {/* Reset / Retry */}
-            {status === 'failed' && (
+            {/* Reset and Hint */}
+            <div className="flex gap-3">
               <button
                 onClick={reset}
-                className="flex w-full items-center justify-center gap-2 rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-500 transition-colors"
+                className="flex flex-1 items-center justify-center gap-2 rounded-md bg-zinc-700 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
               >
                 <RotateCcw className="h-4 w-4" />
-                Try Again
+                Reset
               </button>
-            )}
+              {status === 'playing' && (
+                <button
+                  onClick={toggleHint}
+                  className={`flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${showHint
+                    ? 'bg-yellow-600 text-white hover:bg-yellow-500'
+                    : 'bg-zinc-700 text-white hover:bg-zinc-600'
+                    }`}
+                >
+                  <Lightbulb className="h-4 w-4" />
+                  Hint
+                </button>
+              )}
+            </div>
 
             {/* Navigation */}
             <div className="flex gap-3">
