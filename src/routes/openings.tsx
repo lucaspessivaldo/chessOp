@@ -8,6 +8,7 @@ import {
   CompactMoveList,
   OpeningSelector,
   OpeningEditor,
+  VariationSelector,
 } from '@/components/opening'
 import {
   ChevronRight,
@@ -18,6 +19,10 @@ import {
   ChevronDown,
   Edit,
   Milestone,
+  Shuffle,
+  SkipForward,
+  Lightbulb,
+  MessageSquare,
 } from 'lucide-react'
 
 export const Route = createFileRoute('/openings')({
@@ -135,6 +140,9 @@ interface PracticeViewProps {
 function PracticeView({ study }: PracticeViewProps) {
   const chessgroundRef = useRef<ChessgroundRef>(null)
   const [showLineSelector, setShowLineSelector] = useState(false)
+  const [randomOrder, setRandomOrder] = useState(false)
+  const [showVariationSelector, setShowVariationSelector] = useState(false)
+  const [selectedLineIndices, setSelectedLineIndices] = useState<number[] | undefined>(undefined)
 
   const {
     status,
@@ -146,18 +154,24 @@ function PracticeView({ study }: PracticeViewProps) {
     allLines,
     progressInfo,
     completedLines,
+    skippedLines,
     userColor,
     chessgroundConfig,
     makeMove,
     resetLine,
     nextLine,
+    skipLine,
     selectLine,
+    hintLevel,
+    increaseHint,
     pendingPromotion,
     completePromotion,
     cancelPromotion,
     turnColor,
   } = useOpeningPractice({
     study,
+    randomOrder,
+    selectedLineIndices,
     onLineComplete: () => {
       console.log('Line completed!')
     },
@@ -165,6 +179,11 @@ function PracticeView({ study }: PracticeViewProps) {
       console.log('All lines completed!')
     },
   })
+
+  const handleStartWithSelection = (indices: number[]) => {
+    setSelectedLineIndices(indices)
+    setShowVariationSelector(false)
+  }
 
   // Format line name for display
   const getLineName = (line: typeof currentLine, index: number) => {
@@ -197,12 +216,57 @@ function PracticeView({ study }: PracticeViewProps) {
 
       {/* Sidebar */}
       <div className="w-[350px] space-y-4">
+        {/* Practice Options */}
+        <div className="rounded-lg bg-zinc-800 p-4">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm font-medium text-zinc-400">Options</span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowVariationSelector(true)}
+                className="px-3 py-1.5 rounded-md text-sm bg-zinc-700 text-zinc-300 hover:bg-zinc-600 transition-colors"
+              >
+                Select Lines
+              </button>
+              <button
+                onClick={() => setRandomOrder(!randomOrder)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors ${randomOrder
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-zinc-700 text-zinc-400 hover:text-white'
+                  }`}
+              >
+                <Shuffle className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+          {selectedLineIndices && selectedLineIndices.length < allLines.length && (
+            <p className="text-xs text-blue-400 mt-2">
+              Practicing {selectedLineIndices.length} of {allLines.length + (allLines.length - selectedLineIndices.length)} lines
+            </p>
+          )}
+        </div>
+
+        {/* Variation Selector Modal */}
+        {showVariationSelector && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="w-full max-w-md">
+              <VariationSelector
+                moves={study.moves}
+                onStart={handleStartWithSelection}
+                onCancel={() => setShowVariationSelector(false)}
+              />
+            </div>
+          </div>
+        )}
+
         {/* Progress Overview */}
         <div className="rounded-lg bg-zinc-800 p-4">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-medium text-zinc-400">Progress</span>
             <span className="text-sm text-white">
-              {progressInfo.completedLines} / {progressInfo.totalLines} lines completed
+              {progressInfo.completedLines} / {progressInfo.totalLines} lines
+              {skippedLines.size > 0 && (
+                <span className="text-yellow-400 ml-1">({skippedLines.size} skipped)</span>
+              )}
             </span>
           </div>
           <div className="w-full bg-zinc-700 rounded-full h-2">
@@ -242,11 +306,14 @@ function PracticeView({ study }: PracticeViewProps) {
                     ? 'bg-blue-600 text-white'
                     : completedLines.has(index)
                       ? 'bg-green-600/20 text-green-400'
-                      : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
+                      : skippedLines.has(index)
+                        ? 'bg-yellow-600/20 text-yellow-400'
+                        : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
                     }`}
                 >
                   <span className="flex items-center gap-2">
                     {completedLines.has(index) && <CheckCircle className="h-4 w-4" />}
+                    {skippedLines.has(index) && !completedLines.has(index) && <SkipForward className="h-4 w-4" />}
                     Line {index + 1}: {getLineName(line, index)}
                   </span>
                 </button>
@@ -255,7 +322,7 @@ function PracticeView({ study }: PracticeViewProps) {
           )}
         </div>
 
-        {/* Current Moves */}
+        {/* Current Moves with Comment */}
         <div className="rounded-lg bg-zinc-800 p-4">
           <h3 className="text-sm font-medium text-zinc-400 mb-3">Moves</h3>
           <CompactMoveList
@@ -263,6 +330,17 @@ function PracticeView({ study }: PracticeViewProps) {
             currentMoveIndex={progressInfo.currentMove}
             startColor={study.color === 'white' ? 'white' : 'black'}
           />
+          {/* Show current move comment if exists */}
+          {currentLine[progressInfo.currentMove - 1]?.comment && (
+            <div className="mt-3 p-3 bg-zinc-700/50 rounded-md border-l-2 border-blue-500">
+              <div className="flex items-start gap-2">
+                <MessageSquare className="h-4 w-4 text-blue-400 mt-0.5 shrink-0" />
+                <p className="text-sm text-zinc-300">
+                  {currentLine[progressInfo.currentMove - 1].comment}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Status */}
@@ -305,24 +383,44 @@ function PracticeView({ study }: PracticeViewProps) {
 
         {/* Controls */}
         <div className="space-y-3">
-          <div className="flex gap-3">
+          {/* Main controls row */}
+          <div className="flex gap-2">
             <button
               onClick={resetLine}
-              className="flex-1 flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
             >
               <RotateCcw className="h-4 w-4" />
-              Restart Line
+              Restart
             </button>
-            {status === 'line-complete' && currentLineIndex < allLines.length - 1 && (
-              <button
-                onClick={nextLine}
-                className="flex-1 flex items-center justify-center gap-2 rounded-md bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-500 transition-colors"
-              >
-                Next Line
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            )}
+            <button
+              onClick={increaseHint}
+              disabled={hintLevel >= 3 || status !== 'playing'}
+              className="flex-1 flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title={`Hint level: ${hintLevel}/3`}
+            >
+              <Lightbulb className={`h-4 w-4 ${hintLevel > 0 ? 'text-yellow-400' : ''}`} />
+              Hint {hintLevel > 0 && `(${hintLevel})`}
+            </button>
+            <button
+              onClick={skipLine}
+              disabled={currentLineIndex >= allLines.length - 1}
+              className="flex-1 flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <SkipForward className="h-4 w-4" />
+              Skip
+            </button>
           </div>
+
+          {/* Next line button when complete */}
+          {status === 'line-complete' && currentLineIndex < allLines.length - 1 && (
+            <button
+              onClick={nextLine}
+              className="w-full flex items-center justify-center gap-2 rounded-md bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-500 transition-colors"
+            >
+              Next Line
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          )}
 
           {/* All lines completed */}
           {progressInfo.completedLines === progressInfo.totalLines && (

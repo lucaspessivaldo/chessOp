@@ -1,6 +1,6 @@
 import { Chess } from '@jackstenglein/chess'
 import type { Move as ChessMove } from '@jackstenglein/chess'
-import type { OpeningMoveNode, OpeningStudy } from '@/types/opening'
+import type { OpeningMoveNode, OpeningStudy, BoardShape } from '@/types/opening'
 
 const STORAGE_KEY = 'chessop-openings'
 
@@ -480,4 +480,164 @@ export function getSiblings(nodes: OpeningMoveNode[], nodeId: string): OpeningMo
   }
 
   return parent.children.filter(c => c.id !== nodeId)
+}
+
+/**
+ * Update a node's NAG annotations
+ */
+export function updateNodeNags(
+  nodes: OpeningMoveNode[],
+  nodeId: string,
+  nags: string[] | undefined
+): OpeningMoveNode[] {
+  function update(nodeList: OpeningMoveNode[]): OpeningMoveNode[] {
+    return nodeList.map(node => {
+      if (node.id === nodeId) {
+        return { ...node, nags }
+      }
+      return {
+        ...node,
+        children: update(node.children),
+      }
+    })
+  }
+
+  return update(nodes)
+}
+
+/**
+ * Update a node's board shapes (arrows, circles)
+ */
+export function updateNodeShapes(
+  nodes: OpeningMoveNode[],
+  nodeId: string,
+  shapes: BoardShape[] | undefined
+): OpeningMoveNode[] {
+  function update(nodeList: OpeningMoveNode[]): OpeningMoveNode[] {
+    return nodeList.map(node => {
+      if (node.id === nodeId) {
+        return { ...node, shapes: shapes && shapes.length > 0 ? shapes : undefined }
+      }
+      return {
+        ...node,
+        children: update(node.children),
+      }
+    })
+  }
+
+  return update(nodes)
+}
+
+/**
+ * Promote a variation to main line (swap isMainLine flags)
+ */
+export function promoteToMainLine(
+  nodes: OpeningMoveNode[],
+  nodeId: string
+): OpeningMoveNode[] {
+  const node = findNodeById(nodes, nodeId)
+  if (!node || node.isMainLine) return nodes
+
+  const parent = getParentNode(nodes, nodeId)
+
+  function updateNode(nodeList: OpeningMoveNode[], parentId: string | null): OpeningMoveNode[] {
+    return nodeList.map(n => {
+      if (parentId === null && nodes.includes(n)) {
+        // Root level
+        if (n.id === nodeId) {
+          return { ...n, isMainLine: true, children: updateNode(n.children, n.id) }
+        }
+        if (n.isMainLine) {
+          return { ...n, isMainLine: false, children: updateNode(n.children, n.id) }
+        }
+      }
+
+      if (n.children.some(c => c.id === nodeId)) {
+        // Parent of target node
+        return {
+          ...n,
+          children: n.children.map(c => {
+            if (c.id === nodeId) {
+              return { ...c, isMainLine: true }
+            }
+            if (c.isMainLine) {
+              return { ...c, isMainLine: false }
+            }
+            return c
+          }),
+        }
+      }
+
+      return {
+        ...n,
+        children: updateNode(n.children, null),
+      }
+    })
+  }
+
+  // Handle root level promotion
+  if (!parent) {
+    return nodes.map(n => {
+      if (n.id === nodeId) {
+        return { ...n, isMainLine: true }
+      }
+      if (n.isMainLine) {
+        return { ...n, isMainLine: false }
+      }
+      return n
+    })
+  }
+
+  return updateNode(nodes, null)
+}
+
+/**
+ * Fisher-Yates shuffle for arrays
+ */
+export function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+      ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+  return shuffled
+}
+
+/**
+ * Get all unique branch starting nodes (for selecting specific variations to practice)
+ */
+export function getBranchPoints(nodes: OpeningMoveNode[]): { node: OpeningMoveNode; depth: number }[] {
+  const branchPoints: { node: OpeningMoveNode; depth: number }[] = []
+
+  function traverse(nodeList: OpeningMoveNode[], depth: number) {
+    for (const node of nodeList) {
+      // A branch point is a node with multiple children (variations)
+      if (node.children.length > 1) {
+        branchPoints.push({ node, depth })
+      }
+      traverse(node.children, depth + 1)
+    }
+  }
+
+  // Also consider root level if multiple starting moves
+  if (nodes.length > 1) {
+    nodes.forEach(n => branchPoints.push({ node: n, depth: 0 }))
+  }
+
+  traverse(nodes, 0)
+  return branchPoints
+}
+
+/**
+ * Filter lines to only include those starting with specific node IDs
+ */
+export function filterLinesByNodes(
+  allLines: OpeningMoveNode[][],
+  includeNodeIds: Set<string>
+): OpeningMoveNode[][] {
+  if (includeNodeIds.size === 0) return allLines
+
+  return allLines.filter(line =>
+    line.some(node => includeNodeIds.has(node.id))
+  )
 }

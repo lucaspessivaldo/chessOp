@@ -13,6 +13,7 @@ import {
   isCheck,
 } from '@/chess/chess-utils'
 import { playSound, getMoveSound } from '@/lib/sounds'
+import { shuffleArray } from '@/lib/opening-utils'
 
 export interface PendingPromotion {
   from: Key
@@ -21,8 +22,12 @@ export interface PendingPromotion {
 
 export type PracticeStatus = 'playing' | 'line-complete'
 
+export type HintLevel = 0 | 1 | 2 | 3 // 0=none, 1=piece, 2=target square, 3=full arrow
+
 export interface UseOpeningPracticeOptions {
   study: OpeningStudy
+  randomOrder?: boolean
+  selectedLineIndices?: number[] // For practicing specific variations
   onLineComplete?: () => void
   onAllLinesComplete?: () => void
 }
@@ -78,11 +83,37 @@ function getLineNodes(nodes: OpeningMoveNode[]): OpeningMoveNode[][] {
 }
 
 export function useOpeningPractice(options: UseOpeningPracticeOptions) {
-  const { study, onLineComplete, onAllLinesComplete } = options
+  const { study, randomOrder = false, selectedLineIndices, onLineComplete, onAllLinesComplete } = options
 
   // Extract all lines as UCI move arrays (like puzzle)
-  const allLines = useMemo(() => extractAllLines(study.moves), [study.moves])
-  const allLineNodes = useMemo(() => getLineNodes(study.moves), [study.moves])
+  const allLinesRaw = useMemo(() => extractAllLines(study.moves), [study.moves])
+  const allLineNodesRaw = useMemo(() => getLineNodes(study.moves), [study.moves])
+
+  // Filter to selected lines if specified
+  const filteredLines = useMemo(() => {
+    if (!selectedLineIndices || selectedLineIndices.length === 0) {
+      return { lines: allLinesRaw, nodes: allLineNodesRaw }
+    }
+    return {
+      lines: selectedLineIndices.map(i => allLinesRaw[i]).filter(Boolean),
+      nodes: selectedLineIndices.map(i => allLineNodesRaw[i]).filter(Boolean),
+    }
+  }, [allLinesRaw, allLineNodesRaw, selectedLineIndices])
+
+  // Apply random order if enabled
+  const [lineOrder, setLineOrder] = useState<number[]>(() => {
+    const indices = Array.from({ length: filteredLines.lines.length }, (_, i) => i)
+    return randomOrder ? shuffleArray(indices) : indices
+  })
+
+  // Re-shuffle when randomOrder or lines change
+  useEffect(() => {
+    const indices = Array.from({ length: filteredLines.lines.length }, (_, i) => i)
+    setLineOrder(randomOrder ? shuffleArray(indices) : indices)
+  }, [randomOrder, filteredLines.lines.length])
+
+  const allLines = useMemo(() => lineOrder.map(i => filteredLines.lines[i]), [lineOrder, filteredLines.lines])
+  const allLineNodes = useMemo(() => lineOrder.map(i => filteredLines.nodes[i]), [lineOrder, filteredLines.nodes])
 
   // Current line index
   const [currentLineIndex, setCurrentLineIndex] = useState(0)
@@ -109,9 +140,10 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
 
   // Practice-specific state
   const [wrongAttempts, setWrongAttempts] = useState(0)
-  const [showHint, setShowHint] = useState(false)
+  const [hintLevel, setHintLevel] = useState<HintLevel>(0) // Progressive hints
   const [showWrongMove, setShowWrongMove] = useState(false)
   const [completedLines, setCompletedLines] = useState<Set<number>>(new Set())
+  const [skippedLines, setSkippedLines] = useState<Set<number>>(new Set())
   const [status, setStatus] = useState<PracticeStatus>('playing')
 
   // User color and orientation
@@ -209,13 +241,18 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
 
     // Check if move is correct
     if (userUci !== expectedUci) {
-      // Wrong move!
+      // Wrong move - play wrong sound
+      playSound('wrong')
       setWrongAttempts(prev => prev + 1)
       setShowWrongMove(true)
 
-      // Show hint after 2 wrong attempts
-      if (wrongAttempts >= 1) {
-        setShowHint(true)
+      // Progressive hints: increase hint level after wrong attempts
+      if (wrongAttempts >= 2) {
+        setHintLevel(3) // Full arrow
+      } else if (wrongAttempts >= 1) {
+        setHintLevel(2) // Target square
+      } else {
+        setHintLevel(1) // Piece to move
       }
 
       // Reset wrong move indicator after delay
@@ -226,7 +263,7 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
       return false
     }
 
-    // Correct move!
+    // Correct move
     const move = chess.move({ from: from as Square, to: to as Square, promotion })
 
     if (move) {
@@ -234,7 +271,7 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
       setTurnColor(getTurnColor(chess))
       setLastMove([from, to])
       setShowWrongMove(false)
-      setShowHint(false)
+      setHintLevel(0) // Reset hint level
 
       const checkAfterMove = isCheck(chess)
       setInCheck(checkAfterMove)
@@ -309,7 +346,7 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
     setInCheck(false)
     setIsComplete(false)
     setWrongAttempts(0)
-    setShowHint(false)
+    setHintLevel(0)
     setShowWrongMove(false)
     setStatus('playing')
     moveIndexRef.current = 0
@@ -334,7 +371,7 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
     setInCheck(false)
     setIsComplete(false)
     setWrongAttempts(0)
-    setShowHint(false)
+    setHintLevel(0)
     setShowWrongMove(false)
     setStatus('playing')
     moveIndexRef.current = 0
@@ -351,23 +388,70 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
     }
   }, [currentLineIndex, allLines.length, selectLine])
 
-  // Toggle hint manually
-  const toggleHint = useCallback(() => {
-    setShowHint(prev => !prev)
+  // Skip current line
+  const skipLine = useCallback(() => {
+    setSkippedLines(prev => new Set([...prev, currentLineIndex]))
+    if (currentLineIndex < allLines.length - 1) {
+      selectLine(currentLineIndex + 1)
+    }
+  }, [currentLineIndex, allLines.length, selectLine])
+
+  // Increase hint level manually
+  const increaseHint = useCallback(() => {
+    setHintLevel(prev => Math.min(prev + 1, 3) as HintLevel)
   }, [])
 
-  // Hint arrow (showing expected move)
-  const hintArrow = useMemo(() => {
-    if (!showHint || isComplete || !isUserTurn()) return null
+  // Reset hint level
+  const resetHint = useCallback(() => {
+    setHintLevel(0)
+  }, [])
+
+  // Progressive hint shapes based on hint level
+  const hintShapes = useMemo(() => {
+    if (hintLevel === 0 || isComplete || !isUserTurn()) return []
 
     const expectedUci = moves[moveIndexRef.current]
-    if (!expectedUci) return null
+    if (!expectedUci) return []
 
     const from = expectedUci.slice(0, 2) as Key
     const to = expectedUci.slice(2, 4) as Key
 
-    return { orig: from, dest: to, brush: 'green' }
-  }, [showHint, moves, moveIndex, isComplete, isUserTurn])
+    const shapes: Array<{ orig: Key; dest?: Key; brush: string }> = []
+
+    if (hintLevel >= 1) {
+      // Level 1: Highlight piece to move (circle)
+      shapes.push({ orig: from, brush: 'yellow' })
+    }
+    if (hintLevel >= 2) {
+      // Level 2: Highlight target square
+      shapes.push({ orig: to, brush: 'blue' })
+    }
+    if (hintLevel >= 3) {
+      // Level 3: Full arrow
+      shapes.push({ orig: from, dest: to, brush: 'green' })
+    }
+
+    return shapes
+  }, [hintLevel, moves, moveIndex, isComplete, isUserTurn])
+
+  // Saved shapes from the current position's node (the last played move)
+  const savedShapes = useMemo(() => {
+    // Current position is after move (moveIndex - 1)
+    // So we want the shapes from that node
+    if (moveIndex === 0) return []
+    const lastPlayedNode = currentLineNodes[moveIndex - 1]
+    if (!lastPlayedNode?.shapes) return []
+    return lastPlayedNode.shapes.map(s => ({
+      orig: s.orig as Key,
+      dest: s.dest as Key | undefined,
+      brush: s.brush,
+    }))
+  }, [moveIndex, currentLineNodes])
+
+  // Combined shapes (saved + hints)
+  const allShapes = useMemo(() => {
+    return [...savedShapes, ...hintShapes]
+  }, [savedShapes, hintShapes])
 
   // Progress info
   const progressInfo = useMemo(() => ({
@@ -393,14 +477,14 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
     premovable: { enabled: false },
     drawable: {
       enabled: true,
-      autoShapes: hintArrow ? [hintArrow] : [],
+      autoShapes: allShapes,
     },
     highlight: {
       lastMove: true,
       check: true,
     },
     animation: { enabled: true, duration: 200 },
-  }), [fen, orientation, turnColor, lastMove, inCheck, legalDests, hintArrow, status, isUserTurn, userColor])
+  }), [fen, orientation, turnColor, lastMove, inCheck, legalDests, allShapes, status, isUserTurn, userColor])
 
   return {
     // Status
@@ -420,18 +504,22 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
     // Progress
     progressInfo,
     completedLines,
+    skippedLines,
 
     // Line info
     currentLine: currentLineNodes,
     currentLineIndex,
     allLines: allLineNodes,
+    totalLinesCount: filteredLines.lines.length,
     selectLine,
     nextLine,
+    skipLine,
 
     // Practice state
     wrongAttempts,
-    showHint,
-    toggleHint,
+    hintLevel,
+    increaseHint,
+    resetHint,
     showWrongMove,
 
     // Actions

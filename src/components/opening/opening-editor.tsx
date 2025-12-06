@@ -1,24 +1,29 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { Chess } from '@jackstenglein/chess'
 import type { Square } from '@jackstenglein/chess'
 import type { Config } from '@lichess-org/chessground/config'
 import type { Key } from '@lichess-org/chessground/types'
-import type { OpeningStudy, OpeningMoveNode } from '@/types/opening'
+import type { DrawShape } from '@lichess-org/chessground/draw'
+import type { OpeningStudy, OpeningMoveNode, BoardShape } from '@/types/opening'
 import { Chessground, type ChessgroundRef } from '@/components/chessground'
 import { PromotionDialog, type PromotionPiece } from '@/components/promotion-dialog'
 import { MoveList } from './move-list'
+import { VariationExplorer } from './variation-explorer'
 import {
   generateNodeId,
   updateNodeComment,
+  updateNodeNags,
+  updateNodeShapes,
   deleteNode,
   getNodeAtPath,
   getPathToNode,
   saveOpeningStudy,
+  promoteToMainLine,
   INITIAL_FEN,
 } from '@/lib/opening-utils'
 import { createChess, getLegalDests, getTurnColor, toChessgroundFen, isCheck } from '@/chess/chess-utils'
 import { playSound, getMoveSound } from '@/lib/sounds'
-import { Save, Trash2, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Save, Trash2, RotateCcw, ChevronLeft, ChevronRight, Undo2, Redo2, ArrowUpRight, List, GitBranch } from 'lucide-react'
 
 interface OpeningEditorProps {
   initialStudy?: OpeningStudy
@@ -57,8 +62,43 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
   const [editingComment, setEditingComment] = useState(false)
   const [commentText, setCommentText] = useState('')
 
+  // Move view mode (list vs tree)
+  const [moveViewMode, setMoveViewMode] = useState<'list' | 'tree'>('list')
+
+  // Undo/Redo history
+  const [history, setHistory] = useState<OpeningMoveNode[][]>([initialStudy?.moves || []])
+  const [historyIndex, setHistoryIndex] = useState(0)
+
   // Get current node
   const currentNode = currentPath.length > 0 ? getNodeAtPath(moves, currentPath) : null
+
+  // Push to history when moves change (called manually after significant changes)
+  const pushToHistory = useCallback((newMoves: OpeningMoveNode[]) => {
+    setHistory(prev => {
+      const newHistory = prev.slice(0, historyIndex + 1)
+      newHistory.push(newMoves)
+      return newHistory.slice(-50) // Keep last 50 states
+    })
+    setHistoryIndex(prev => Math.min(prev + 1, 49))
+  }, [historyIndex])
+
+  // Undo
+  const undo = useCallback(() => {
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1
+      setHistoryIndex(newIndex)
+      setMoves(history[newIndex])
+    }
+  }, [historyIndex, history])
+
+  // Redo
+  const redo = useCallback(() => {
+    if (historyIndex < history.length - 1) {
+      const newIndex = historyIndex + 1
+      setHistoryIndex(newIndex)
+      setMoves(history[newIndex])
+    }
+  }, [historyIndex, history])
 
   // Sync chess instance with current position
   const syncChess = useCallback((targetFen: string) => {
@@ -253,22 +293,81 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
     if (!currentNode) return
     if (!confirm('Delete this move and all its continuations?')) return
 
-    setMoves(prev => deleteNode(prev, currentNode.id))
+    const newMoves = deleteNode(moves, currentNode.id)
+    pushToHistory(newMoves)
+    setMoves(newMoves)
     goToPreviousMove()
-  }, [currentNode, goToPreviousMove])
+  }, [currentNode, goToPreviousMove, moves, pushToHistory])
 
   // Save comment for current move
   const saveComment = useCallback(() => {
     if (!currentNode) return
-    setMoves(prev => updateNodeComment(prev, currentNode.id, commentText || undefined))
+    const newMoves = updateNodeComment(moves, currentNode.id, commentText || undefined)
+    pushToHistory(newMoves)
+    setMoves(newMoves)
     setEditingComment(false)
-  }, [currentNode, commentText])
+  }, [currentNode, commentText, moves, pushToHistory])
 
   // Start editing comment
   const startEditComment = useCallback(() => {
     setCommentText(currentNode?.comment || '')
     setEditingComment(true)
   }, [currentNode])
+
+  // Toggle NAG annotation for current move
+  const toggleNag = useCallback((nag: string) => {
+    if (!currentNode) return
+    const currentNags = currentNode.nags || []
+    const hasNag = currentNags.includes(nag)
+    const newNags = hasNag
+      ? currentNags.filter(n => n !== nag)
+      : [...currentNags, nag]
+    const newMoves = updateNodeNags(moves, currentNode.id, newNags.length > 0 ? newNags : undefined)
+    pushToHistory(newMoves)
+    setMoves(newMoves)
+  }, [currentNode, moves, pushToHistory])
+
+  // Promote variation to main line
+  const handlePromoteToMain = useCallback(() => {
+    if (!currentNode || currentNode.isMainLine) return
+    const newMoves = promoteToMainLine(moves, currentNode.id)
+    pushToHistory(newMoves)
+    setMoves(newMoves)
+  }, [currentNode, moves, pushToHistory])
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger shortcuts when typing in inputs
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return
+      }
+
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        goToPreviousMove()
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault()
+        goToNextMove()
+      } else if (e.key === 'Home') {
+        e.preventDefault()
+        goToStart()
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        e.preventDefault()
+        if (e.shiftKey) {
+          redo()
+        } else {
+          undo()
+        }
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+        e.preventDefault()
+        redo()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [goToPreviousMove, goToNextMove, goToStart, undo, redo])
 
   // Save the study
   const handleSave = useCallback(() => {
@@ -292,7 +391,31 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
     onSave(study)
   }, [name, description, color, moves, initialStudy, onSave])
 
-  // Chessground config
+  // Handle shapes change from drawable
+  const handleShapesChange = useCallback((shapes: DrawShape[]) => {
+    if (!currentNode) return
+
+    // Convert to BoardShape format, filtering shapes without brush
+    const boardShapes: BoardShape[] = shapes
+      .filter(s => s.brush) // Only keep shapes with a brush color
+      .map(s => ({
+        orig: s.orig,
+        dest: s.dest,
+        brush: s.brush!,
+      }))
+
+    const updatedMoves = updateNodeShapes(moves, currentNode.id, boardShapes)
+    setMoves(updatedMoves)
+  }, [currentNode, moves])
+
+  // Convert saved shapes to drawable shapes
+  const autoShapes: DrawShape[] = currentNode?.shapes?.map(s => ({
+    orig: s.orig as Key,
+    dest: s.dest as Key | undefined,
+    brush: s.brush,
+  })) ?? []
+
+  // Chessground config with drawing enabled
   const config: Config = {
     fen,
     orientation: color,
@@ -307,7 +430,24 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
     },
     premovable: { enabled: false },
     animation: { enabled: true, duration: 200 },
+    drawable: {
+      enabled: true,
+      visible: true,
+      defaultSnapToValidMove: true,
+      autoShapes,
+      onChange: handleShapesChange,
+    },
   }
+
+  // NAG buttons configuration
+  const nagButtons = [
+    { nag: '$1', symbol: '!', label: 'Good move' },
+    { nag: '$2', symbol: '?', label: 'Poor move' },
+    { nag: '$3', symbol: '!!', label: 'Brilliant' },
+    { nag: '$4', symbol: '??', label: 'Blunder' },
+    { nag: '$5', symbol: '!?', label: 'Interesting' },
+    { nag: '$6', symbol: '?!', label: 'Dubious' },
+  ]
 
   return (
     <div className="flex min-h-screen bg-zinc-900 p-6">
@@ -381,15 +521,48 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
             </div>
           </div>
 
-          {/* Move List */}
+          {/* Move List / Variation Explorer */}
           <div className="rounded-lg bg-zinc-800 p-4">
-            <h3 className="text-sm font-medium text-zinc-400 mb-2">Moves</h3>
-            <div className="max-h-[200px] overflow-y-auto">
-              <MoveList
-                moves={moves}
-                currentPath={currentPath}
-                onMoveClick={goToNode}
-              />
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium text-zinc-400">Moves</h3>
+              <div className="flex gap-1 bg-zinc-700 rounded-md p-0.5">
+                <button
+                  onClick={() => setMoveViewMode('list')}
+                  className={`p-1.5 rounded transition-colors ${moveViewMode === 'list'
+                    ? 'bg-zinc-600 text-white'
+                    : 'text-zinc-400 hover:text-white'
+                    }`}
+                  title="Move List"
+                >
+                  <List className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setMoveViewMode('tree')}
+                  className={`p-1.5 rounded transition-colors ${moveViewMode === 'tree'
+                    ? 'bg-zinc-600 text-white'
+                    : 'text-zinc-400 hover:text-white'
+                    }`}
+                  title="Variation Explorer"
+                >
+                  <GitBranch className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+            <div className="max-h-[250px] overflow-y-auto">
+              {moveViewMode === 'list' ? (
+                <MoveList
+                  moves={moves}
+                  currentPath={currentPath}
+                  onMoveClick={goToNode}
+                />
+              ) : (
+                <VariationExplorer
+                  moves={moves}
+                  currentPath={currentPath}
+                  onMoveClick={goToNode}
+                  startColor={color}
+                />
+              )}
             </div>
           </div>
 
@@ -419,6 +592,65 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
+
+          {/* Undo/Redo Controls */}
+          <div className="flex gap-2">
+            <button
+              onClick={undo}
+              disabled={historyIndex <= 0}
+              className="flex-1 flex items-center justify-center gap-1 rounded-md bg-zinc-700 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Undo (Ctrl+Z)"
+            >
+              <Undo2 className="h-4 w-4" />
+              Undo
+            </button>
+            <button
+              onClick={redo}
+              disabled={historyIndex >= history.length - 1}
+              className="flex-1 flex items-center justify-center gap-1 rounded-md bg-zinc-700 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Redo (Ctrl+Y)"
+            >
+              <Redo2 className="h-4 w-4" />
+              Redo
+            </button>
+          </div>
+
+          {/* NAG Annotations */}
+          {currentNode && (
+            <div className="rounded-lg bg-zinc-800 p-4">
+              <h3 className="text-sm font-medium text-zinc-400 mb-2">
+                Annotate: {currentNode.san}
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {nagButtons.map(({ nag, symbol, label }) => {
+                  const isActive = currentNode.nags?.includes(nag)
+                  return (
+                    <button
+                      key={nag}
+                      onClick={() => toggleNag(nag)}
+                      title={label}
+                      className={`px-3 py-1.5 rounded-md text-sm font-bold transition-colors ${isActive
+                        ? 'bg-yellow-500 text-black'
+                        : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
+                        }`}
+                    >
+                      {symbol}
+                    </button>
+                  )
+                })}
+              </div>
+              {/* Promote to main line */}
+              {!currentNode.isMainLine && (
+                <button
+                  onClick={handlePromoteToMain}
+                  className="mt-3 w-full flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
+                >
+                  <ArrowUpRight className="h-4 w-4" />
+                  Promote to main line
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Comment Editor */}
           {currentNode && (

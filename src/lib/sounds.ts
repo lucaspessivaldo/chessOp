@@ -3,8 +3,10 @@ import castleSound from '@/assets/audios/castle.mp3'
 import checkSound from '@/assets/audios/move-check.mp3'
 import moveSound from '@/assets/audios/move-self.mp3'
 import promoteSound from '@/assets/audios/promote.mp3'
+import correctSound from '@/assets/audios/correct2.mp3'
+import wrongSound from '@/assets/audios/wrong.mp3'
 
-export type SoundType = 'move' | 'capture' | 'castle' | 'check' | 'promote'
+export type SoundType = 'move' | 'capture' | 'castle' | 'check' | 'promote' | 'correct' | 'wrong'
 
 const sounds: Record<SoundType, string> = {
   move: moveSound,
@@ -12,6 +14,8 @@ const sounds: Record<SoundType, string> = {
   castle: castleSound,
   check: checkSound,
   promote: promoteSound,
+  correct: correctSound,
+  wrong: wrongSound,
 }
 
 const audioCache: Map<SoundType, HTMLAudioElement> = new Map()

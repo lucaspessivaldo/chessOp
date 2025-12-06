@@ -1,4 +1,16 @@
 /**
+ * Shape drawn on the board (arrow or circle)
+ */
+export interface BoardShape {
+  /** Origin square (e.g., "e2") */
+  orig: string
+  /** Destination square for arrows (e.g., "e4"), undefined for circles */
+  dest?: string
+  /** Brush color: "green", "red", "blue", "yellow" */
+  brush: string
+}
+
+/**
  * Represents a single move node in the opening tree
  */
 export interface OpeningMoveNode {
@@ -14,6 +26,8 @@ export interface OpeningMoveNode {
   comment?: string
   /** NAG annotations (!, ?, !!, ??, !?, ?!) as strings */
   nags?: string[]
+  /** Arrows and circles drawn on the board for this position */
+  shapes?: BoardShape[]
   /** Variations/continuations from this position */
   children: OpeningMoveNode[]
   /** Whether this move is part of the main line */
