@@ -72,10 +72,6 @@ function OpeningsPage() {
     setView('selector')
   }
 
-  const handleEditStudy = () => {
-    setView('editor')
-  }
-
   // Render based on current view
   if (view === 'selector') {
     return (
@@ -91,10 +87,11 @@ function OpeningsPage() {
     )
   }
 
-  if (view === 'editor') {
+  if (view === 'editor' && !selectedStudy) {
+    // Only show standalone editor when creating new study (no existing study)
     return (
       <OpeningEditor
-        initialStudy={selectedStudy || undefined}
+        initialStudy={undefined}
         onSave={handleSaveEditor}
         onCancel={handleCancelEditor}
       />
@@ -104,18 +101,18 @@ function OpeningsPage() {
   // Study view
   if (!selectedStudy) return null
 
-  return <StudyPageContent study={selectedStudy} onBack={handleBackToSelector} onEdit={handleEditStudy} />
+  return <StudyPageContent study={selectedStudy} onBack={handleBackToSelector} onStudyUpdate={handleSaveEditor} />
 }
 
-type StudyMode = 'practice' | 'study' | 'speed' | 'mistakes'
+type StudyMode = 'practice' | 'study' | 'speed' | 'mistakes' | 'edit'
 
 interface StudyPageContentProps {
   study: OpeningStudy
   onBack: () => void
-  onEdit: () => void
+  onStudyUpdate: (study: OpeningStudy) => void
 }
 
-function StudyPageContent({ study, onBack, onEdit }: StudyPageContentProps) {
+function StudyPageContent({ study, onBack, onStudyUpdate }: StudyPageContentProps) {
   const [mode, setMode] = useState<StudyMode>('study')
   const [mistakesCount, setMistakesCount] = useState(() => getMistakesDueForReview(study.id).length)
 
@@ -196,16 +193,17 @@ function StudyPageContent({ study, onBack, onEdit }: StudyPageContentProps) {
                 </span>
               )}
             </button>
+            <button
+              onClick={() => setMode('edit')}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${mode === 'edit'
+                ? 'border-blue-500 text-blue-400'
+                : 'border-transparent text-zinc-400 hover:text-white'
+                }`}
+            >
+              <Edit className="h-4 w-4" />
+              Edit
+            </button>
           </div>
-
-          {/* Edit Button */}
-          <button
-            onClick={onEdit}
-            className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-zinc-400 hover:text-white transition-colors"
-          >
-            <Edit className="h-4 w-4" />
-            Edit
-          </button>
         </div>
       </div>
 
@@ -214,6 +212,7 @@ function StudyPageContent({ study, onBack, onEdit }: StudyPageContentProps) {
       {mode === 'study' && <StudyView study={study} />}
       {mode === 'speed' && <SpeedDrillView study={study} />}
       {mode === 'mistakes' && <MistakesReviewView study={study} onMistakeCompleted={refreshMistakesCount} />}
+      {mode === 'edit' && <EditView study={study} onSave={onStudyUpdate} />}
     </div>
   )
 }
@@ -595,10 +594,10 @@ function StudyView({ study }: { study: OpeningStudy }) {
       <div className="w-[320px] space-y-4">
         {/* Comment - at top when present */}
         {currentComment && (
-          <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-4">
+          <div className="rounded-lg bg-green-500/15 border border-green-500/40 p-4">
             <div className="flex items-start gap-3">
-              <MessageSquare className="h-5 w-5 text-amber-400 mt-0.5 shrink-0" />
-              <p className="text-sm text-amber-100">{currentComment}</p>
+              <MessageSquare className="h-5 w-5 text-green-400 mt-0.5 shrink-0" />
+              <p className="text-sm text-green-100">{currentComment}</p>
             </div>
           </div>
         )}
@@ -832,7 +831,6 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
     nextMistake,
     skipMistake,
     showHint,
-    refreshMistakes,
     pendingPromotion,
     completePromotion,
     cancelPromotion,
@@ -862,21 +860,9 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
         <div className="max-w-md text-center">
           <CheckCircle className="mx-auto h-16 w-16 text-green-500 mb-4" />
           <h2 className="text-xl font-bold text-white mb-2">All Caught Up!</h2>
-          <p className="text-zinc-400 mb-4">
+          <p className="text-zinc-400">
             No mistakes due for review right now. Keep practicing!
           </p>
-          <div className="space-y-2">
-            <p className="text-sm text-zinc-500">
-              {allMistakes.length} position{allMistakes.length === 1 ? '' : 's'} in your mistake bank
-            </p>
-            <button
-              onClick={refreshMistakes}
-              className="inline-flex items-center gap-2 rounded-md bg-zinc-700 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Check Again
-            </button>
-          </div>
         </div>
       </div>
     )
@@ -1026,6 +1012,33 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
           Clear all mistakes for this study
         </button>
       </div>
+    </div>
+  )
+}
+
+// Edit View - Wraps OpeningEditor for inline editing
+interface EditViewProps {
+  study: OpeningStudy
+  onSave: (study: OpeningStudy) => void
+}
+
+function EditView({ study, onSave }: EditViewProps) {
+  const handleSave = (updatedStudy: OpeningStudy) => {
+    onSave(updatedStudy)
+  }
+
+  // When used inline, cancel just stays on the same view (no navigation needed)
+  const handleCancel = () => {
+    // No-op when used inline - user can just switch tabs
+  }
+
+  return (
+    <div className="-mt-4">
+      <OpeningEditor
+        initialStudy={study}
+        onSave={handleSave}
+        onCancel={handleCancel}
+      />
     </div>
   )
 }
