@@ -94,6 +94,15 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
   // Get current node
   const currentNode = currentPath.length > 0 ? getNodeAtPath(moves, currentPath) : null
 
+  // Check if the current node is a user move (user's color)
+  // Depth 0 = first move (white), depth 1 = second move (black), etc.
+  // If user plays white: even depths (0, 2, 4...) are user moves
+  // If user plays black: odd depths (1, 3, 5...) are user moves
+  const isUserMove = currentPath.length > 0 && (
+    (color === 'white' && (currentPath.length - 1) % 2 === 0) ||
+    (color === 'black' && (currentPath.length - 1) % 2 === 1)
+  )
+
   // Sync comment text when current node changes
   useEffect(() => {
     setCommentText(currentNode?.comment || '')
@@ -756,6 +765,9 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
                   <div className="rounded-lg bg-zinc-800 p-4">
                     <h3 className="text-sm font-medium text-zinc-400 mb-3">
                       Annotating: <span className="text-white font-bold">{currentNode.san}</span>
+                      {!isUserMove && (
+                        <span className="ml-2 text-xs text-zinc-500">(opponent move)</span>
+                      )}
                     </h3>
 
                     {/* NAG buttons */}
@@ -791,41 +803,51 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
                     )}
                   </div>
 
-                  {/* Comment Editor */}
+                  {/* Comment Editor - Only for user moves */}
                   <div className="rounded-lg bg-zinc-800 p-4">
                     <div className="flex items-center gap-2 mb-3">
                       <MessageSquare className="h-4 w-4 text-zinc-400" />
                       <h3 className="text-sm font-medium text-zinc-400">Comment</h3>
-                      {currentNode.comment && (
+                      {currentNode.comment && isUserMove && (
                         <span className="text-xs text-green-400">●</span>
                       )}
                     </div>
-                    <textarea
-                      value={commentText}
-                      onChange={(e) => setCommentText(e.target.value)}
-                      onFocus={() => setEditingComment(true)}
-                      placeholder="Add commentary for this move..."
-                      rows={3}
-                      className="w-full rounded-md bg-zinc-700 border border-zinc-600 py-2 px-3 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none resize-none"
-                    />
-                    {editingComment && commentText !== (currentNode.comment || '') && (
-                      <div className="flex gap-2 mt-2">
-                        <button
-                          onClick={saveComment}
-                          className="flex-1 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500 transition-colors"
-                        >
-                          Save
-                        </button>
-                        <button
-                          onClick={() => {
-                            setCommentText(currentNode.comment || '')
-                            setEditingComment(false)
-                          }}
-                          className="flex-1 rounded-md bg-zinc-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
-                        >
-                          Cancel
-                        </button>
-                      </div>
+                    {isUserMove ? (
+                      <>
+                        <textarea
+                          value={commentText}
+                          onChange={(e) => setCommentText(e.target.value)}
+                          onFocus={() => setEditingComment(true)}
+                          placeholder="Add commentary for this move..."
+                          rows={3}
+                          className="w-full rounded-md bg-zinc-700 border border-zinc-600 py-2 px-3 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none resize-none"
+                        />
+                        {editingComment && commentText !== (currentNode.comment || '') && (
+                          <div className="flex gap-2 mt-2">
+                            <button
+                              onClick={saveComment}
+                              className="flex-1 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500 transition-colors"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => {
+                                setCommentText(currentNode.comment || '')
+                                setEditingComment(false)
+                              }}
+                              className="flex-1 rounded-md bg-zinc-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-sm text-zinc-500">
+                        Comments can only be added to your moves ({color}).
+                        <br />
+                        <span className="text-xs">This helps show guidance before you play each move.</span>
+                      </p>
                     )}
                   </div>
                 </>

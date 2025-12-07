@@ -17,6 +17,7 @@ import { playSound, getMoveSound } from '@/lib/sounds'
 import { shuffleArray, findNodeById, getPathToNode } from '@/lib/opening-utils'
 import { loadPracticeProgress, savePracticeProgress, clearPracticeProgress } from '@/lib/practice-storage'
 import { createNagShape } from '@/chess/nag-shapes'
+import { recordMistake } from '@/hooks/use-mistakes-review'
 
 export interface PendingPromotion {
   from: Key
@@ -33,6 +34,7 @@ export interface UseOpeningPracticeOptions {
   selectedLineIndices?: number[] // For practicing specific variations
   onLineComplete?: () => void
   onAllLinesComplete?: () => void
+  onMistake?: () => void
 }
 
 /**
@@ -178,7 +180,7 @@ function extractLinesWithStartMarker(
 }
 
 export function useOpeningPractice(options: UseOpeningPracticeOptions) {
-  const { study, randomOrder = false, selectedLineIndices, onLineComplete, onAllLinesComplete } = options
+  const { study, randomOrder = false, selectedLineIndices, onLineComplete, onAllLinesComplete, onMistake } = options
 
   // Load saved progress
   const savedProgress = useMemo(() => loadPracticeProgress(study.id), [study.id])
@@ -366,6 +368,7 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
     const chess = chessRef.current
     const currentIndex = moveIndexRef.current
     const currentMoves = movesRef.current
+    const currentNodes = allLineNodes[currentLineIndexRef.current] || []
     const expectedUci = currentMoves[currentIndex]
 
     if (!expectedUci) return false
@@ -379,6 +382,13 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
       setWrongAttempts(prev => prev + 1)
       setTotalWrongAttempts(prev => prev + 1)
       setShowWrongMove(true)
+
+      // Record mistake for spaced repetition review
+      const currentNode = currentNodes[currentIndex]
+      if (currentNode) {
+        recordMistake(study.id, currentNode.id, expectedUci)
+        onMistake?.()
+      }
 
       // Progressive hints: increase hint level after wrong attempts
       if (wrongAttempts >= 1) {

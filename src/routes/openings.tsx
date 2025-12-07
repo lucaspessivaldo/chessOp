@@ -3,6 +3,9 @@ import { useState, useRef } from 'react'
 import { Chessground, type ChessgroundRef } from '@/components/chessground'
 import { PromotionDialog } from '@/components/promotion-dialog'
 import { useOpeningPractice } from '@/hooks/use-opening-practice'
+import { useOpeningStudy } from '@/hooks/use-opening-study'
+import { useSpeedDrill, type SpeedDrillStats } from '@/hooks/use-speed-drill'
+import { useMistakesReview, getMistakesDueForReview } from '@/hooks/use-mistakes-review'
 import type { OpeningStudy } from '@/types/opening'
 import {
   CompactMoveList,
@@ -23,6 +26,13 @@ import {
   SkipForward,
   Lightbulb,
   MessageSquare,
+  Play,
+  BookOpen,
+  Zap,
+  AlertTriangle,
+  Trophy,
+  Clock,
+  Target,
 } from 'lucide-react'
 
 export const Route = createFileRoute('/openings')({
@@ -94,6 +104,26 @@ function OpeningsPage() {
   // Study view
   if (!selectedStudy) return null
 
+  return <StudyPageContent study={selectedStudy} onBack={handleBackToSelector} onEdit={handleEditStudy} />
+}
+
+type StudyMode = 'practice' | 'study' | 'speed' | 'mistakes'
+
+interface StudyPageContentProps {
+  study: OpeningStudy
+  onBack: () => void
+  onEdit: () => void
+}
+
+function StudyPageContent({ study, onBack, onEdit }: StudyPageContentProps) {
+  const [mode, setMode] = useState<StudyMode>('study')
+  const [mistakesCount, setMistakesCount] = useState(() => getMistakesDueForReview(study.id).length)
+
+  // Refresh mistakes count when switching to mistakes tab or periodically
+  const refreshMistakesCount = () => {
+    setMistakesCount(getMistakesDueForReview(study.id).length)
+  }
+
   return (
     <div className="min-h-screen bg-zinc-900">
       {/* Header */}
@@ -101,22 +131,22 @@ function OpeningsPage() {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
-              onClick={handleBackToSelector}
+              onClick={onBack}
               className="flex items-center gap-1 text-zinc-400 hover:text-white transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
               Back
             </button>
             <div>
-              <h1 className="text-xl font-bold text-white">{selectedStudy.name}</h1>
+              <h1 className="text-xl font-bold text-white">{study.name}</h1>
               <p className="text-sm text-zinc-400">
-                Playing as {selectedStudy.color}
+                Playing as {study.color}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-4">
             <button
-              onClick={handleEditStudy}
+              onClick={onEdit}
               className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors"
             >
               <Edit className="h-4 w-4" />
@@ -126,8 +156,62 @@ function OpeningsPage() {
         </div>
       </div>
 
-      {/* Content */}
-      <PracticeView study={selectedStudy} />
+      {/* Mode Tabs */}
+      <div className="border-b border-zinc-800 px-6">
+        <div className="max-w-7xl mx-auto flex gap-1">
+          <button
+            onClick={() => setMode('study')}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${mode === 'study'
+              ? 'border-blue-500 text-blue-400'
+              : 'border-transparent text-zinc-400 hover:text-white'
+              }`}
+          >
+            <BookOpen className="h-4 w-4" />
+            Study
+          </button>
+          <button
+            onClick={() => setMode('practice')}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${mode === 'practice'
+              ? 'border-blue-500 text-blue-400'
+              : 'border-transparent text-zinc-400 hover:text-white'
+              }`}
+          >
+            <Play className="h-4 w-4" />
+            Practice
+          </button>
+          <button
+            onClick={() => setMode('speed')}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${mode === 'speed'
+              ? 'border-blue-500 text-blue-400'
+              : 'border-transparent text-zinc-400 hover:text-white'
+              }`}
+          >
+            <Zap className="h-4 w-4" />
+            Speed Drill
+          </button>
+          <button
+            onClick={() => setMode('mistakes')}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${mode === 'mistakes'
+              ? 'border-blue-500 text-blue-400'
+              : 'border-transparent text-zinc-400 hover:text-white'
+              }`}
+          >
+            <AlertTriangle className="h-4 w-4" />
+            Mistakes
+            {mistakesCount > 0 && (
+              <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                {mistakesCount}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Content based on mode */}
+      {mode === 'practice' && <PracticeView study={study} onMistakeMade={refreshMistakesCount} />}
+      {mode === 'study' && <StudyView study={study} />}
+      {mode === 'speed' && <SpeedDrillView study={study} />}
+      {mode === 'mistakes' && <MistakesReviewView study={study} onMistakeCompleted={refreshMistakesCount} />}
     </div>
   )
 }
@@ -135,9 +219,10 @@ function OpeningsPage() {
 // Practice Mode View
 interface PracticeViewProps {
   study: OpeningStudy
+  onMistakeMade?: () => void
 }
 
-function PracticeView({ study }: PracticeViewProps) {
+function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
   const chessgroundRef = useRef<ChessgroundRef>(null)
   const [showLineSelector, setShowLineSelector] = useState(false)
   const [randomOrder, setRandomOrder] = useState(false)
@@ -180,6 +265,9 @@ function PracticeView({ study }: PracticeViewProps) {
     },
     onAllLinesComplete: () => {
       console.log('All lines completed!')
+    },
+    onMistake: () => {
+      onMistakeMade?.()
     },
   })
 
@@ -455,6 +543,493 @@ function PracticeView({ study }: PracticeViewProps) {
             </div>
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+// Study Mode View - Step through repertoire with annotations
+function StudyView({ study }: { study: OpeningStudy }) {
+  const chessgroundRef = useRef<ChessgroundRef>(null)
+
+  const {
+    isComplete,
+    moveInfo,
+    currentComment,
+    currentLine,
+    currentLineIndex,
+    allLines,
+    nextLine,
+    previousLine,
+    goToStart,
+    makeMove,
+    pendingPromotion,
+    completePromotion,
+    cancelPromotion,
+    chessgroundConfig,
+    isUserTurn,
+  } = useOpeningStudy({ study })
+
+  return (
+    <div className="flex justify-center gap-8 p-6">
+      {/* Promotion Dialog */}
+      {pendingPromotion && (
+        <PromotionDialog
+          color={study.color}
+          onSelect={completePromotion}
+          onCancel={cancelPromotion}
+        />
+      )}
+
+      {/* Board */}
+      <div className="h-[600px] w-[600px] shrink-0 rounded-sm overflow-hidden">
+        <Chessground
+          ref={chessgroundRef}
+          config={chessgroundConfig}
+          onMove={makeMove}
+        />
+      </div>
+
+      {/* Controls */}
+      <div className="w-[320px] space-y-4">
+        {/* Instructions */}
+        <div className="rounded-lg bg-blue-500/10 border border-blue-500/30 p-4">
+          <h3 className="text-sm font-medium text-blue-400 mb-1">Study Mode</h3>
+          <p className="text-xs text-zinc-400">
+            {isUserTurn
+              ? 'Click to play your move (shown with green arrow)'
+              : 'Opponent moves are played automatically'}
+          </p>
+        </div>
+
+        {/* Line Progress */}
+        <div className="rounded-lg bg-zinc-800 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-medium text-zinc-400">Line Progress</h3>
+            <span className="text-sm text-zinc-500">
+              {currentLineIndex + 1} / {allLines.length}
+            </span>
+          </div>
+          <div className="h-2 bg-zinc-700 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-blue-500 transition-all duration-300"
+              style={{ width: `${(moveInfo.current / moveInfo.total) * 100}%` }}
+            />
+          </div>
+          <p className="text-xs text-zinc-500 mt-2">
+            Move {moveInfo.current} of {moveInfo.total}
+          </p>
+        </div>
+
+        {/* Current Moves */}
+        <div className="rounded-lg bg-zinc-800 p-4">
+          <h3 className="text-sm font-medium text-zinc-400 mb-3">Moves</h3>
+          <CompactMoveList
+            line={currentLine}
+            currentMoveIndex={moveInfo.current}
+            startColor={study.color === 'white' ? 'white' : 'black'}
+          />
+        </div>
+
+        {/* Comment */}
+        {currentComment && (
+          <div className="rounded-lg bg-zinc-800 p-4">
+            <div className="flex items-start gap-2">
+              <MessageSquare className="h-4 w-4 text-blue-400 mt-0.5 shrink-0" />
+              <p className="text-sm text-zinc-300">{currentComment}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Status */}
+        {isComplete && (
+          <div className="rounded-lg bg-green-500/20 p-4 text-center">
+            <CheckCircle className="mx-auto mb-2 h-8 w-8 text-green-500" />
+            <p className="text-green-400 font-medium">Line completed!</p>
+          </div>
+        )}
+
+        {/* Controls */}
+        <div className="flex gap-2">
+          <button
+            onClick={goToStart}
+            className="flex-1 flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
+          >
+            <RotateCcw className="h-4 w-4" />
+            Restart
+          </button>
+          <button
+            onClick={previousLine}
+            disabled={currentLineIndex === 0}
+            className="flex-1 flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors disabled:opacity-50"
+          >
+            Prev Line
+          </button>
+          <button
+            onClick={nextLine}
+            disabled={currentLineIndex >= allLines.length - 1}
+            className="flex-1 flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors disabled:opacity-50"
+          >
+            Next Line
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Speed Drill View - Rapid practice with timer
+function SpeedDrillView({ study }: { study: OpeningStudy }) {
+  const chessgroundRef = useRef<ChessgroundRef>(null)
+  const [showResults, setShowResults] = useState(false)
+  const [finalStats, setFinalStats] = useState<SpeedDrillStats | null>(null)
+
+  const {
+    config,
+    isComplete,
+    isRunning,
+    boardKey,
+    elapsedMs,
+    formatTime,
+    progress,
+    stats,
+    makeMove,
+    resetDrill,
+    pendingPromotion,
+    completePromotion,
+    cancelPromotion,
+  } = useSpeedDrill({
+    study,
+    onComplete: (s) => {
+      setFinalStats(s)
+      setShowResults(true)
+    },
+  })
+
+  const handleReset = () => {
+    setShowResults(false)
+    setFinalStats(null)
+    resetDrill()
+  }
+
+  return (
+    <div className="flex justify-center gap-8 p-6">
+      {/* Promotion Dialog */}
+      {pendingPromotion && (
+        <PromotionDialog
+          color={study.color}
+          onSelect={completePromotion}
+          onCancel={cancelPromotion}
+        />
+      )}
+
+      {/* Board */}
+      <div className="h-[600px] w-[600px] shrink-0 rounded-sm overflow-hidden" key={boardKey}>
+        <Chessground
+          ref={chessgroundRef}
+          config={config}
+          onMove={makeMove}
+        />
+      </div>
+
+      {/* Controls */}
+      <div className="w-[320px] space-y-4">
+        {/* Timer Display */}
+        <div className="rounded-lg bg-zinc-800 p-6 text-center">
+          <Clock className="mx-auto h-8 w-8 text-yellow-400 mb-2" />
+          <p className="text-4xl font-mono font-bold text-white">
+            {formatTime(elapsedMs)}
+          </p>
+          {!isRunning && !isComplete && (
+            <p className="text-xs text-zinc-500 mt-2">Make a move to start</p>
+          )}
+        </div>
+
+        {/* Progress */}
+        <div className="rounded-lg bg-zinc-800 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-medium text-zinc-400">Progress</h3>
+            <span className="text-sm text-zinc-500">
+              Line {progress.currentLine} / {progress.totalLines}
+            </span>
+          </div>
+          <div className="h-2 bg-zinc-700 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-yellow-500 transition-all duration-150"
+              style={{ width: `${progress.overallProgress}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Live Stats */}
+        <div className="rounded-lg bg-zinc-800 p-4">
+          <h3 className="text-sm font-medium text-zinc-400 mb-3">Stats</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-green-400">{(finalStats ?? stats).correctMoves}</p>
+              <p className="text-xs text-zinc-500">Correct</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-red-400">{(finalStats ?? stats).wrongMoves}</p>
+              <p className="text-xs text-zinc-500">Wrong</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-blue-400">
+                {(finalStats ?? stats).accuracy.toFixed(0)}%
+              </p>
+              <p className="text-xs text-zinc-500">Accuracy</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-yellow-400">
+                {(finalStats ?? stats).correctMoves > 0 ? ((finalStats ?? stats).averageTimePerMove / 1000).toFixed(1) : '0.0'}s
+              </p>
+              <p className="text-xs text-zinc-500">Avg/Move</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Results Panel */}
+        {showResults && finalStats && (
+          <div className="rounded-lg bg-yellow-500/10 border border-yellow-500/30 p-4">
+            <Trophy className="mx-auto h-10 w-10 text-yellow-400 mb-3" />
+            <h3 className="text-lg font-bold text-white text-center mb-2">Drill Complete!</h3>
+            <div className="space-y-1 text-sm">
+              <p className="text-zinc-300">Time: <span className="text-white font-medium">{formatTime(finalStats.timeMs)}</span></p>
+              <p className="text-zinc-300">Accuracy: <span className="text-white font-medium">{finalStats.accuracy.toFixed(1)}%</span></p>
+              <p className="text-zinc-300">Avg per move: <span className="text-white font-medium">{(finalStats.averageTimePerMove / 1000).toFixed(2)}s</span></p>
+            </div>
+          </div>
+        )}
+
+        {/* Controls */}
+        <button
+          onClick={handleReset}
+          className="w-full flex items-center justify-center gap-2 rounded-md bg-yellow-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-yellow-500 transition-colors"
+        >
+          <RotateCcw className="h-4 w-4" />
+          {isComplete ? 'Try Again' : 'Reset'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// Mistakes Review View - Practice problem positions
+function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy; onMistakeCompleted?: () => void }) {
+  const chessgroundRef = useRef<ChessgroundRef>(null)
+
+  const {
+    config,
+    boardKey,
+    isCorrect,
+    showWrongMove,
+    wrongAttempts,
+    hintLevel,
+    currentMistake,
+    contextNode,
+    currentIndex,
+    totalMistakes,
+    isComplete,
+    allMistakes,
+    correctCount,
+    wrongCount,
+    makeMove,
+    nextMistake,
+    skipMistake,
+    showHint,
+    refreshMistakes,
+    pendingPromotion,
+    completePromotion,
+    cancelPromotion,
+    clearAllMistakes,
+  } = useMistakesReview({ study, onMistakeCompleted })
+
+  if (allMistakes.length === 0) {
+    return (
+      <div className="flex justify-center p-6">
+        <div className="max-w-md text-center">
+          <Target className="mx-auto h-16 w-16 text-zinc-600 mb-4" />
+          <h2 className="text-xl font-bold text-white mb-2">No Mistakes Yet!</h2>
+          <p className="text-zinc-400 mb-4">
+            Practice your opening and any mistakes you make will appear here for review.
+          </p>
+          <p className="text-sm text-zinc-500">
+            Mistakes are tracked with spaced repetition - harder positions will appear more frequently.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (isComplete || totalMistakes === 0) {
+    return (
+      <div className="flex justify-center p-6">
+        <div className="max-w-md text-center">
+          <CheckCircle className="mx-auto h-16 w-16 text-green-500 mb-4" />
+          <h2 className="text-xl font-bold text-white mb-2">All Caught Up!</h2>
+          <p className="text-zinc-400 mb-4">
+            No mistakes due for review right now. Keep practicing!
+          </p>
+          <div className="space-y-2">
+            <p className="text-sm text-zinc-500">
+              {allMistakes.length} position{allMistakes.length === 1 ? '' : 's'} in your mistake bank
+            </p>
+            <button
+              onClick={refreshMistakes}
+              className="inline-flex items-center gap-2 rounded-md bg-zinc-700 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Check Again
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex justify-center gap-8 p-6">
+      {/* Promotion Dialog */}
+      {pendingPromotion && (
+        <PromotionDialog
+          color={study.color}
+          onSelect={completePromotion}
+          onCancel={cancelPromotion}
+        />
+      )}
+
+      {/* Board */}
+      <div className="h-[600px] w-[600px] shrink-0 rounded-sm overflow-hidden" key={boardKey}>
+        <Chessground
+          ref={chessgroundRef}
+          config={config}
+          onMove={makeMove}
+        />
+      </div>
+
+      {/* Controls */}
+      <div className="w-[320px] space-y-4">
+        {/* Info */}
+        <div className="rounded-lg bg-orange-500/10 border border-orange-500/30 p-4">
+          <h3 className="text-sm font-medium text-orange-400 mb-1">Mistakes Review</h3>
+          <p className="text-xs text-zinc-400">
+            Practice positions where you made mistakes. Spaced repetition helps you remember.
+          </p>
+        </div>
+
+        {/* Progress */}
+        <div className="rounded-lg bg-zinc-800 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-medium text-zinc-400">Progress</h3>
+            <span className="text-sm text-zinc-500">
+              {currentIndex + 1} / {totalMistakes}
+            </span>
+          </div>
+          <div className="h-2 bg-zinc-700 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-orange-500 transition-all duration-300"
+              style={{ width: `${((currentIndex + (isCorrect ? 1 : 0)) / totalMistakes) * 100}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Current Position Info */}
+        {contextNode && (
+          <div className="rounded-lg bg-zinc-800 p-4">
+            <h3 className="text-sm font-medium text-zinc-400 mb-2">Find the move after:</h3>
+            <p className="text-lg font-bold text-white">{contextNode.san}</p>
+            {currentMistake && (
+              <p className="text-xs text-zinc-500 mt-1">
+                Wrong attempts: {currentMistake.wrongAttempts} | Streak: {currentMistake.streak}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Status */}
+        <div className="rounded-lg bg-zinc-800 p-4">
+          {isCorrect ? (
+            <div className="rounded-md bg-green-500/20 p-4 text-center">
+              <CheckCircle className="mx-auto mb-2 h-8 w-8 text-green-500" />
+              <p className="text-green-400 font-medium">Correct!</p>
+            </div>
+          ) : showWrongMove ? (
+            <div className="rounded-md bg-red-500/20 p-4 text-center">
+              <XCircle className="mx-auto mb-2 h-8 w-8 text-red-500" />
+              <p className="text-red-400 font-medium">Wrong move! Try again.</p>
+            </div>
+          ) : (
+            <div className="rounded-md bg-blue-500/20 p-4 text-center">
+              <p className="text-blue-400 font-medium">Find the correct move!</p>
+              {wrongAttempts > 0 && (
+                <p className="text-xs text-zinc-400 mt-1">
+                  {wrongAttempts} wrong {wrongAttempts === 1 ? 'attempt' : 'attempts'}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Stats */}
+        <div className="rounded-lg bg-zinc-800 p-4">
+          <div className="grid grid-cols-2 gap-3 text-center">
+            <div>
+              <p className="text-2xl font-bold text-green-400">{correctCount}</p>
+              <p className="text-xs text-zinc-500">Correct</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-red-400">{wrongCount}</p>
+              <p className="text-xs text-zinc-500">Wrong</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Controls */}
+        <div className="flex gap-2">
+          {!isCorrect ? (
+            <>
+              <button
+                onClick={showHint}
+                disabled={hintLevel >= 2}
+                className="flex-1 flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors disabled:opacity-50"
+              >
+                <Lightbulb className={`h-4 w-4 ${hintLevel > 0 ? 'text-yellow-400' : ''}`} />
+                Hint
+              </button>
+              <button
+                onClick={skipMistake}
+                className="flex-1 flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
+              >
+                <SkipForward className="h-4 w-4" />
+                Skip
+              </button>
+            </>
+          ) : currentIndex < totalMistakes - 1 ? (
+            <button
+              onClick={nextMistake}
+              className="flex-1 flex items-center justify-center gap-2 rounded-md bg-green-600 px-3 py-2.5 text-sm font-medium text-white hover:bg-green-500 transition-colors"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          ) : (
+            <button
+              onClick={nextMistake}
+              className="flex-1 flex items-center justify-center gap-2 rounded-md bg-green-600 px-3 py-2.5 text-sm font-medium text-white hover:bg-green-500 transition-colors"
+            >
+              <Trophy className="h-4 w-4" />
+              Finish Review
+            </button>
+          )}
+        </div>
+
+        {/* Clear mistakes button */}
+        <button
+          onClick={clearAllMistakes}
+          className="w-full text-xs text-zinc-500 hover:text-zinc-400 transition-colors"
+        >
+          Clear all mistakes for this study
+        </button>
       </div>
     </div>
   )

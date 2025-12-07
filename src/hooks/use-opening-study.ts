@@ -200,7 +200,8 @@ export function useOpeningStudy(options: UseOpeningStudyOptions) {
   const executeMove = useCallback((from: Key, to: Key, promotion?: PromotionPiece) => {
     const chess = chessRef.current
     const currentIndex = moveIndexRef.current
-    const expectedUci = moves[currentIndex]
+    const currentMoves = movesRef.current
+    const expectedUci = currentMoves[currentIndex]
 
     if (!expectedUci) return false
 
@@ -237,7 +238,7 @@ export function useOpeningStudy(options: UseOpeningStudyOptions) {
       setMoveIndex(nextIndex)
 
       // Check if line is complete
-      if (nextIndex >= moves.length) {
+      if (nextIndex >= currentMoves.length) {
         setIsComplete(true)
         return true
       }
@@ -249,7 +250,7 @@ export function useOpeningStudy(options: UseOpeningStudyOptions) {
     }
 
     return false
-  }, [moves, playMachineMove])
+  }, [playMachineMove])
 
   // Keep ref in sync
   useEffect(() => {
@@ -387,12 +388,16 @@ export function useOpeningStudy(options: UseOpeningStudyOptions) {
     return new Map<Key, Key[]>([[from, [to]]])
   }, [moves, moveIndex, isComplete, isUserTurn])
 
-  // Current comment
+  // Current comment - show comment for the move the user is ABOUT to play
+  // Comments should only exist on user moves, shown before they play
   const currentComment = useMemo(() => {
-    if (moveIndex === 0) return null
-    const prevNode = currentLineNodes[moveIndex - 1]
-    return prevNode?.comment || null
-  }, [currentLineNodes, moveIndex])
+    if (isComplete) return null
+    // Only show comment when it's user's turn
+    if (!isUserTurn()) return null
+    // Get the node for the move the user is about to play
+    const upcomingNode = currentLineNodes[moveIndex]
+    return upcomingNode?.comment || null
+  }, [currentLineNodes, moveIndex, isComplete, isUserTurn])
 
   // Available moves at current position (for determining if complete)
   const availableMoves = useMemo(() => {
@@ -444,7 +449,7 @@ export function useOpeningStudy(options: UseOpeningStudyOptions) {
 
     // Move info
     moveInfo: {
-      current: moveIndex,
+      current: isComplete ? moves.length : moveIndex,
       total: moves.length,
       isMainLine: currentLineIndex === 0,
     },
