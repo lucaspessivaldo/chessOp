@@ -119,6 +119,27 @@
   }
 }
 
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Better text contrast utilities */
+.text-zinc-400-contrast {
+  color: oklch(0.65 0 0); /* Slightly brighter than zinc-400 for better readability */
+}
+
+.text-zinc-500-contrast {
+  color: oklch(0.60 0 0); /* Slightly brighter than zinc-500 for better readability */
+}
+
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
   10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
@@ -127,4 +148,17 @@
 
 .animate-shake {
   animation: shake 0.4s ease-in-out;
+}
+
+/* Utility for motion-safe animations */
+@media (prefers-reduced-motion: no-preference) {
+  .motion-safe\:animate-shake {
+    animation: shake 0.4s ease-in-out;
+  }
+}
+
+/* Focus visible styles for better accessibility */
+.focus-visible-ring:focus-visible {
+  outline: 2px solid oklch(0.488 0.243 264.376);
+  outline-offset: 2px;
 }

@@ -1,6 +1,6 @@
 import type { OpeningMoveNode } from '@/types/opening'
 import { NAG_SYMBOLS } from '@/types/opening'
-import { Flag } from 'lucide-react'
+import { Flag, MessageSquare } from 'lucide-react'
 
 interface MoveListProps {
   moves: OpeningMoveNode[]
@@ -100,10 +100,10 @@ function MoveTree({
           <Flag className="inline-block h-3 w-3 text-green-500 ml-0.5" />
         )}
 
-        {/* Inline comment preview */}
+        {/* Inline comment indicator */}
         {mainNode.comment && (
-          <span className="text-zinc-500 text-xs ml-1" title={mainNode.comment}>
-            💬
+          <span className="ml-1" title={mainNode.comment}>
+            <MessageSquare className="inline-block h-3 w-3 text-zinc-500" />
           </span>
         )}
       </span>

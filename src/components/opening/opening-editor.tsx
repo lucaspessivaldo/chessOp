@@ -11,6 +11,9 @@ import { MoveList } from './move-list'
 import { VariationExplorer } from './variation-explorer'
 import { OpeningStatsPanel } from './opening-stats'
 import { useOpeningStats } from '@/hooks/use-opening-stats'
+import { useToast } from '@/components/ui/toast'
+import { ConfirmDialog, AlertDialog } from '@/components/ui/dialog'
+import { Accordion, AccordionItem } from '@/components/ui/accordion'
 import {
   generateNodeId,
   updateNodeComment,
@@ -25,7 +28,7 @@ import {
 } from '@/lib/opening-utils'
 import { createChess, getLegalDests, getTurnColor, toChessgroundFen, isCheck } from '@/chess/chess-utils'
 import { playSound, getMoveSound } from '@/lib/sounds'
-import { Save, Trash2, RotateCcw, ChevronLeft, ChevronRight, Undo2, Redo2, ArrowUpRight, List, GitBranch, Flag, BarChart3 } from 'lucide-react'
+import { Save, Trash2, RotateCcw, ChevronLeft, ChevronRight, Undo2, Redo2, ArrowUpRight, List, GitBranch, Flag, BarChart3, MessageSquare, Sparkles, Settings } from 'lucide-react'
 
 interface OpeningEditorProps {
   initialStudy?: OpeningStudy
@@ -40,6 +43,7 @@ interface PendingPromotion {
 
 export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorProps) {
   const chessgroundRef = useRef<ChessgroundRef>(null)
+  const { addToast } = useToast()
 
   // Study metadata
   const [name, setName] = useState(initialStudy?.name || '')
@@ -72,12 +76,19 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
   // Move view mode (list vs tree)
   const [moveViewMode, setMoveViewMode] = useState<'list' | 'tree'>('list')
 
-  // Stats panel toggle
-  const [showStats, setShowStats] = useState(false)
+  // Stats panel toggle (kept for accordion state tracking)
+  const [showStats] = useState(true)
 
   // Undo/Redo history
   const [history, setHistory] = useState<OpeningMoveNode[][]>([initialStudy?.moves || []])
   const [historyIndex, setHistoryIndex] = useState(0)
+
+  // Dialog states
+  const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const [validationAlert, setValidationAlert] = useState<{ isOpen: boolean; message: string }>({
+    isOpen: false,
+    message: '',
+  })
 
   // Get current node
   const currentNode = currentPath.length > 0 ? getNodeAtPath(moves, currentPath) : null
@@ -308,15 +319,20 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
   }, [syncChess])
 
   // Delete current move and all descendants
-  const deleteCurrentMove = useCallback(() => {
+  const handleDeleteClick = useCallback(() => {
     if (!currentNode) return
-    if (!confirm('Delete this move and all its continuations?')) return
+    setDeleteConfirm(true)
+  }, [currentNode])
 
+  const confirmDeleteMove = useCallback(() => {
+    if (!currentNode) return
     const newMoves = deleteNode(moves, currentNode.id)
     pushToHistory(newMoves)
     setMoves(newMoves)
     goToPreviousMove()
-  }, [currentNode, goToPreviousMove, moves, pushToHistory])
+    setDeleteConfirm(false)
+    addToast('Move deleted', 'success')
+  }, [currentNode, goToPreviousMove, moves, pushToHistory, addToast])
 
   // Save comment for current move
   const saveComment = useCallback(() => {
@@ -325,7 +341,8 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
     pushToHistory(newMoves)
     setMoves(newMoves)
     setEditingComment(false)
-  }, [currentNode, commentText, moves, pushToHistory])
+    addToast('Comment saved', 'success')
+  }, [currentNode, commentText, moves, pushToHistory, addToast])
 
   // Start editing comment
   const startEditComment = useCallback(() => {
@@ -391,7 +408,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
   // Save the study
   const handleSave = useCallback(() => {
     if (!name.trim()) {
-      alert('Please enter a name for the opening study')
+      setValidationAlert({ isOpen: true, message: 'Please enter a name for the opening study' })
       return
     }
 
@@ -408,8 +425,9 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
     }
 
     saveOpeningStudy(study)
+    addToast('Opening study saved!', 'success')
     onSave(study)
-  }, [name, description, color, moves, practiceStartNodeId, initialStudy, onSave])
+  }, [name, description, color, moves, practiceStartNodeId, initialStudy, onSave, addToast])
 
   // Handle shapes change from drawable
   const handleShapesChange = useCallback((shapes: DrawShape[]) => {
@@ -471,6 +489,25 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
 
   return (
     <div className="flex min-h-screen bg-zinc-900 p-6">
+      {/* Dialogs */}
+      <ConfirmDialog
+        isOpen={deleteConfirm}
+        title="Delete Move"
+        message="Delete this move and all its continuations? This cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+        onConfirm={confirmDeleteMove}
+        onCancel={() => setDeleteConfirm(false)}
+      />
+      <AlertDialog
+        isOpen={validationAlert.isOpen}
+        title="Validation Error"
+        message={validationAlert.message}
+        variant="warning"
+        onClose={() => setValidationAlert({ isOpen: false, message: '' })}
+      />
+
       {/* Promotion Dialog */}
       {pendingPromotion && (
         <PromotionDialog
@@ -482,24 +519,43 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
 
       <div className="mx-auto flex items-start gap-8">
         {/* Chessboard */}
-        <div className="h-[500px] w-[500px] shrink-0 rounded-sm">
+        <div className="h-[600px] w-[600px] shrink-0 rounded-sm">
           <Chessground ref={chessgroundRef} config={config} onMove={handleMove} />
         </div>
 
         {/* Editor Panel */}
-        <div className="w-[400px] space-y-4">
-          {/* Study Info */}
+        <div className="w-[400px] space-y-3">
+          {/* Sticky Header with Save/Cancel */}
+          <div className="sticky top-0 z-10 bg-zinc-900 pb-2">
+            <div className="flex gap-2">
+              <button
+                onClick={onCancel}
+                className="flex-1 rounded-md bg-zinc-700 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                className="flex-1 flex items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 transition-colors"
+              >
+                <Save className="h-4 w-4" />
+                Save
+              </button>
+            </div>
+          </div>
+
+          {/* Study Info - Always visible */}
           <div className="rounded-lg bg-zinc-800 p-4 space-y-3">
             <div>
               <label className="block text-sm font-medium text-zinc-400 mb-1">
-                Opening Name *
+                Opening Name <span className="text-red-400">*</span>
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g., My Sicilian Repertoire"
-                className="w-full rounded-md bg-zinc-700 border border-zinc-600 py-2 px-3 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-md bg-zinc-700 border border-zinc-600 py-2 px-3 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               />
             </div>
             <div>
@@ -545,30 +601,42 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
           <div className="rounded-lg bg-zinc-800 p-4">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-medium text-zinc-400">Moves</h3>
-              <div className="flex gap-1 bg-zinc-700 rounded-md p-0.5">
-                <button
-                  onClick={() => setMoveViewMode('list')}
-                  className={`p-1.5 rounded transition-colors ${moveViewMode === 'list'
-                    ? 'bg-zinc-600 text-white'
-                    : 'text-zinc-400 hover:text-white'
-                    }`}
-                  title="Move List"
-                >
-                  <List className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => setMoveViewMode('tree')}
-                  className={`p-1.5 rounded transition-colors ${moveViewMode === 'tree'
-                    ? 'bg-zinc-600 text-white'
-                    : 'text-zinc-400 hover:text-white'
-                    }`}
-                  title="Variation Explorer"
-                >
-                  <GitBranch className="h-4 w-4" />
-                </button>
+              <div className="flex items-center gap-2">
+                {/* Delete current move button - moved up for visibility */}
+                {currentNode && (
+                  <button
+                    onClick={handleDeleteClick}
+                    className="p-1.5 rounded text-red-400 hover:bg-red-600/20 transition-colors"
+                    title="Delete this move"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+                <div className="flex gap-1 bg-zinc-700 rounded-md p-0.5">
+                  <button
+                    onClick={() => setMoveViewMode('list')}
+                    className={`p-1.5 rounded transition-colors ${moveViewMode === 'list'
+                      ? 'bg-zinc-600 text-white'
+                      : 'text-zinc-400 hover:text-white'
+                      }`}
+                    title="Move List"
+                  >
+                    <List className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => setMoveViewMode('tree')}
+                    className={`p-1.5 rounded transition-colors ${moveViewMode === 'tree'
+                      ? 'bg-zinc-600 text-white'
+                      : 'text-zinc-400 hover:text-white'
+                      }`}
+                    title="Variation Explorer"
+                  >
+                    <GitBranch className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             </div>
-            <div className="max-h-[250px] overflow-y-auto">
+            <div className="max-h-[200px] overflow-y-auto scrollbar-thin">
               {moveViewMode === 'list' ? (
                 <MoveList
                   moves={moves}
@@ -593,30 +661,26 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
             <button
               onClick={goToStart}
               className="flex-1 flex items-center justify-center gap-1 rounded-md bg-zinc-700 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
+              title="Go to start (Home)"
             >
               <RotateCcw className="h-4 w-4" />
-              Start
             </button>
             <button
               onClick={goToPreviousMove}
               disabled={currentPath.length === 0}
               className="flex-1 flex items-center justify-center gap-1 rounded-md bg-zinc-700 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Previous move (←)"
             >
               <ChevronLeft className="h-4 w-4" />
-              Back
             </button>
             <button
               onClick={goToNextMove}
               disabled={!currentNode?.children.length && (currentPath.length === 0 ? moves.length === 0 : true)}
               className="flex-1 flex items-center justify-center gap-1 rounded-md bg-zinc-700 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Next move (→)"
             >
-              Next
               <ChevronRight className="h-4 w-4" />
             </button>
-          </div>
-
-          {/* Undo/Redo Controls */}
-          <div className="flex gap-2">
             <button
               onClick={undo}
               disabled={historyIndex <= 0}
@@ -624,7 +688,6 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
               title="Undo (Ctrl+Z)"
             >
               <Undo2 className="h-4 w-4" />
-              Undo
             </button>
             <button
               onClick={redo}
@@ -633,184 +696,167 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
               title="Redo (Ctrl+Y)"
             >
               <Redo2 className="h-4 w-4" />
-              Redo
-            </button>
-            <button
-              onClick={() => setShowStats(!showStats)}
-              className={`flex items-center justify-center gap-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${showStats
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-zinc-700 text-white hover:bg-zinc-600'
-                }`}
-              title="Show Lichess stats"
-            >
-              <BarChart3 className="h-4 w-4" />
             </button>
           </div>
 
-          {/* Lichess Opening Stats */}
-          {showStats && (
-            <OpeningStatsPanel
-              stats={stats}
-              isLoading={statsLoading}
-              error={statsError}
-              repertoireMoves={repertoireMoves}
-              sideToMove={turnColor}
-            />
-          )}
+          {/* Collapsible Sections */}
+          <Accordion>
+            {/* Lichess Stats */}
+            <AccordionItem
+              title="Opening Statistics"
+              icon={<BarChart3 className="h-4 w-4" />}
+              defaultOpen={showStats}
+            >
+              <OpeningStatsPanel
+                stats={stats}
+                isLoading={statsLoading}
+                error={statsError}
+                repertoireMoves={repertoireMoves}
+                sideToMove={turnColor}
+              />
+            </AccordionItem>
 
-          {/* NAG Annotations */}
-          {currentNode && (
-            <div className="rounded-lg bg-zinc-800 p-4">
-              <h3 className="text-sm font-medium text-zinc-400 mb-2">
-                Annotate: {currentNode.san}
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {nagButtons.map(({ nag, symbol, label }) => {
-                  const isActive = currentNode.nags?.includes(nag)
-                  return (
+            {/* Annotations (only when move selected) */}
+            {currentNode && (
+              <AccordionItem
+                title={`Annotate: ${currentNode.san}`}
+                icon={<Sparkles className="h-4 w-4" />}
+                defaultOpen={false}
+              >
+                <div className="space-y-3">
+                  {/* NAG buttons */}
+                  <div className="flex flex-wrap gap-2">
+                    {nagButtons.map(({ nag, symbol, label }) => {
+                      const isActive = currentNode.nags?.includes(nag)
+                      return (
+                        <button
+                          key={nag}
+                          onClick={() => toggleNag(nag)}
+                          title={label}
+                          aria-label={label}
+                          className={`px-3 py-1.5 rounded-md text-sm font-bold transition-colors ${isActive
+                            ? 'bg-yellow-500 text-black'
+                            : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
+                            }`}
+                        >
+                          {symbol}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {/* Promote to main line */}
+                  {!currentNode.isMainLine && (
                     <button
-                      key={nag}
-                      onClick={() => toggleNag(nag)}
-                      title={label}
-                      className={`px-3 py-1.5 rounded-md text-sm font-bold transition-colors ${isActive
-                        ? 'bg-yellow-500 text-black'
-                        : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
-                        }`}
+                      onClick={handlePromoteToMain}
+                      className="w-full flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
                     >
-                      {symbol}
+                      <ArrowUpRight className="h-4 w-4" />
+                      Promote to main line
                     </button>
-                  )
-                })}
-              </div>
-              {/* Promote to main line */}
-              {!currentNode.isMainLine && (
-                <button
-                  onClick={handlePromoteToMain}
-                  className="mt-3 w-full flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
-                >
-                  <ArrowUpRight className="h-4 w-4" />
-                  Promote to main line
-                </button>
-              )}
-            </div>
-          )}
+                  )}
+                </div>
+              </AccordionItem>
+            )}
 
-          {/* Comment Editor */}
-          {currentNode && (
-            <div className="rounded-lg bg-zinc-800 p-4">
-              <h3 className="text-sm font-medium text-zinc-400 mb-2">
-                Comment for {currentNode.san}
-              </h3>
-              {editingComment ? (
-                <div className="space-y-2">
-                  <textarea
-                    value={commentText}
-                    onChange={(e) => setCommentText(e.target.value)}
-                    placeholder="Add commentary for this move..."
-                    rows={3}
-                    className="w-full rounded-md bg-zinc-700 border border-zinc-600 py-2 px-3 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none resize-none"
-                  />
-                  <div className="flex gap-2">
+            {/* Comment Editor */}
+            {currentNode && (
+              <AccordionItem
+                title="Comment"
+                icon={<MessageSquare className="h-4 w-4" />}
+                badge={currentNode.comment ? (
+                  <span className="text-xs text-green-400">●</span>
+                ) : undefined}
+                defaultOpen={false}
+              >
+                {editingComment ? (
+                  <div className="space-y-2">
+                    <textarea
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      placeholder="Add commentary for this move..."
+                      rows={4}
+                      className="w-full rounded-md bg-zinc-700 border border-zinc-600 py-2 px-3 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none resize-none"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={saveComment}
+                        className="flex-1 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500 transition-colors"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => setEditingComment(false)}
+                        className="flex-1 rounded-md bg-zinc-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    {currentNode.comment ? (
+                      <p className="text-sm text-zinc-300 mb-2">{currentNode.comment}</p>
+                    ) : (
+                      <p className="text-sm text-zinc-500 italic mb-2">No comment</p>
+                    )}
                     <button
-                      onClick={saveComment}
-                      className="flex-1 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500 transition-colors"
+                      onClick={startEditComment}
+                      className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
                     >
-                      Save
-                    </button>
-                    <button
-                      onClick={() => setEditingComment(false)}
-                      className="flex-1 rounded-md bg-zinc-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
-                    >
-                      Cancel
+                      {currentNode.comment ? 'Edit comment' : 'Add comment'}
                     </button>
                   </div>
-                </div>
-              ) : (
-                <div>
-                  {currentNode.comment ? (
-                    <p className="text-sm text-zinc-300 mb-2">{currentNode.comment}</p>
+                )}
+              </AccordionItem>
+            )}
+
+            {/* Practice Settings */}
+            {currentNode && (
+              <AccordionItem
+                title="Practice Settings"
+                icon={<Settings className="h-4 w-4" />}
+                badge={practiceStartNodeId === currentNode.id ? (
+                  <Flag className="h-3 w-3 text-green-400" />
+                ) : undefined}
+                defaultOpen={false}
+              >
+                <div className="space-y-2">
+                  {practiceStartNodeId === currentNode.id ? (
+                    <>
+                      <div className="flex items-center gap-2 text-sm text-green-400">
+                        <Flag className="h-4 w-4" />
+                        <span>Practice starts after this move</span>
+                      </div>
+                      <button
+                        onClick={() => setPracticeStartNodeId(undefined)}
+                        className="w-full rounded-md bg-zinc-700 px-3 py-1.5 text-sm font-medium text-zinc-300 hover:bg-zinc-600 transition-colors"
+                      >
+                        Clear start point
+                      </button>
+                    </>
                   ) : (
-                    <p className="text-sm text-zinc-500 italic mb-2">No comment</p>
+                    <>
+                      {practiceStartNodeId && (
+                        <p className="text-xs text-zinc-500">
+                          Another move is set as start point
+                        </p>
+                      )}
+                      <button
+                        onClick={() => setPracticeStartNodeId(currentNode.id)}
+                        className="w-full flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
+                      >
+                        <Flag className="h-4 w-4" />
+                        Set as practice start
+                      </button>
+                      <p className="text-xs text-zinc-500">
+                        Moves before this become a "setup line". Variations after this are practiced separately.
+                      </p>
+                    </>
                   )}
-                  <button
-                    onClick={startEditComment}
-                    className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
-                  >
-                    {currentNode.comment ? 'Edit comment' : 'Add comment'}
-                  </button>
                 </div>
-              )}
-            </div>
-          )}
-
-          {/* Practice Start Marker */}
-          {currentNode && (
-            <div className="rounded-lg bg-zinc-800 p-4">
-              <h3 className="text-sm font-medium text-zinc-400 mb-2">
-                Practice Start Point
-              </h3>
-              {practiceStartNodeId === currentNode.id ? (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-green-400">
-                    <Flag className="h-4 w-4" />
-                    <span>Practice starts after this move</span>
-                  </div>
-                  <button
-                    onClick={() => setPracticeStartNodeId(undefined)}
-                    className="w-full rounded-md bg-zinc-700 px-3 py-1.5 text-sm font-medium text-zinc-300 hover:bg-zinc-600 transition-colors"
-                  >
-                    Clear start point
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {practiceStartNodeId && (
-                    <p className="text-xs text-zinc-500">
-                      Another move is set as start point
-                    </p>
-                  )}
-                  <button
-                    onClick={() => setPracticeStartNodeId(currentNode.id)}
-                    className="w-full flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
-                  >
-                    <Flag className="h-4 w-4" />
-                    Set as practice start
-                  </button>
-                  <p className="text-xs text-zinc-500">
-                    Moves before this become a "setup line". Variations after this are practiced separately.
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Delete Move */}
-          {currentNode && (
-            <button
-              onClick={deleteCurrentMove}
-              className="w-full flex items-center justify-center gap-2 rounded-md bg-red-600/20 px-3 py-2 text-sm font-medium text-red-400 hover:bg-red-600/30 transition-colors"
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete this move
-            </button>
-          )}
-
-          {/* Save/Cancel */}
-          <div className="flex gap-3 pt-4 border-t border-zinc-700">
-            <button
-              onClick={onCancel}
-              className="flex-1 rounded-md bg-zinc-700 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              className="flex-1 flex items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 transition-colors"
-            >
-              <Save className="h-4 w-4" />
-              Save Opening
-            </button>
-          </div>
+              </AccordionItem>
+            )}
+          </Accordion>
         </div>
       </div>
     </div>

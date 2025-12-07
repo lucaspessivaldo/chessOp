@@ -14,6 +14,7 @@ import {
 } from '@/chess/chess-utils'
 import { playSound, getMoveSound } from '@/lib/sounds'
 import { shuffleArray, findNodeById, getPathToNode } from '@/lib/opening-utils'
+import { loadPracticeProgress, savePracticeProgress } from '@/lib/practice-storage'
 
 export interface PendingPromotion {
   from: Key
@@ -177,6 +178,9 @@ function extractLinesWithStartMarker(
 export function useOpeningPractice(options: UseOpeningPracticeOptions) {
   const { study, randomOrder = false, selectedLineIndices, onLineComplete, onAllLinesComplete } = options
 
+  // Load saved progress
+  const savedProgress = useMemo(() => loadPracticeProgress(study.id), [study.id])
+
   // Extract all lines with practice start marker support
   const extractedData = useMemo(
     () => extractLinesWithStartMarker(study.moves, study.practiceStartNodeId, study.rootFen),
@@ -213,8 +217,13 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
   const allIsSetupLine = useMemo(() => lineOrder.map(i => filteredLines.isSetupLine[i]), [lineOrder, filteredLines.isSetupLine])
   const allStartFens = useMemo(() => lineOrder.map(i => filteredLines.startFens[i]), [lineOrder, filteredLines.startFens])
 
-  // Current line index
-  const [currentLineIndex, setCurrentLineIndex] = useState(0)
+  // Current line index - restore from saved progress if available
+  const [currentLineIndex, setCurrentLineIndex] = useState(() => {
+    if (savedProgress && savedProgress.currentLineIndex < filteredLines.lines.length) {
+      return savedProgress.currentLineIndex
+    }
+    return 0
+  })
   const currentLineIndexRef = useRef(currentLineIndex)
   currentLineIndexRef.current = currentLineIndex // Always keep ref in sync
 
@@ -236,13 +245,37 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
   const [boardKey, setBoardKey] = useState(0)
   const [isComplete, setIsComplete] = useState(false)
 
-  // Practice-specific state
+  // Practice-specific state - restore from saved progress if available
+  const [completedLines, setCompletedLines] = useState<Set<number>>(() => {
+    if (savedProgress) {
+      return new Set(savedProgress.completedLines)
+    }
+    return new Set()
+  })
+  const [skippedLines, setSkippedLines] = useState<Set<number>>(() => {
+    if (savedProgress) {
+      return new Set(savedProgress.skippedLines)
+    }
+    return new Set()
+  })
+  const [totalWrongAttempts, setTotalWrongAttempts] = useState(() => savedProgress?.wrongAttempts || 0)
   const [wrongAttempts, setWrongAttempts] = useState(0)
   const [hintLevel, setHintLevel] = useState<HintLevel>(0) // Progressive hints
   const [showWrongMove, setShowWrongMove] = useState(false)
-  const [completedLines, setCompletedLines] = useState<Set<number>>(new Set())
-  const [skippedLines, setSkippedLines] = useState<Set<number>>(new Set())
   const [status, setStatus] = useState<PracticeStatus>('playing')
+
+  // Save progress whenever it changes
+  useEffect(() => {
+    savePracticeProgress({
+      studyId: study.id,
+      completedLines: Array.from(completedLines),
+      skippedLines: Array.from(skippedLines),
+      currentLineIndex,
+      totalAttempts: 0, // Not tracking this yet
+      wrongAttempts: totalWrongAttempts,
+      lastPracticedAt: Date.now(),
+    })
+  }, [study.id, completedLines, skippedLines, currentLineIndex, totalWrongAttempts])
 
   // User color and orientation
   const userColor = study.color
@@ -342,6 +375,7 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
       // Wrong move - play wrong sound
       playSound('wrong')
       setWrongAttempts(prev => prev + 1)
+      setTotalWrongAttempts(prev => prev + 1)
       setShowWrongMove(true)
 
       // Progressive hints: increase hint level after wrong attempts
