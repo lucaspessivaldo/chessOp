@@ -590,11 +590,11 @@ function StudyView({ study }: { study: OpeningStudy }) {
         />
       </div>
 
-      {/* Controls */}
-      <div className="w-[320px] space-y-4">
+      {/* Sidebar */}
+      <div className="w-[320px] rounded-lg bg-zinc-800 overflow-hidden flex flex-col">
         {/* Comment - at top when present */}
         {currentComment && (
-          <div className="rounded-lg bg-green-500/15 border border-green-500/40 p-4">
+          <div className="bg-green-500/15 border-b border-green-500/40 p-4">
             <div className="flex items-start gap-3">
               <MessageSquare className="h-5 w-5 text-green-400 mt-0.5 shrink-0" />
               <p className="text-sm text-green-100">{currentComment}</p>
@@ -603,7 +603,7 @@ function StudyView({ study }: { study: OpeningStudy }) {
         )}
 
         {/* Line Progress */}
-        <div className="rounded-lg bg-zinc-800 p-4">
+        <div className="p-4 border-b border-zinc-700">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-medium text-zinc-400">Line Progress</h3>
             <span className="text-sm text-zinc-500">
@@ -613,7 +613,7 @@ function StudyView({ study }: { study: OpeningStudy }) {
           <div className="h-2 bg-zinc-700 rounded-full overflow-hidden">
             <div
               className="h-full bg-blue-500 transition-all duration-300 progress-bar-striped"
-              style={{ width: `${(moveInfo.current / moveInfo.total) * 100}%` }}
+              style={{ width: `${((currentLineIndex + (isComplete ? 1 : 0)) / allLines.length) * 100}%` }}
             />
           </div>
           <p className="text-xs text-zinc-500 mt-2">
@@ -622,7 +622,7 @@ function StudyView({ study }: { study: OpeningStudy }) {
         </div>
 
         {/* Current Moves */}
-        <div className="rounded-lg bg-zinc-800 p-4">
+        <div className="p-4 flex-1 overflow-y-auto">
           <h3 className="text-sm font-medium text-zinc-400 mb-3">Moves</h3>
           <CompactMoveList
             line={currentLine}
@@ -633,40 +633,42 @@ function StudyView({ study }: { study: OpeningStudy }) {
 
         {/* Status */}
         {isComplete && (
-          <div className="rounded-lg bg-green-500/20 p-4 text-center">
+          <div className="bg-green-500/20 p-4 text-center border-t border-zinc-700">
             <CheckCircle className="mx-auto mb-2 h-8 w-8 text-green-500" />
             <p className="text-green-400 font-medium">Line completed!</p>
           </div>
         )}
 
         {/* Controls */}
-        <div className="flex gap-2">
-          <button
-            onClick={goToStart}
-            className="flex-1 flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
-          >
-            <RotateCcw className="h-4 w-4" />
-            Restart
-          </button>
-          <button
-            onClick={previousLine}
-            disabled={currentLineIndex === 0}
-            className="flex-1 flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors disabled:opacity-50"
-          >
-            Prev Line
-          </button>
-        </div>
+        <div className="p-4 border-t border-zinc-700 space-y-2">
+          <div className="flex gap-2">
+            <button
+              onClick={goToStart}
+              className="flex-1 flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Restart
+            </button>
+            <button
+              onClick={previousLine}
+              disabled={currentLineIndex === 0}
+              className="flex-1 flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors disabled:opacity-50"
+            >
+              Prev Line
+            </button>
+          </div>
 
-        {/* Next Line Button - only show when line is complete */}
-        {isComplete && currentLineIndex < allLines.length - 1 && (
-          <button
-            onClick={nextLine}
-            className="w-full flex items-center justify-center gap-2 rounded-md bg-green-600 px-4 py-3 text-base font-medium text-white hover:bg-green-500 transition-colors"
-          >
-            Next Line
-            <ChevronRight className="h-5 w-5" />
-          </button>
-        )}
+          {/* Next Line Button - only show when line is complete */}
+          {isComplete && currentLineIndex < allLines.length - 1 && (
+            <button
+              onClick={nextLine}
+              className="w-full flex items-center justify-center gap-2 rounded-md bg-green-600 px-4 py-3 text-base font-medium text-white hover:bg-green-500 transition-colors"
+            >
+              Next Line
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )
