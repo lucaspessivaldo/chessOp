@@ -144,65 +144,67 @@ function StudyPageContent({ study, onBack, onEdit }: StudyPageContentProps) {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={onEdit}
-              className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors"
-            >
-              <Edit className="h-4 w-4" />
-              Edit
-            </button>
-          </div>
         </div>
       </div>
 
       {/* Mode Tabs */}
       <div className="border-b border-zinc-800 px-6">
-        <div className="max-w-7xl mx-auto flex gap-1">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex gap-1">
+            <button
+              onClick={() => setMode('study')}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${mode === 'study'
+                ? 'border-blue-500 text-blue-400'
+                : 'border-transparent text-zinc-400 hover:text-white'
+                }`}
+            >
+              <BookOpen className="h-4 w-4" />
+              Study
+            </button>
+            <button
+              onClick={() => setMode('practice')}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${mode === 'practice'
+                ? 'border-blue-500 text-blue-400'
+                : 'border-transparent text-zinc-400 hover:text-white'
+                }`}
+            >
+              <Play className="h-4 w-4" />
+              Practice
+            </button>
+            <button
+              onClick={() => setMode('speed')}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${mode === 'speed'
+                ? 'border-blue-500 text-blue-400'
+                : 'border-transparent text-zinc-400 hover:text-white'
+                }`}
+            >
+              <Zap className="h-4 w-4" />
+              Speed Drill
+            </button>
+            <button
+              onClick={() => setMode('mistakes')}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${mode === 'mistakes'
+                ? 'border-blue-500 text-blue-400'
+                : 'border-transparent text-zinc-400 hover:text-white'
+                }`}
+            >
+              <AlertTriangle className="h-4 w-4" />
+              Mistakes
+              {mistakesCount > 0 && (
+                <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                  {mistakesCount}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Edit Button */}
           <button
-            onClick={() => setMode('study')}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${mode === 'study'
-              ? 'border-blue-500 text-blue-400'
-              : 'border-transparent text-zinc-400 hover:text-white'
-              }`}
+            onClick={onEdit}
+            className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-zinc-400 hover:text-white transition-colors"
           >
-            <BookOpen className="h-4 w-4" />
-            Study
-          </button>
-          <button
-            onClick={() => setMode('practice')}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${mode === 'practice'
-              ? 'border-blue-500 text-blue-400'
-              : 'border-transparent text-zinc-400 hover:text-white'
-              }`}
-          >
-            <Play className="h-4 w-4" />
-            Practice
-          </button>
-          <button
-            onClick={() => setMode('speed')}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${mode === 'speed'
-              ? 'border-blue-500 text-blue-400'
-              : 'border-transparent text-zinc-400 hover:text-white'
-              }`}
-          >
-            <Zap className="h-4 w-4" />
-            Speed Drill
-          </button>
-          <button
-            onClick={() => setMode('mistakes')}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${mode === 'mistakes'
-              ? 'border-blue-500 text-blue-400'
-              : 'border-transparent text-zinc-400 hover:text-white'
-              }`}
-          >
-            <AlertTriangle className="h-4 w-4" />
-            Mistakes
-            {mistakesCount > 0 && (
-              <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
-                {mistakesCount}
-              </span>
-            )}
+            <Edit className="h-4 w-4" />
+            Edit
           </button>
         </div>
       </div>
@@ -372,9 +374,9 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
               )}
             </div>
           </div>
-          <div className="w-full bg-zinc-700 rounded-full h-2">
+          <div className="w-full bg-zinc-700 rounded-full h-2 overflow-hidden">
             <div
-              className="bg-green-500 h-2 rounded-full transition-all duration-300"
+              className="bg-green-500 h-2 rounded-full transition-all duration-300 progress-bar-striped"
               style={{ width: `${(progressInfo.completedLines / progressInfo.totalLines) * 100}%` }}
             />
           </div>
@@ -567,7 +569,6 @@ function StudyView({ study }: { study: OpeningStudy }) {
     completePromotion,
     cancelPromotion,
     chessgroundConfig,
-    isUserTurn,
   } = useOpeningStudy({ study })
 
   return (
@@ -592,15 +593,15 @@ function StudyView({ study }: { study: OpeningStudy }) {
 
       {/* Controls */}
       <div className="w-[320px] space-y-4">
-        {/* Instructions */}
-        <div className="rounded-lg bg-blue-500/10 border border-blue-500/30 p-4">
-          <h3 className="text-sm font-medium text-blue-400 mb-1">Study Mode</h3>
-          <p className="text-xs text-zinc-400">
-            {isUserTurn
-              ? 'Click to play your move (shown with green arrow)'
-              : 'Opponent moves are played automatically'}
-          </p>
-        </div>
+        {/* Comment - at top when present */}
+        {currentComment && (
+          <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-4">
+            <div className="flex items-start gap-3">
+              <MessageSquare className="h-5 w-5 text-amber-400 mt-0.5 shrink-0" />
+              <p className="text-sm text-amber-100">{currentComment}</p>
+            </div>
+          </div>
+        )}
 
         {/* Line Progress */}
         <div className="rounded-lg bg-zinc-800 p-4">
@@ -612,7 +613,7 @@ function StudyView({ study }: { study: OpeningStudy }) {
           </div>
           <div className="h-2 bg-zinc-700 rounded-full overflow-hidden">
             <div
-              className="h-full bg-blue-500 transition-all duration-300"
+              className="h-full bg-blue-500 transition-all duration-300 progress-bar-striped"
               style={{ width: `${(moveInfo.current / moveInfo.total) * 100}%` }}
             />
           </div>
@@ -630,16 +631,6 @@ function StudyView({ study }: { study: OpeningStudy }) {
             startColor={study.color === 'white' ? 'white' : 'black'}
           />
         </div>
-
-        {/* Comment */}
-        {currentComment && (
-          <div className="rounded-lg bg-zinc-800 p-4">
-            <div className="flex items-start gap-2">
-              <MessageSquare className="h-4 w-4 text-blue-400 mt-0.5 shrink-0" />
-              <p className="text-sm text-zinc-300">{currentComment}</p>
-            </div>
-          </div>
-        )}
 
         {/* Status */}
         {isComplete && (
@@ -665,14 +656,18 @@ function StudyView({ study }: { study: OpeningStudy }) {
           >
             Prev Line
           </button>
+        </div>
+
+        {/* Next Line Button - only show when line is complete */}
+        {isComplete && currentLineIndex < allLines.length - 1 && (
           <button
             onClick={nextLine}
-            disabled={currentLineIndex >= allLines.length - 1}
-            className="flex-1 flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 rounded-md bg-green-600 px-4 py-3 text-base font-medium text-white hover:bg-green-500 transition-colors"
           >
             Next Line
+            <ChevronRight className="h-5 w-5" />
           </button>
-        </div>
+        )}
       </div>
     </div>
   )
@@ -755,7 +750,7 @@ function SpeedDrillView({ study }: { study: OpeningStudy }) {
           </div>
           <div className="h-2 bg-zinc-700 rounded-full overflow-hidden">
             <div
-              className="h-full bg-yellow-500 transition-all duration-150"
+              className="h-full bg-yellow-500 transition-all duration-150 progress-bar-striped"
               style={{ width: `${progress.overallProgress}%` }}
             />
           </div>
@@ -927,7 +922,7 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
           </div>
           <div className="h-2 bg-zinc-700 rounded-full overflow-hidden">
             <div
-              className="h-full bg-orange-500 transition-all duration-300"
+              className="h-full bg-orange-500 transition-all duration-300 progress-bar-striped"
               style={{ width: `${((currentIndex + (isCorrect ? 1 : 0)) / totalMistakes) * 100}%` }}
             />
           </div>
