@@ -3,6 +3,7 @@ import { Chess } from '@jackstenglein/chess'
 import type { Square } from '@jackstenglein/chess'
 import type { Config } from '@lichess-org/chessground/config'
 import type { Key } from '@lichess-org/chessground/types'
+import type { DrawShape } from '@lichess-org/chessground/draw'
 import type { OpeningStudy, OpeningMoveNode } from '@/types/opening'
 import type { PromotionPiece } from '@/components/promotion-dialog'
 import {
@@ -15,6 +16,7 @@ import {
 import { playSound, getMoveSound } from '@/lib/sounds'
 import { shuffleArray, findNodeById, getPathToNode } from '@/lib/opening-utils'
 import { loadPracticeProgress, savePracticeProgress } from '@/lib/practice-storage'
+import { createNagShape } from '@/chess/nag-shapes'
 
 export interface PendingPromotion {
   from: Key
@@ -584,10 +586,29 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
     }))
   }, [moveIndex, currentLineNodes])
 
-  // Combined shapes (saved + hints)
+  // NAG shape for the last played move
+  const nagShape = useMemo((): DrawShape | null => {
+    if (moveIndex === 0) return null
+    const lastNode = currentLineNodes[moveIndex - 1]
+    if (!lastNode?.nags?.length) return null
+
+    // Get destination square from the last move
+    const lastUci = lastNode.uci
+    const to = lastUci.slice(2, 4) as Key
+
+    // Use the first NAG (primary annotation) - accepts $1, !, or 1 format
+    const nag = lastNode.nags[0]
+    return createNagShape(to, nag) || null
+  }, [currentLineNodes, moveIndex])
+
+  // Combined shapes (saved + hints + NAG)
   const allShapes = useMemo(() => {
-    return [...savedShapes, ...hintShapes]
-  }, [savedShapes, hintShapes])
+    const shapes: DrawShape[] = [...savedShapes, ...hintShapes]
+    if (nagShape) {
+      shapes.push(nagShape)
+    }
+    return shapes
+  }, [savedShapes, hintShapes, nagShape])
 
   // Progress info
   const progressInfo = useMemo(() => ({

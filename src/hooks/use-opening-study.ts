@@ -13,6 +13,7 @@ import {
   isCheck,
 } from '@/chess/chess-utils'
 import { playSound, getMoveSound } from '@/lib/sounds'
+import { createNagShape } from '@/chess/nag-shapes'
 
 export interface PendingPromotion {
   from: Key
@@ -332,22 +333,46 @@ export function useOpeningStudy(options: UseOpeningStudyOptions) {
     }
   }, [currentLineIndex, selectLine])
 
+  // NAG shape for the last played move
+  const nagShape = useMemo((): DrawShape | null => {
+    if (moveIndex === 0) return null
+    const lastNode = currentLineNodes[moveIndex - 1]
+    if (!lastNode?.nags?.length) return null
+
+    // Get destination square from the last move
+    const lastUci = lastNode.uci
+    const to = lastUci.slice(2, 4) as Key
+
+    // Use the first NAG (primary annotation) - accepts $1, !, or 1 format
+    const nag = lastNode.nags[0]
+    return createNagShape(to, nag) || null
+  }, [currentLineNodes, moveIndex])
+
   // Arrow showing expected move (like puzzle hint)
   const moveArrows = useMemo((): DrawShape[] => {
-    if (isComplete || !isUserTurn()) return []
+    const shapes: DrawShape[] = []
 
-    const expectedUci = moves[moveIndexRef.current]
-    if (!expectedUci) return []
+    // Add NAG shape if present
+    if (nagShape) {
+      shapes.push(nagShape)
+    }
 
-    const from = expectedUci.slice(0, 2) as Key
-    const to = expectedUci.slice(2, 4) as Key
+    // Add move hint arrow
+    if (!isComplete && isUserTurn()) {
+      const expectedUci = moves[moveIndexRef.current]
+      if (expectedUci) {
+        const from = expectedUci.slice(0, 2) as Key
+        const to = expectedUci.slice(2, 4) as Key
+        shapes.push({
+          orig: from,
+          dest: to,
+          brush: 'green',
+        })
+      }
+    }
 
-    return [{
-      orig: from,
-      dest: to,
-      brush: 'green',
-    }]
-  }, [moves, moveIndex, isComplete, isUserTurn])
+    return shapes
+  }, [moves, moveIndex, isComplete, isUserTurn, nagShape])
 
   // Study destinations - only allow the expected move
   const studyDests = useMemo(() => {
