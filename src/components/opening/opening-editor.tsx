@@ -9,6 +9,7 @@ import { Chessground, type ChessgroundRef } from '@/components/chessground'
 import { PromotionDialog, type PromotionPiece } from '@/components/promotion-dialog'
 import { MoveList } from './move-list'
 import { VariationExplorer } from './variation-explorer'
+import { OpeningTree } from './opening-tree'
 import { OpeningStatsPanel } from './opening-stats'
 import { useOpeningStats } from '@/hooks/use-opening-stats'
 import { useToast } from '@/components/ui/toast'
@@ -28,7 +29,7 @@ import {
 } from '@/lib/opening-utils'
 import { createChess, getLegalDests, getTurnColor, toChessgroundFen, isCheck } from '@/chess/chess-utils'
 import { playSound, getMoveSound } from '@/lib/sounds'
-import { Save, Trash2, RotateCcw, ChevronLeft, ChevronRight, Undo2, Redo2, ArrowUpRight, List, GitBranch, Flag, BarChart3, MessageSquare, Sparkles, Settings } from 'lucide-react'
+import { Save, Trash2, RotateCcw, ChevronLeft, ChevronRight, Undo2, Redo2, ArrowUpRight, List, GitBranch, Flag, BarChart3, MessageSquare, Sparkles, Settings, Network } from 'lucide-react'
 
 interface OpeningEditorProps {
   initialStudy?: OpeningStudy
@@ -73,8 +74,8 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
   const [editingComment, setEditingComment] = useState(false)
   const [commentText, setCommentText] = useState('')
 
-  // Move view mode (list vs tree)
-  const [moveViewMode, setMoveViewMode] = useState<'list' | 'tree'>('list')
+  // Move view mode (list vs tree vs graph)
+  const [moveViewMode, setMoveViewMode] = useState<'list' | 'tree' | 'graph'>('list')
 
   // Stats panel toggle (kept for accordion state tracking)
   const [showStats] = useState(true)
@@ -518,12 +519,67 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
       )}
 
       <div className="mx-auto flex items-start gap-8">
-        {/* Chessboard */}
-        <div className="h-[600px] w-[600px] shrink-0 rounded-sm">
-          <Chessground ref={chessgroundRef} config={config} onMove={handleMove} />
+        {/* Left Column: Board + Graph */}
+        <div className="flex flex-col gap-4">
+          {/* Chessboard */}
+          <div className="h-[600px] w-[600px] shrink-0 rounded-sm">
+            <Chessground ref={chessgroundRef} config={config} onMove={handleMove} />
+          </div>
+
+          {/* Graph View - Directly below the board */}
+          {moveViewMode === 'graph' && (
+            <div className="w-[600px] rounded-lg bg-zinc-800 p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium text-zinc-400">Opening Tree Graph</h3>
+                <span className="text-xs text-zinc-500">Right-click nodes for options</span>
+              </div>
+              <div className="h-[300px] w-full">
+                <OpeningTree
+                  moves={moves}
+                  currentPath={currentPath}
+                  onNodeClick={(nodeId) => {
+                    if (nodeId === 'start') {
+                      goToStart()
+                    } else {
+                      goToNode(nodeId)
+                    }
+                  }}
+                  onSetPracticeStart={(nodeId) => {
+                    if (practiceStartNodeId === nodeId) {
+                      setPracticeStartNodeId(undefined)
+                    } else {
+                      setPracticeStartNodeId(nodeId)
+                    }
+                  }}
+                  onDeleteVariation={(nodeId) => {
+                    const newMoves = deleteNode(moves, nodeId)
+                    pushToHistory(newMoves)
+                    setMoves(newMoves)
+                    if (currentPath.includes(nodeId)) {
+                      const idx = currentPath.indexOf(nodeId)
+                      const newPath = currentPath.slice(0, idx)
+                      currentPathRef.current = newPath
+                      setCurrentPath(newPath)
+                      const node = newPath.length > 0 ? getNodeAtPath(newMoves, newPath) : null
+                      syncChess(node?.fen || INITIAL_FEN)
+                      setLastMove(undefined)
+                    }
+                    addToast('Move deleted', 'success')
+                  }}
+                  onPromoteToMain={(nodeId) => {
+                    const newMoves = promoteToMainLine(moves, nodeId)
+                    pushToHistory(newMoves)
+                    setMoves(newMoves)
+                  }}
+                  startColor={color}
+                  practiceStartNodeId={practiceStartNodeId}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Editor Panel */}
+        {/* Right Column: Editor Panel */}
         <div className="w-[400px] space-y-3">
           {/* Sticky Header with Save/Cancel */}
           <div className="sticky top-0 z-10 bg-zinc-900 pb-2">
@@ -597,7 +653,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
             </div>
           </div>
 
-          {/* Move List / Variation Explorer */}
+          {/* Move List / Variation Explorer (not graph - that's below) */}
           <div className="rounded-lg bg-zinc-800 p-4">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-medium text-zinc-400">Moves</h3>
@@ -633,6 +689,16 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
                   >
                     <GitBranch className="h-4 w-4" />
                   </button>
+                  <button
+                    onClick={() => setMoveViewMode('graph')}
+                    className={`p-1.5 rounded transition-colors ${moveViewMode === 'graph'
+                      ? 'bg-zinc-600 text-white'
+                      : 'text-zinc-400 hover:text-white'
+                      }`}
+                    title="Tree Graph View"
+                  >
+                    <Network className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
             </div>
@@ -644,12 +710,20 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
                   onMoveClick={goToNode}
                   practiceStartNodeId={practiceStartNodeId}
                 />
-              ) : (
+              ) : moveViewMode === 'tree' ? (
                 <VariationExplorer
                   moves={moves}
                   currentPath={currentPath}
                   onMoveClick={goToNode}
                   startColor={color}
+                  practiceStartNodeId={practiceStartNodeId}
+                />
+              ) : (
+                // Show compact list when graph is selected (graph shown below)
+                <MoveList
+                  moves={moves}
+                  currentPath={currentPath}
+                  onMoveClick={goToNode}
                   practiceStartNodeId={practiceStartNodeId}
                 />
               )}
