@@ -13,7 +13,7 @@ import {
   isCheck,
 } from '@/chess/chess-utils'
 import { playSound, getMoveSound } from '@/lib/sounds'
-import { shuffleArray } from '@/lib/opening-utils'
+import { shuffleArray, findNodeById, getPathToNode } from '@/lib/opening-utils'
 
 export interface PendingPromotion {
   from: Key
@@ -82,23 +82,119 @@ function getLineNodes(nodes: OpeningMoveNode[]): OpeningMoveNode[][] {
   return lines
 }
 
+/**
+ * Extract lines with practice start marker support
+ * Returns: { lines: UCI[][], nodes: Node[][], isSetupLine: boolean[], startFens: string[] }
+ */
+function extractLinesWithStartMarker(
+  nodes: OpeningMoveNode[],
+  practiceStartNodeId?: string,
+  rootFen?: string
+): { lines: string[][], nodes: OpeningMoveNode[][], isSetupLine: boolean[], startFens: string[] } {
+  const defaultFen = rootFen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
+
+  // If no start marker, use default behavior
+  if (!practiceStartNodeId) {
+    const lines = extractAllLines(nodes)
+    const nodeLines = getLineNodes(nodes)
+    return {
+      lines,
+      nodes: nodeLines,
+      isSetupLine: lines.map(() => false),
+      startFens: lines.map(() => defaultFen),
+    }
+  }
+
+  // Find the start node
+  const startNode = findNodeById(nodes, practiceStartNodeId)
+  if (!startNode) {
+    // Start node not found, fall back to default
+    const lines = extractAllLines(nodes)
+    const nodeLines = getLineNodes(nodes)
+    return {
+      lines,
+      nodes: nodeLines,
+      isSetupLine: lines.map(() => false),
+      startFens: lines.map(() => defaultFen),
+    }
+  }
+
+  // Get path to start node (the setup line)
+  const pathToStart = getPathToNode(nodes, practiceStartNodeId)
+
+  // Build the setup line
+  const setupLineNodes: OpeningMoveNode[] = []
+  const setupLineUci: string[] = []
+
+  let currentNodes = nodes
+  for (const nodeId of pathToStart) {
+    const node = currentNodes.find(n => n.id === nodeId)
+    if (node) {
+      setupLineNodes.push(node)
+      setupLineUci.push(node.uci)
+      currentNodes = node.children
+    }
+  }
+
+  // The FEN after the practice start position (for variation lines)
+  const variationStartFen = startNode.fen
+
+  // Get all lines starting FROM the start node
+  const variationLines: string[][] = []
+  const variationNodes: OpeningMoveNode[][] = []
+
+  function traverseFromStart(node: OpeningMoveNode, currentLine: string[], currentNodes: OpeningMoveNode[]) {
+    const newLine = [...currentLine, node.uci]
+    const newNodes = [...currentNodes, node]
+
+    if (node.children.length === 0) {
+      variationLines.push(newLine)
+      variationNodes.push(newNodes)
+    } else {
+      for (const child of node.children) {
+        traverseFromStart(child, newLine, newNodes)
+      }
+    }
+  }
+
+  // Start from children of the start node
+  if (startNode.children.length > 0) {
+    for (const child of startNode.children) {
+      traverseFromStart(child, [], [])
+    }
+  }
+
+  // Combine: setup line first, then variation lines
+  const allLines: string[][] = [setupLineUci, ...variationLines]
+  const allNodes: OpeningMoveNode[][] = [setupLineNodes, ...variationNodes]
+  const isSetupLine: boolean[] = [true, ...variationLines.map(() => false)]
+  // Setup line starts from root, variation lines start from practice start position
+  const startFens: string[] = [defaultFen, ...variationLines.map(() => variationStartFen)]
+
+  return { lines: allLines, nodes: allNodes, isSetupLine, startFens }
+}
+
 export function useOpeningPractice(options: UseOpeningPracticeOptions) {
   const { study, randomOrder = false, selectedLineIndices, onLineComplete, onAllLinesComplete } = options
 
-  // Extract all lines as UCI move arrays (like puzzle)
-  const allLinesRaw = useMemo(() => extractAllLines(study.moves), [study.moves])
-  const allLineNodesRaw = useMemo(() => getLineNodes(study.moves), [study.moves])
+  // Extract all lines with practice start marker support
+  const extractedData = useMemo(
+    () => extractLinesWithStartMarker(study.moves, study.practiceStartNodeId, study.rootFen),
+    [study.moves, study.practiceStartNodeId, study.rootFen]
+  )
 
   // Filter to selected lines if specified
   const filteredLines = useMemo(() => {
     if (!selectedLineIndices || selectedLineIndices.length === 0) {
-      return { lines: allLinesRaw, nodes: allLineNodesRaw }
+      return extractedData
     }
     return {
-      lines: selectedLineIndices.map(i => allLinesRaw[i]).filter(Boolean),
-      nodes: selectedLineIndices.map(i => allLineNodesRaw[i]).filter(Boolean),
+      lines: selectedLineIndices.map(i => extractedData.lines[i]).filter(Boolean),
+      nodes: selectedLineIndices.map(i => extractedData.nodes[i]).filter(Boolean),
+      isSetupLine: selectedLineIndices.map(i => extractedData.isSetupLine[i]).filter(v => v !== undefined),
+      startFens: selectedLineIndices.map(i => extractedData.startFens[i]).filter(Boolean),
     }
-  }, [allLinesRaw, allLineNodesRaw, selectedLineIndices])
+  }, [extractedData, selectedLineIndices])
 
   // Apply random order if enabled
   const [lineOrder, setLineOrder] = useState<number[]>(() => {
@@ -114,6 +210,8 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
 
   const allLines = useMemo(() => lineOrder.map(i => filteredLines.lines[i]), [lineOrder, filteredLines.lines])
   const allLineNodes = useMemo(() => lineOrder.map(i => filteredLines.nodes[i]), [lineOrder, filteredLines.nodes])
+  const allIsSetupLine = useMemo(() => lineOrder.map(i => filteredLines.isSetupLine[i]), [lineOrder, filteredLines.isSetupLine])
+  const allStartFens = useMemo(() => lineOrder.map(i => filteredLines.startFens[i]), [lineOrder, filteredLines.startFens])
 
   // Current line index
   const [currentLineIndex, setCurrentLineIndex] = useState(0)
@@ -339,11 +437,13 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
 
   // Reset / Go to start (resetLine)
   const resetLine = useCallback(() => {
-    chessRef.current = createChess(study.rootFen)
+    // Get the starting FEN for the current line
+    const startFen = allStartFens[currentLineIndex] || study.rootFen
+    chessRef.current = createChess(startFen)
     setFen(toChessgroundFen(chessRef.current))
     setTurnColor(getTurnColor(chessRef.current))
     setLastMove(undefined)
-    setInCheck(false)
+    setInCheck(isCheck(chessRef.current))
     setIsComplete(false)
     setWrongAttempts(0)
     setHintLevel(0)
@@ -358,17 +458,19 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
         playMachineMove(0)
       }
     }, 500)
-  }, [study.rootFen, isUserTurn, playMachineMove])
+  }, [allStartFens, currentLineIndex, study.rootFen, isUserTurn, playMachineMove])
 
   // Select a specific line
   const selectLine = useCallback((lineIndex: number) => {
     if (lineIndex < 0 || lineIndex >= allLines.length) return
 
-    chessRef.current = createChess(study.rootFen)
+    // Get the starting FEN for this line
+    const startFen = allStartFens[lineIndex] || study.rootFen
+    chessRef.current = createChess(startFen)
     setFen(toChessgroundFen(chessRef.current))
     setTurnColor(getTurnColor(chessRef.current))
     setLastMove(undefined)
-    setInCheck(false)
+    setInCheck(isCheck(chessRef.current))
     setIsComplete(false)
     setWrongAttempts(0)
     setHintLevel(0)
@@ -379,7 +481,7 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
     setPendingPromotion(null)
 
     setCurrentLineIndex(lineIndex)
-  }, [allLines.length, study.rootFen])
+  }, [allLines.length, allStartFens, study.rootFen])
 
   // Go to next line
   const nextLine = useCallback(() => {
@@ -486,6 +588,9 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
     animation: { enabled: true, duration: 200 },
   }), [fen, orientation, turnColor, lastMove, inCheck, legalDests, allShapes, status, isUserTurn, userColor])
 
+  // Check if current line is a setup line
+  const isCurrentLineSetup = allIsSetupLine[currentLineIndex] ?? false
+
   return {
     // Status
     status,
@@ -511,6 +616,8 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
     currentLineIndex,
     allLines: allLineNodes,
     totalLinesCount: filteredLines.lines.length,
+    isCurrentLineSetup,
+    hasPracticeStartMarker: !!study.practiceStartNodeId,
     selectLine,
     nextLine,
     skipLine,

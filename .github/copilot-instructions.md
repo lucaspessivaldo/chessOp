@@ -77,3 +77,11 @@ Before creating any logic for move validation, legal moves, PGN parsing, variati
 - Prefer minimal examples
 - Avoid overengineering
 - Use project libraries instead of reinventing functions
+
+### 6. Always Verify No Errors
+
+After completing any task:
+- **Check the Problems tab** in VS Code for TypeScript errors, lint issues, or warnings
+- **Fix all reported problems** before considering the task done
+- Run `bun run tsc --noEmit` to verify no type errors exist
+- Do not leave unresolved errors in the codebase

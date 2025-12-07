@@ -1,13 +1,14 @@
 import { useState, useCallback } from 'react'
 import type { OpeningMoveNode } from '@/types/opening'
 import { NAG_SYMBOLS } from '@/types/opening'
-import { ChevronRight, ChevronDown, MessageSquare } from 'lucide-react'
+import { ChevronRight, ChevronDown, MessageSquare, Flag } from 'lucide-react'
 
 interface VariationExplorerProps {
   moves: OpeningMoveNode[]
   currentPath: string[]
   onMoveClick: (nodeId: string) => void
   startColor?: 'white' | 'black'
+  practiceStartNodeId?: string
 }
 
 export function VariationExplorer({
@@ -15,6 +16,7 @@ export function VariationExplorer({
   currentPath,
   onMoveClick,
   startColor = 'white',
+  practiceStartNodeId,
 }: VariationExplorerProps) {
   if (moves.length === 0) {
     return (
@@ -36,6 +38,7 @@ export function VariationExplorer({
           isWhiteToMove={startColor === 'white'}
           depth={0}
           isFirst={index === 0}
+          practiceStartNodeId={practiceStartNodeId}
         />
       ))}
     </div>
@@ -50,6 +53,7 @@ interface TreeNodeProps {
   isWhiteToMove: boolean
   depth: number
   isFirst: boolean
+  practiceStartNodeId?: string
 }
 
 function TreeNode({
@@ -60,11 +64,13 @@ function TreeNode({
   isWhiteToMove,
   depth,
   isFirst,
+  practiceStartNodeId,
 }: TreeNodeProps) {
   const [isExpanded, setIsExpanded] = useState(true)
   const hasVariations = node.children.length > 1
   const isCurrentMove = currentPath[currentPath.length - 1] === node.id
   const isInPath = currentPath.includes(node.id)
+  const isPracticeStart = practiceStartNodeId === node.id
 
   // Format NAGs
   const nagString = node.nags?.map(nag => NAG_SYMBOLS[nag] || '').join('') || ''
@@ -109,19 +115,24 @@ function TreeNode({
         <button
           onClick={() => onMoveClick(node.id)}
           className={`px-1.5 py-0.5 rounded text-sm font-medium transition-colors ${isCurrentMove
-              ? 'bg-blue-600 text-white'
-              : isInPath
-                ? 'text-blue-400 hover:bg-zinc-700'
-                : node.isMainLine
-                  ? 'text-zinc-200 hover:bg-zinc-700'
-                  : 'text-zinc-400 hover:bg-zinc-700'
-            }`}
+            ? 'bg-blue-600 text-white'
+            : isInPath
+              ? 'text-blue-400 hover:bg-zinc-700'
+              : node.isMainLine
+                ? 'text-zinc-200 hover:bg-zinc-700'
+                : 'text-zinc-400 hover:bg-zinc-700'
+            } ${isPracticeStart ? 'ring-1 ring-green-500' : ''}`}
         >
           {node.san}
           {nagString && (
             <span className="text-yellow-500 ml-0.5">{nagString}</span>
           )}
         </button>
+
+        {/* Practice start flag */}
+        {isPracticeStart && (
+          <Flag className="h-3 w-3 text-green-500" />
+        )}
 
         {/* Comment indicator */}
         {node.comment && (
@@ -151,6 +162,7 @@ function TreeNode({
               isWhiteToMove={!isWhiteToMove}
               depth={depth}
               isFirst={false}
+              practiceStartNodeId={practiceStartNodeId}
             />
           )}
 
@@ -168,6 +180,7 @@ function TreeNode({
                 isWhiteToMove={!isWhiteToMove}
                 depth={depth + 1}
                 isFirst={true}
+                practiceStartNodeId={practiceStartNodeId}
               />
             </div>
           ))}

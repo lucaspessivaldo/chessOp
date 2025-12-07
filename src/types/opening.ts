@@ -50,6 +50,8 @@ export interface OpeningStudy {
   rootFen: string
   /** Root-level moves (first moves of the opening) */
   moves: OpeningMoveNode[]
+  /** Node ID where practice starts (tabiya) - moves before this become a setup line */
+  practiceStartNodeId?: string
   /** Creation timestamp */
   createdAt: number
   /** Last update timestamp */

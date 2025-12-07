@@ -164,6 +164,8 @@ function PracticeView({ study }: PracticeViewProps) {
     selectLine,
     hintLevel,
     increaseHint,
+    isCurrentLineSetup,
+    hasPracticeStartMarker,
     pendingPromotion,
     completePromotion,
     cancelPromotion,
@@ -230,8 +232,8 @@ function PracticeView({ study }: PracticeViewProps) {
               <button
                 onClick={() => setRandomOrder(!randomOrder)}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors ${randomOrder
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-zinc-700 text-zinc-400 hover:text-white'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-zinc-700 text-zinc-400 hover:text-white'
                   }`}
               >
                 <Shuffle className="h-4 w-4" />
@@ -284,7 +286,17 @@ function PracticeView({ study }: PracticeViewProps) {
             className="w-full flex items-center justify-between text-left"
           >
             <div>
-              <span className="text-sm text-zinc-400">Current Line</span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-zinc-400">Current Line</span>
+                {hasPracticeStartMarker && (
+                  <span className={`text-xs px-1.5 py-0.5 rounded ${isCurrentLineSetup
+                      ? 'bg-amber-600/30 text-amber-400'
+                      : 'bg-green-600/30 text-green-400'
+                    }`}>
+                    {isCurrentLineSetup ? 'Setup' : 'Variation'}
+                  </span>
+                )}
+              </div>
               <p className="text-white font-medium">
                 Line {currentLineIndex + 1}: {getLineName(currentLine, currentLineIndex)}
               </p>

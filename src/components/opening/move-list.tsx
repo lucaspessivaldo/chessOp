@@ -1,14 +1,16 @@
 import type { OpeningMoveNode } from '@/types/opening'
 import { NAG_SYMBOLS } from '@/types/opening'
+import { Flag } from 'lucide-react'
 
 interface MoveListProps {
   moves: OpeningMoveNode[]
   currentPath: string[]
   onMoveClick: (nodeId: string) => void
   startColor?: 'white' | 'black'
+  practiceStartNodeId?: string
 }
 
-export function MoveList({ moves, currentPath, onMoveClick, startColor = 'white' }: MoveListProps) {
+export function MoveList({ moves, currentPath, onMoveClick, startColor = 'white', practiceStartNodeId }: MoveListProps) {
   if (moves.length === 0) {
     return (
       <div className="text-sm text-zinc-500 italic p-2">
@@ -26,6 +28,7 @@ export function MoveList({ moves, currentPath, onMoveClick, startColor = 'white'
         moveNumber={1}
         isWhiteToMove={startColor === 'white'}
         depth={0}
+        practiceStartNodeId={practiceStartNodeId}
       />
     </div>
   )
@@ -38,6 +41,7 @@ interface MoveTreeProps {
   moveNumber: number
   isWhiteToMove: boolean
   depth: number
+  practiceStartNodeId?: string
 }
 
 function MoveTree({
@@ -46,7 +50,8 @@ function MoveTree({
   onMoveClick,
   moveNumber,
   isWhiteToMove,
-  depth
+  depth,
+  practiceStartNodeId
 }: MoveTreeProps) {
   // Get main line node and variations
   const mainNode = nodes.find(n => n.isMainLine) || nodes[0]
@@ -59,6 +64,9 @@ function MoveTree({
 
   // Format NAGs
   const nagString = mainNode.nags?.map(nag => NAG_SYMBOLS[nag] || '').join('') || ''
+
+  // Check if this is the practice start point
+  const isPracticeStart = practiceStartNodeId === mainNode.id
 
   return (
     <>
@@ -77,15 +85,20 @@ function MoveTree({
         <button
           onClick={() => onMoveClick(mainNode.id)}
           className={`hover:bg-zinc-700 px-1 rounded transition-colors ${isCurrentMove
-              ? 'bg-blue-600 text-white'
-              : isInPath
-                ? 'text-blue-400'
-                : 'text-zinc-200'
-            } ${mainNode.isMainLine ? '' : 'text-zinc-400'}`}
+            ? 'bg-blue-600 text-white'
+            : isInPath
+              ? 'text-blue-400'
+              : 'text-zinc-200'
+            } ${mainNode.isMainLine ? '' : 'text-zinc-400'} ${isPracticeStart ? 'ring-1 ring-green-500' : ''}`}
         >
           {mainNode.san}
           {nagString && <span className="text-yellow-500 ml-0.5">{nagString}</span>}
         </button>
+
+        {/* Practice start marker */}
+        {isPracticeStart && (
+          <Flag className="inline-block h-3 w-3 text-green-500 ml-0.5" />
+        )}
 
         {/* Inline comment preview */}
         {mainNode.comment && (
@@ -98,34 +111,41 @@ function MoveTree({
       {/* Variations (inline, parenthesized) */}
       {variations.length > 0 && (
         <span className="text-zinc-500">
-          {variations.map((variation) => (
-            <span key={variation.id} className="ml-1">
-              (
-              {!isWhiteToMove && <span>{moveNumber}...</span>}
-              {isWhiteToMove && <span>{moveNumber}.</span>}
-              <button
-                onClick={() => onMoveClick(variation.id)}
-                className={`hover:bg-zinc-700 px-0.5 rounded transition-colors ${currentPath.includes(variation.id) ? 'text-blue-400' : 'text-zinc-400'
-                  }`}
-              >
-                {variation.san}
-              </button>
-              {/* Recursively render variation continuation */}
-              {variation.children.length > 0 && (
-                <span className="ml-1">
-                  <MoveTree
-                    nodes={variation.children}
-                    currentPath={currentPath}
-                    onMoveClick={onMoveClick}
-                    moveNumber={isWhiteToMove ? moveNumber : moveNumber + 1}
-                    isWhiteToMove={!isWhiteToMove}
-                    depth={depth + 1}
-                  />
-                </span>
-              )}
-              )
-            </span>
-          ))}
+          {variations.map((variation) => {
+            const isVariationPracticeStart = practiceStartNodeId === variation.id
+            return (
+              <span key={variation.id} className="ml-1">
+                (
+                {!isWhiteToMove && <span>{moveNumber}...</span>}
+                {isWhiteToMove && <span>{moveNumber}.</span>}
+                <button
+                  onClick={() => onMoveClick(variation.id)}
+                  className={`hover:bg-zinc-700 px-0.5 rounded transition-colors ${currentPath.includes(variation.id) ? 'text-blue-400' : 'text-zinc-400'
+                    } ${isVariationPracticeStart ? 'ring-1 ring-green-500' : ''}`}
+                >
+                  {variation.san}
+                </button>
+                {isVariationPracticeStart && (
+                  <Flag className="inline-block h-3 w-3 text-green-500 ml-0.5" />
+                )}
+                {/* Recursively render variation continuation */}
+                {variation.children.length > 0 && (
+                  <span className="ml-1">
+                    <MoveTree
+                      nodes={variation.children}
+                      currentPath={currentPath}
+                      onMoveClick={onMoveClick}
+                      moveNumber={isWhiteToMove ? moveNumber : moveNumber + 1}
+                      isWhiteToMove={!isWhiteToMove}
+                      depth={depth + 1}
+                      practiceStartNodeId={practiceStartNodeId}
+                    />
+                  </span>
+                )}
+                )
+              </span>
+            )
+          })}
         </span>
       )}
 
@@ -139,6 +159,7 @@ function MoveTree({
             moveNumber={isWhiteToMove ? moveNumber : moveNumber + 1}
             isWhiteToMove={!isWhiteToMove}
             depth={depth + 1}
+            practiceStartNodeId={practiceStartNodeId}
           />
         </span>
       )}
@@ -185,10 +206,10 @@ export function CompactMoveList({ line, currentMoveIndex, startColor = 'white' }
             )}
             <span
               className={`px-1 rounded ${isCurrent
-                  ? 'bg-blue-600 text-white'
-                  : isPast
-                    ? 'text-zinc-400'
-                    : 'text-zinc-600'
+                ? 'bg-blue-600 text-white'
+                : isPast
+                  ? 'text-zinc-400'
+                  : 'text-zinc-600'
                 }`}
             >
               {node.san}

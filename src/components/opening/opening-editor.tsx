@@ -9,6 +9,8 @@ import { Chessground, type ChessgroundRef } from '@/components/chessground'
 import { PromotionDialog, type PromotionPiece } from '@/components/promotion-dialog'
 import { MoveList } from './move-list'
 import { VariationExplorer } from './variation-explorer'
+import { OpeningStatsPanel } from './opening-stats'
+import { useOpeningStats } from '@/hooks/use-opening-stats'
 import {
   generateNodeId,
   updateNodeComment,
@@ -23,7 +25,7 @@ import {
 } from '@/lib/opening-utils'
 import { createChess, getLegalDests, getTurnColor, toChessgroundFen, isCheck } from '@/chess/chess-utils'
 import { playSound, getMoveSound } from '@/lib/sounds'
-import { Save, Trash2, RotateCcw, ChevronLeft, ChevronRight, Undo2, Redo2, ArrowUpRight, List, GitBranch } from 'lucide-react'
+import { Save, Trash2, RotateCcw, ChevronLeft, ChevronRight, Undo2, Redo2, ArrowUpRight, List, GitBranch, Flag, BarChart3 } from 'lucide-react'
 
 interface OpeningEditorProps {
   initialStudy?: OpeningStudy
@@ -49,6 +51,11 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
   const [currentPath, setCurrentPath] = useState<string[]>([])
   const currentPathRef = useRef<string[]>([])
 
+  // Practice start marker
+  const [practiceStartNodeId, setPracticeStartNodeId] = useState<string | undefined>(
+    initialStudy?.practiceStartNodeId
+  )
+
   // Keep ref in sync with state
   currentPathRef.current = currentPath
 
@@ -65,12 +72,24 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
   // Move view mode (list vs tree)
   const [moveViewMode, setMoveViewMode] = useState<'list' | 'tree'>('list')
 
+  // Stats panel toggle
+  const [showStats, setShowStats] = useState(false)
+
   // Undo/Redo history
   const [history, setHistory] = useState<OpeningMoveNode[][]>([initialStudy?.moves || []])
   const [historyIndex, setHistoryIndex] = useState(0)
 
   // Get current node
   const currentNode = currentPath.length > 0 ? getNodeAtPath(moves, currentPath) : null
+
+  // Lichess opening stats
+  const { stats, isLoading: statsLoading, error: statsError } = useOpeningStats(
+    showStats ? fen : null,
+    { enabled: showStats }
+  )
+
+  // Get repertoire moves at current position
+  const repertoireMoves = currentNode?.children.map(c => c.uci) || moves.map(m => m.uci)
 
   // Push to history when moves change (called manually after significant changes)
   const pushToHistory = useCallback((newMoves: OpeningMoveNode[]) => {
@@ -383,13 +402,14 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
       color,
       rootFen: INITIAL_FEN,
       moves,
+      practiceStartNodeId,
       createdAt: initialStudy?.createdAt || Date.now(),
       updatedAt: Date.now(),
     }
 
     saveOpeningStudy(study)
     onSave(study)
-  }, [name, description, color, moves, initialStudy, onSave])
+  }, [name, description, color, moves, practiceStartNodeId, initialStudy, onSave])
 
   // Handle shapes change from drawable
   const handleShapesChange = useCallback((shapes: DrawShape[]) => {
@@ -554,6 +574,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
                   moves={moves}
                   currentPath={currentPath}
                   onMoveClick={goToNode}
+                  practiceStartNodeId={practiceStartNodeId}
                 />
               ) : (
                 <VariationExplorer
@@ -561,6 +582,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
                   currentPath={currentPath}
                   onMoveClick={goToNode}
                   startColor={color}
+                  practiceStartNodeId={practiceStartNodeId}
                 />
               )}
             </div>
@@ -613,7 +635,28 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
               <Redo2 className="h-4 w-4" />
               Redo
             </button>
+            <button
+              onClick={() => setShowStats(!showStats)}
+              className={`flex items-center justify-center gap-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${showStats
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-zinc-700 text-white hover:bg-zinc-600'
+                }`}
+              title="Show Lichess stats"
+            >
+              <BarChart3 className="h-4 w-4" />
+            </button>
           </div>
+
+          {/* Lichess Opening Stats */}
+          {showStats && (
+            <OpeningStatsPanel
+              stats={stats}
+              isLoading={statsLoading}
+              error={statsError}
+              repertoireMoves={repertoireMoves}
+              sideToMove={turnColor}
+            />
+          )}
 
           {/* NAG Annotations */}
           {currentNode && (
@@ -695,6 +738,47 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
                   >
                     {currentNode.comment ? 'Edit comment' : 'Add comment'}
                   </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Practice Start Marker */}
+          {currentNode && (
+            <div className="rounded-lg bg-zinc-800 p-4">
+              <h3 className="text-sm font-medium text-zinc-400 mb-2">
+                Practice Start Point
+              </h3>
+              {practiceStartNodeId === currentNode.id ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-green-400">
+                    <Flag className="h-4 w-4" />
+                    <span>Practice starts after this move</span>
+                  </div>
+                  <button
+                    onClick={() => setPracticeStartNodeId(undefined)}
+                    className="w-full rounded-md bg-zinc-700 px-3 py-1.5 text-sm font-medium text-zinc-300 hover:bg-zinc-600 transition-colors"
+                  >
+                    Clear start point
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {practiceStartNodeId && (
+                    <p className="text-xs text-zinc-500">
+                      Another move is set as start point
+                    </p>
+                  )}
+                  <button
+                    onClick={() => setPracticeStartNodeId(currentNode.id)}
+                    className="w-full flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
+                  >
+                    <Flag className="h-4 w-4" />
+                    Set as practice start
+                  </button>
+                  <p className="text-xs text-zinc-500">
+                    Moves before this become a "setup line". Variations after this are practiced separately.
+                  </p>
                 </div>
               )}
             </div>
