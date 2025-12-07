@@ -15,7 +15,7 @@ import {
 } from '@/chess/chess-utils'
 import { playSound, getMoveSound } from '@/lib/sounds'
 import { shuffleArray, findNodeById, getPathToNode } from '@/lib/opening-utils'
-import { loadPracticeProgress, savePracticeProgress } from '@/lib/practice-storage'
+import { loadPracticeProgress, savePracticeProgress, clearPracticeProgress } from '@/lib/practice-storage'
 import { createNagShape } from '@/chess/nag-shapes'
 
 export interface PendingPromotion {
@@ -25,7 +25,7 @@ export interface PendingPromotion {
 
 export type PracticeStatus = 'playing' | 'line-complete'
 
-export type HintLevel = 0 | 1 | 2 | 3 // 0=none, 1=piece, 2=target square, 3=full arrow
+export type HintLevel = 0 | 1 | 2 // 0=none, 1=piece, 2=full arrow
 
 export interface UseOpeningPracticeOptions {
   study: OpeningStudy
@@ -381,10 +381,8 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
       setShowWrongMove(true)
 
       // Progressive hints: increase hint level after wrong attempts
-      if (wrongAttempts >= 2) {
-        setHintLevel(3) // Full arrow
-      } else if (wrongAttempts >= 1) {
-        setHintLevel(2) // Target square
+      if (wrongAttempts >= 1) {
+        setHintLevel(2) // Full arrow
       } else {
         setHintLevel(1) // Piece to move
       }
@@ -534,9 +532,28 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
     }
   }, [currentLineIndex, allLines.length, selectLine])
 
+  // Reset all progress and start from scratch
+  const resetProgress = useCallback(() => {
+    // Clear from storage
+    clearPracticeProgress(study.id)
+
+    // Reset all state
+    setCompletedLines(new Set())
+    setSkippedLines(new Set())
+    setTotalWrongAttempts(0)
+    setWrongAttempts(0)
+    setHintLevel(0)
+    setShowWrongMove(false)
+    setStatus('playing')
+    setIsComplete(false)
+
+    // Go back to first line
+    selectLine(0)
+  }, [study.id, selectLine])
+
   // Increase hint level manually
   const increaseHint = useCallback(() => {
-    setHintLevel(prev => Math.min(prev + 1, 3) as HintLevel)
+    setHintLevel(prev => Math.min(prev + 1, 2) as HintLevel)
   }, [])
 
   // Reset hint level
@@ -561,11 +578,7 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
       shapes.push({ orig: from, brush: 'yellow' })
     }
     if (hintLevel >= 2) {
-      // Level 2: Highlight target square
-      shapes.push({ orig: to, brush: 'blue' })
-    }
-    if (hintLevel >= 3) {
-      // Level 3: Full arrow
+      // Level 2: Full arrow
       shapes.push({ orig: from, dest: to, brush: 'green' })
     }
 
@@ -676,6 +689,7 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
     selectLine,
     nextLine,
     skipLine,
+    resetProgress,
 
     // Practice state
     wrongAttempts,

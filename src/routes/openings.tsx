@@ -162,6 +162,7 @@ function PracticeView({ study }: PracticeViewProps) {
     nextLine,
     skipLine,
     selectLine,
+    resetProgress,
     hintLevel,
     increaseHint,
     isCurrentLineSetup,
@@ -264,12 +265,24 @@ function PracticeView({ study }: PracticeViewProps) {
         <div className="rounded-lg bg-zinc-800 p-4">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-medium text-zinc-400">Progress</span>
-            <span className="text-sm text-white">
-              {progressInfo.completedLines} / {progressInfo.totalLines} lines
-              {skippedLines.size > 0 && (
-                <span className="text-yellow-400 ml-1">({skippedLines.size} skipped)</span>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-white">
+                {progressInfo.completedLines} / {progressInfo.totalLines} lines
+                {skippedLines.size > 0 && (
+                  <span className="text-yellow-400 ml-1">({skippedLines.size} skipped)</span>
+                )}
+              </span>
+              {(progressInfo.completedLines > 0 || skippedLines.size > 0) && (
+                <button
+                  onClick={resetProgress}
+                  className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-zinc-700 text-zinc-400 hover:bg-zinc-600 hover:text-white transition-colors"
+                  title="Reset all progress"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  Reset
+                </button>
               )}
-            </span>
+            </div>
           </div>
           <div className="w-full bg-zinc-700 rounded-full h-2">
             <div
@@ -290,8 +303,8 @@ function PracticeView({ study }: PracticeViewProps) {
                 <span className="text-sm text-zinc-400">Current Line</span>
                 {hasPracticeStartMarker && (
                   <span className={`text-xs px-1.5 py-0.5 rounded ${isCurrentLineSetup
-                      ? 'bg-amber-600/30 text-amber-400'
-                      : 'bg-green-600/30 text-green-400'
+                    ? 'bg-amber-600/30 text-amber-400'
+                    : 'bg-green-600/30 text-green-400'
                     }`}>
                     {isCurrentLineSetup ? 'Setup' : 'Variation'}
                   </span>

@@ -14,7 +14,7 @@ import { OpeningStatsPanel } from './opening-stats'
 import { useOpeningStats } from '@/hooks/use-opening-stats'
 import { useToast } from '@/components/ui/toast'
 import { ConfirmDialog, AlertDialog } from '@/components/ui/dialog'
-import { Accordion, AccordionItem } from '@/components/ui/accordion'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import {
   generateNodeId,
   updateNodeComment,
@@ -29,7 +29,7 @@ import {
 } from '@/lib/opening-utils'
 import { createChess, getLegalDests, getTurnColor, toChessgroundFen, isCheck } from '@/chess/chess-utils'
 import { playSound, getMoveSound } from '@/lib/sounds'
-import { Save, Trash2, RotateCcw, ChevronLeft, ChevronRight, Undo2, Redo2, ArrowUpRight, List, GitBranch, Flag, BarChart3, MessageSquare, Sparkles, Settings, Network } from 'lucide-react'
+import { Save, Trash2, RotateCcw, ChevronLeft, ChevronRight, Undo2, Redo2, ArrowUpRight, List, GitBranch, Flag, BarChart3, MessageSquare, Sparkles, Settings, Network, Pen } from 'lucide-react'
 
 interface OpeningEditorProps {
   initialStudy?: OpeningStudy
@@ -93,6 +93,12 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
 
   // Get current node
   const currentNode = currentPath.length > 0 ? getNodeAtPath(moves, currentPath) : null
+
+  // Sync comment text when current node changes
+  useEffect(() => {
+    setCommentText(currentNode?.comment || '')
+    setEditingComment(false)
+  }, [currentNode?.id])
 
   // Lichess opening stats
   const { stats, isLoading: statsLoading, error: statsError } = useOpeningStats(
@@ -600,337 +606,351 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
             </div>
           </div>
 
-          {/* Study Info - Always visible */}
-          <div className="rounded-lg bg-zinc-800 p-4 space-y-3">
-            <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-1">
-                Opening Name <span className="text-red-400">*</span>
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g., My Sicilian Repertoire"
-                className="w-full rounded-md bg-zinc-700 border border-zinc-600 py-2 px-3 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-1">
-                Description
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Optional description..."
-                rows={2}
-                className="w-full rounded-md bg-zinc-700 border border-zinc-600 py-2 px-3 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none resize-none"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-1">
-                Playing as
-              </label>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setColor('white')}
-                  className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${color === 'white'
-                    ? 'bg-zinc-200 text-zinc-900'
-                    : 'bg-zinc-700 text-zinc-400 hover:text-white'
-                    }`}
-                >
-                  White
-                </button>
-                <button
-                  onClick={() => setColor('black')}
-                  className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${color === 'black'
-                    ? 'bg-zinc-900 text-white border border-zinc-600'
-                    : 'bg-zinc-700 text-zinc-400 hover:text-white'
-                    }`}
-                >
-                  Black
-                </button>
-              </div>
-            </div>
-          </div>
+          {/* Tabbed Interface */}
+          <Tabs defaultValue="moves" className="w-full">
+            <TabsList className="w-full grid grid-cols-4 bg-zinc-800 rounded-lg p-1">
+              <TabsTrigger value="moves" className="flex items-center gap-1.5 text-xs">
+                <List className="h-3.5 w-3.5" />
+                Moves
+              </TabsTrigger>
+              <TabsTrigger value="annotate" className="flex items-center gap-1.5 text-xs">
+                <Pen className="h-3.5 w-3.5" />
+                Annotate
+              </TabsTrigger>
+              <TabsTrigger value="stats" className="flex items-center gap-1.5 text-xs">
+                <BarChart3 className="h-3.5 w-3.5" />
+                Stats
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="flex items-center gap-1.5 text-xs">
+                <Settings className="h-3.5 w-3.5" />
+                Settings
+              </TabsTrigger>
+            </TabsList>
 
-          {/* Move List / Variation Explorer (not graph - that's below) */}
-          <div className="rounded-lg bg-zinc-800 p-4">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-zinc-400">Moves</h3>
-              <div className="flex items-center gap-2">
-                {/* Delete current move button - moved up for visibility */}
-                {currentNode && (
-                  <button
-                    onClick={handleDeleteClick}
-                    className="p-1.5 rounded text-red-400 hover:bg-red-600/20 transition-colors"
-                    title="Delete this move"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                )}
-                <div className="flex gap-1 bg-zinc-700 rounded-md p-0.5">
-                  <button
-                    onClick={() => setMoveViewMode('list')}
-                    className={`p-1.5 rounded transition-colors ${moveViewMode === 'list'
-                      ? 'bg-zinc-600 text-white'
-                      : 'text-zinc-400 hover:text-white'
-                      }`}
-                    title="Move List"
-                  >
-                    <List className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => setMoveViewMode('tree')}
-                    className={`p-1.5 rounded transition-colors ${moveViewMode === 'tree'
-                      ? 'bg-zinc-600 text-white'
-                      : 'text-zinc-400 hover:text-white'
-                      }`}
-                    title="Variation Explorer"
-                  >
-                    <GitBranch className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => setMoveViewMode('graph')}
-                    className={`p-1.5 rounded transition-colors ${moveViewMode === 'graph'
-                      ? 'bg-zinc-600 text-white'
-                      : 'text-zinc-400 hover:text-white'
-                      }`}
-                    title="Tree Graph View"
-                  >
-                    <Network className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-            <div className="max-h-[200px] overflow-y-auto scrollbar-thin">
-              {moveViewMode === 'list' ? (
-                <MoveList
-                  moves={moves}
-                  currentPath={currentPath}
-                  onMoveClick={goToNode}
-                  practiceStartNodeId={practiceStartNodeId}
-                />
-              ) : moveViewMode === 'tree' ? (
-                <VariationExplorer
-                  moves={moves}
-                  currentPath={currentPath}
-                  onMoveClick={goToNode}
-                  startColor={color}
-                  practiceStartNodeId={practiceStartNodeId}
-                />
-              ) : (
-                // Show compact list when graph is selected (graph shown below)
-                <MoveList
-                  moves={moves}
-                  currentPath={currentPath}
-                  onMoveClick={goToNode}
-                  practiceStartNodeId={practiceStartNodeId}
-                />
-              )}
-            </div>
-          </div>
-
-          {/* Navigation Controls */}
-          <div className="flex gap-2">
-            <button
-              onClick={goToStart}
-              className="flex-1 flex items-center justify-center gap-1 rounded-md bg-zinc-700 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
-              title="Go to start (Home)"
-            >
-              <RotateCcw className="h-4 w-4" />
-            </button>
-            <button
-              onClick={goToPreviousMove}
-              disabled={currentPath.length === 0}
-              className="flex-1 flex items-center justify-center gap-1 rounded-md bg-zinc-700 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Previous move (←)"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <button
-              onClick={goToNextMove}
-              disabled={!currentNode?.children.length && (currentPath.length === 0 ? moves.length === 0 : true)}
-              className="flex-1 flex items-center justify-center gap-1 rounded-md bg-zinc-700 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Next move (→)"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-            <button
-              onClick={undo}
-              disabled={historyIndex <= 0}
-              className="flex-1 flex items-center justify-center gap-1 rounded-md bg-zinc-700 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Undo (Ctrl+Z)"
-            >
-              <Undo2 className="h-4 w-4" />
-            </button>
-            <button
-              onClick={redo}
-              disabled={historyIndex >= history.length - 1}
-              className="flex-1 flex items-center justify-center gap-1 rounded-md bg-zinc-700 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Redo (Ctrl+Y)"
-            >
-              <Redo2 className="h-4 w-4" />
-            </button>
-          </div>
-
-          {/* Collapsible Sections */}
-          <Accordion>
-            {/* Lichess Stats */}
-            <AccordionItem
-              title="Opening Statistics"
-              icon={<BarChart3 className="h-4 w-4" />}
-              defaultOpen={showStats}
-            >
-              <OpeningStatsPanel
-                stats={stats}
-                isLoading={statsLoading}
-                error={statsError}
-                repertoireMoves={repertoireMoves}
-                sideToMove={turnColor}
-              />
-            </AccordionItem>
-
-            {/* Annotations (only when move selected) */}
-            {currentNode && (
-              <AccordionItem
-                title={`Annotate: ${currentNode.san}`}
-                icon={<Sparkles className="h-4 w-4" />}
-                defaultOpen={false}
-              >
-                <div className="space-y-3">
-                  {/* NAG buttons */}
-                  <div className="flex flex-wrap gap-2">
-                    {nagButtons.map(({ nag, symbol, label }) => {
-                      const isActive = currentNode.nags?.includes(nag)
-                      return (
-                        <button
-                          key={nag}
-                          onClick={() => toggleNag(nag)}
-                          title={label}
-                          aria-label={label}
-                          className={`px-3 py-1.5 rounded-md text-sm font-bold transition-colors ${isActive
-                            ? 'bg-yellow-500 text-black'
-                            : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
-                            }`}
-                        >
-                          {symbol}
-                        </button>
-                      )
-                    })}
-                  </div>
-                  {/* Promote to main line */}
-                  {!currentNode.isMainLine && (
-                    <button
-                      onClick={handlePromoteToMain}
-                      className="w-full flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
-                    >
-                      <ArrowUpRight className="h-4 w-4" />
-                      Promote to main line
-                    </button>
-                  )}
-                </div>
-              </AccordionItem>
-            )}
-
-            {/* Comment Editor */}
-            {currentNode && (
-              <AccordionItem
-                title="Comment"
-                icon={<MessageSquare className="h-4 w-4" />}
-                badge={currentNode.comment ? (
-                  <span className="text-xs text-green-400">●</span>
-                ) : undefined}
-                defaultOpen={false}
-              >
-                {editingComment ? (
-                  <div className="space-y-2">
-                    <textarea
-                      value={commentText}
-                      onChange={(e) => setCommentText(e.target.value)}
-                      placeholder="Add commentary for this move..."
-                      rows={4}
-                      className="w-full rounded-md bg-zinc-700 border border-zinc-600 py-2 px-3 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none resize-none"
-                    />
-                    <div className="flex gap-2">
+            {/* Moves Tab */}
+            <TabsContent value="moves" className="mt-3 space-y-3">
+              {/* Move List / Variation Explorer */}
+              <div className="rounded-lg bg-zinc-800 p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium text-zinc-400">Moves</h3>
+                  <div className="flex items-center gap-2">
+                    {currentNode && (
                       <button
-                        onClick={saveComment}
-                        className="flex-1 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500 transition-colors"
+                        onClick={handleDeleteClick}
+                        className="p-1.5 rounded text-red-400 hover:bg-red-600/20 transition-colors"
+                        title="Delete this move"
                       >
-                        Save
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+                    <div className="flex gap-1 bg-zinc-700 rounded-md p-0.5">
+                      <button
+                        onClick={() => setMoveViewMode('list')}
+                        className={`p-1.5 rounded transition-colors ${moveViewMode === 'list'
+                          ? 'bg-zinc-600 text-white'
+                          : 'text-zinc-400 hover:text-white'
+                          }`}
+                        title="Move List"
+                      >
+                        <List className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => setEditingComment(false)}
-                        className="flex-1 rounded-md bg-zinc-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
+                        onClick={() => setMoveViewMode('tree')}
+                        className={`p-1.5 rounded transition-colors ${moveViewMode === 'tree'
+                          ? 'bg-zinc-600 text-white'
+                          : 'text-zinc-400 hover:text-white'
+                          }`}
+                        title="Variation Explorer"
                       >
-                        Cancel
+                        <GitBranch className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => setMoveViewMode('graph')}
+                        className={`p-1.5 rounded transition-colors ${moveViewMode === 'graph'
+                          ? 'bg-zinc-600 text-white'
+                          : 'text-zinc-400 hover:text-white'
+                          }`}
+                        title="Tree Graph View"
+                      >
+                        <Network className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
-                ) : (
-                  <div>
-                    {currentNode.comment ? (
-                      <p className="text-sm text-zinc-300 mb-2">{currentNode.comment}</p>
-                    ) : (
-                      <p className="text-sm text-zinc-500 italic mb-2">No comment</p>
-                    )}
-                    <button
-                      onClick={startEditComment}
-                      className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
-                    >
-                      {currentNode.comment ? 'Edit comment' : 'Add comment'}
-                    </button>
-                  </div>
-                )}
-              </AccordionItem>
-            )}
-
-            {/* Practice Settings */}
-            {currentNode && (
-              <AccordionItem
-                title="Practice Settings"
-                icon={<Settings className="h-4 w-4" />}
-                badge={practiceStartNodeId === currentNode.id ? (
-                  <Flag className="h-3 w-3 text-green-400" />
-                ) : undefined}
-                defaultOpen={false}
-              >
-                <div className="space-y-2">
-                  {practiceStartNodeId === currentNode.id ? (
-                    <>
-                      <div className="flex items-center gap-2 text-sm text-green-400">
-                        <Flag className="h-4 w-4" />
-                        <span>Practice starts after this move</span>
-                      </div>
-                      <button
-                        onClick={() => setPracticeStartNodeId(undefined)}
-                        className="w-full rounded-md bg-zinc-700 px-3 py-1.5 text-sm font-medium text-zinc-300 hover:bg-zinc-600 transition-colors"
-                      >
-                        Clear start point
-                      </button>
-                    </>
+                </div>
+                <div className="max-h-[250px] overflow-y-auto scrollbar-thin">
+                  {moveViewMode === 'list' ? (
+                    <MoveList
+                      moves={moves}
+                      currentPath={currentPath}
+                      onMoveClick={goToNode}
+                      practiceStartNodeId={practiceStartNodeId}
+                    />
+                  ) : moveViewMode === 'tree' ? (
+                    <VariationExplorer
+                      moves={moves}
+                      currentPath={currentPath}
+                      onMoveClick={goToNode}
+                      startColor={color}
+                      practiceStartNodeId={practiceStartNodeId}
+                    />
                   ) : (
-                    <>
-                      {practiceStartNodeId && (
-                        <p className="text-xs text-zinc-500">
-                          Another move is set as start point
-                        </p>
-                      )}
-                      <button
-                        onClick={() => setPracticeStartNodeId(currentNode.id)}
-                        className="w-full flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
-                      >
-                        <Flag className="h-4 w-4" />
-                        Set as practice start
-                      </button>
-                      <p className="text-xs text-zinc-500">
-                        Moves before this become a "setup line". Variations after this are practiced separately.
-                      </p>
-                    </>
+                    <MoveList
+                      moves={moves}
+                      currentPath={currentPath}
+                      onMoveClick={goToNode}
+                      practiceStartNodeId={practiceStartNodeId}
+                    />
                   )}
                 </div>
-              </AccordionItem>
-            )}
-          </Accordion>
+              </div>
+
+              {/* Navigation Controls */}
+              <div className="flex gap-2">
+                <button
+                  onClick={goToStart}
+                  className="flex-1 flex items-center justify-center gap-1 rounded-md bg-zinc-700 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
+                  title="Go to start (Home)"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={goToPreviousMove}
+                  disabled={currentPath.length === 0}
+                  className="flex-1 flex items-center justify-center gap-1 rounded-md bg-zinc-700 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Previous move (←)"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={goToNextMove}
+                  disabled={!currentNode?.children.length && (currentPath.length === 0 ? moves.length === 0 : true)}
+                  className="flex-1 flex items-center justify-center gap-1 rounded-md bg-zinc-700 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Next move (→)"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={undo}
+                  disabled={historyIndex <= 0}
+                  className="flex-1 flex items-center justify-center gap-1 rounded-md bg-zinc-700 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Undo (Ctrl+Z)"
+                >
+                  <Undo2 className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={redo}
+                  disabled={historyIndex >= history.length - 1}
+                  className="flex-1 flex items-center justify-center gap-1 rounded-md bg-zinc-700 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Redo (Ctrl+Y)"
+                >
+                  <Redo2 className="h-4 w-4" />
+                </button>
+              </div>
+            </TabsContent>
+
+            {/* Annotate Tab */}
+            <TabsContent value="annotate" className="mt-3 space-y-3">
+              {currentNode ? (
+                <>
+                  {/* Current Move Info */}
+                  <div className="rounded-lg bg-zinc-800 p-4">
+                    <h3 className="text-sm font-medium text-zinc-400 mb-3">
+                      Annotating: <span className="text-white font-bold">{currentNode.san}</span>
+                    </h3>
+
+                    {/* NAG buttons */}
+                    <div className="flex flex-wrap gap-2">
+                      {nagButtons.map(({ nag, symbol, label }) => {
+                        const isActive = currentNode.nags?.includes(nag)
+                        return (
+                          <button
+                            key={nag}
+                            onClick={() => toggleNag(nag)}
+                            title={label}
+                            aria-label={label}
+                            className={`px-3 py-1.5 rounded-md text-sm font-bold transition-colors ${isActive
+                              ? 'bg-yellow-500 text-black'
+                              : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
+                              }`}
+                          >
+                            {symbol}
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    {/* Promote to main line */}
+                    {!currentNode.isMainLine && (
+                      <button
+                        onClick={handlePromoteToMain}
+                        className="mt-3 w-full flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
+                      >
+                        <ArrowUpRight className="h-4 w-4" />
+                        Promote to main line
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Comment Editor */}
+                  <div className="rounded-lg bg-zinc-800 p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <MessageSquare className="h-4 w-4 text-zinc-400" />
+                      <h3 className="text-sm font-medium text-zinc-400">Comment</h3>
+                      {currentNode.comment && (
+                        <span className="text-xs text-green-400">●</span>
+                      )}
+                    </div>
+                    <textarea
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      onFocus={() => setEditingComment(true)}
+                      placeholder="Add commentary for this move..."
+                      rows={3}
+                      className="w-full rounded-md bg-zinc-700 border border-zinc-600 py-2 px-3 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none resize-none"
+                    />
+                    {editingComment && commentText !== (currentNode.comment || '') && (
+                      <div className="flex gap-2 mt-2">
+                        <button
+                          onClick={saveComment}
+                          className="flex-1 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500 transition-colors"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={() => {
+                            setCommentText(currentNode.comment || '')
+                            setEditingComment(false)
+                          }}
+                          className="flex-1 rounded-md bg-zinc-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="rounded-lg bg-zinc-800 p-4">
+                  <p className="text-sm text-zinc-500 text-center">
+                    Select a move to add annotations
+                  </p>
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Stats Tab */}
+            <TabsContent value="stats" className="mt-3">
+              <div className="rounded-lg bg-zinc-800 p-4">
+                <OpeningStatsPanel
+                  stats={stats}
+                  isLoading={statsLoading}
+                  error={statsError}
+                  repertoireMoves={repertoireMoves}
+                  sideToMove={turnColor}
+                />
+              </div>
+            </TabsContent>
+
+            {/* Settings Tab */}
+            <TabsContent value="settings" className="mt-3 space-y-3">
+              {/* Study Info */}
+              <div className="rounded-lg bg-zinc-800 p-4 space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-zinc-400 mb-1">
+                    Opening Name <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g., My Sicilian Repertoire"
+                    className="w-full rounded-md bg-zinc-700 border border-zinc-600 py-2 px-3 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-400 mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Optional description..."
+                    rows={2}
+                    className="w-full rounded-md bg-zinc-700 border border-zinc-600 py-2 px-3 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none resize-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-400 mb-1">
+                    Playing as
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setColor('white')}
+                      className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${color === 'white'
+                        ? 'bg-zinc-200 text-zinc-900'
+                        : 'bg-zinc-700 text-zinc-400 hover:text-white'
+                        }`}
+                    >
+                      White
+                    </button>
+                    <button
+                      onClick={() => setColor('black')}
+                      className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${color === 'black'
+                        ? 'bg-zinc-900 text-white border border-zinc-600'
+                        : 'bg-zinc-700 text-zinc-400 hover:text-white'
+                        }`}
+                    >
+                      Black
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Practice Settings */}
+              {currentNode && (
+                <div className="rounded-lg bg-zinc-800 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Flag className="h-4 w-4 text-zinc-400" />
+                    <h3 className="text-sm font-medium text-zinc-400">Practice Start Point</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {practiceStartNodeId === currentNode.id ? (
+                      <>
+                        <div className="flex items-center gap-2 text-sm text-green-400">
+                          <Flag className="h-4 w-4" />
+                          <span>Practice starts after this move</span>
+                        </div>
+                        <button
+                          onClick={() => setPracticeStartNodeId(undefined)}
+                          className="w-full rounded-md bg-zinc-700 px-3 py-1.5 text-sm font-medium text-zinc-300 hover:bg-zinc-600 transition-colors"
+                        >
+                          Clear start point
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        {practiceStartNodeId && (
+                          <p className="text-xs text-zinc-500">
+                            Another move is set as start point
+                          </p>
+                        )}
+                        <button
+                          onClick={() => setPracticeStartNodeId(currentNode.id)}
+                          className="w-full flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
+                        >
+                          <Flag className="h-4 w-4" />
+                          Set as practice start
+                        </button>
+                        <p className="text-xs text-zinc-500">
+                          Moves before this become a "setup line". Variations after this are practiced separately.
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </div>
