@@ -12,14 +12,14 @@ export function Navbar() {
   ]
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-slate-800 bg-slate-950/80 backdrop-blur-md">
+    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-zinc-800 bg-zinc-950 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 md:px-6">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 group">
-          <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center group-hover:bg-violet-500 transition-colors">
+          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center group-hover:bg-blue-500 transition-colors">
             <span className="text-white font-bold text-lg">C</span>
           </div>
-          <span className="text-xl font-bold text-slate-50 tracking-tight">ChessOp</span>
+          <span className="text-xl font-bold text-zinc-50 tracking-tight">ChessOp</span>
         </Link>
 
         {/* Navigation Links */}
@@ -31,8 +31,8 @@ export function Navbar() {
                 key={path}
                 to={path}
                 className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-300 ${isActive
-                  ? 'bg-violet-500/10 text-violet-400'
-                  : 'text-slate-400 hover:text-slate-50 hover:bg-slate-900'
+                  ? 'bg-blue-500/10 text-blue-300'
+                  : 'text-zinc-400 hover:text-zinc-50 hover:bg-zinc-900'
                   }`}
               >
                 <Icon className="h-4 w-4" />
