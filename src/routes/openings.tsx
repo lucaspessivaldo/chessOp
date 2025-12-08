@@ -886,7 +886,7 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
     wrongAttempts,
     hintLevel,
     currentMistake,
-    contextNode,
+    parentNode,
     currentIndex,
     totalMistakes,
     isComplete,
@@ -981,10 +981,10 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
         </div>
 
         {/* Current Position Info */}
-        {contextNode && (
+        {parentNode && (
           <div className="p-4 border-b border-zinc-700">
             <h3 className="text-sm font-medium text-zinc-400 mb-2">Find the move after:</h3>
-            <p className="text-lg font-bold text-white">{contextNode.san}</p>
+            <p className="text-lg font-bold text-white">{parentNode.san}</p>
             {currentMistake && (
               <p className="text-xs text-zinc-500 mt-1">
                 Wrong attempts: {currentMistake.wrongAttempts} | Streak: {currentMistake.streak}

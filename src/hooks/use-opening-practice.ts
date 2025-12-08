@@ -220,13 +220,23 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
   const allIsSetupLine = useMemo(() => lineOrder.map(i => filteredLines.isSetupLine[i]), [lineOrder, filteredLines.isSetupLine])
   const allStartFens = useMemo(() => lineOrder.map(i => filteredLines.startFens[i]), [lineOrder, filteredLines.startFens])
 
-  // Current line index - restore from saved progress if available
-  const [currentLineIndex, setCurrentLineIndex] = useState(() => {
+  // Compute initial line index (for saved progress)
+  const initialLineIndex = useMemo(() => {
     if (savedProgress && savedProgress.currentLineIndex < filteredLines.lines.length) {
       return savedProgress.currentLineIndex
     }
     return 0
-  })
+  }, [savedProgress, filteredLines.lines.length])
+
+  // Compute initial starting FEN based on the initial line index
+  // This is computed synchronously so it's available for ref/state initialization
+  const computedInitialStartFen = useMemo(() => {
+    const startFens = lineOrder.map(i => filteredLines.startFens[i])
+    return startFens[initialLineIndex] || study.rootFen
+  }, [lineOrder, filteredLines.startFens, initialLineIndex, study.rootFen])
+
+  // Current line index - restore from saved progress if available
+  const [currentLineIndex, setCurrentLineIndex] = useState(() => initialLineIndex)
   const currentLineIndexRef = useRef(currentLineIndex)
   currentLineIndexRef.current = currentLineIndex // Always keep ref in sync
 
@@ -236,8 +246,13 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
   movesRef.current = moves // Always keep ref in sync
   const currentLineNodes = useMemo(() => allLineNodes[currentLineIndex] || [], [allLineNodes, currentLineIndex])
 
-  // Chess state
-  const chessRef = useRef<Chess>(createChess(study.rootFen))
+  // Get the current starting FEN for the current line (considering Practice Start marker)
+  const currentStartFen = useMemo(() => {
+    return allStartFens[currentLineIndex] || study.rootFen
+  }, [allStartFens, currentLineIndex, study.rootFen])
+
+  // Chess state - initialize with the correct starting FEN for the current line
+  const chessRef = useRef<Chess>(createChess(computedInitialStartFen))
   const [fen, setFen] = useState(() => toChessgroundFen(chessRef.current))
   const [turnColor, setTurnColor] = useState(() => getTurnColor(chessRef.current))
   const [lastMove, setLastMove] = useState<[Key, Key] | undefined>()

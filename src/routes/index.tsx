@@ -33,7 +33,7 @@ function HomePage() {
               <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-8 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-100">
                 Improve Your <br />
                 <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-300 via-cyan-300 to-sky-400">
-                  Chess Repertoire Opening
+                  Chess Opening Repertoire
                 </span>
               </h1>
 

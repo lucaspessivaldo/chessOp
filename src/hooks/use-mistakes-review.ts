@@ -188,6 +188,44 @@ export function useMistakesReview({
   // Current mistake
   const currentMistake = mistakesToReview[currentIndex]
 
+  // Compute the actual expected move - handles cases where mistake was recorded at wrong node
+  const correctedExpectedMove = useMemo(() => {
+    if (!currentMistake) return null
+
+    const mistakeNode = findNodeById(study.moves, currentMistake.nodeId)
+    if (!mistakeNode) return null
+
+    // Check if the mistake node's move is for the user's color
+    // We can determine this by checking whose turn it is BEFORE the move
+    const result = buildPathToNode(study.moves, currentMistake.nodeId)
+    if (!result) return null
+
+    const positionBeforeMistake = createChess(result.fen)
+    const turnBeforeMistake = getTurnColor(positionBeforeMistake)
+
+    // If the turn before the mistake node matches user color, this is correct
+    if (turnBeforeMistake === study.color) {
+      return {
+        expectedUci: currentMistake.expectedUci,
+        node: mistakeNode
+      }
+    }
+
+    // The mistake was recorded at a machine move node
+    // The user should play one of the children of this node
+    // Use the first child as the expected move (or find a better heuristic)
+    if (mistakeNode.children.length > 0) {
+      const firstUserMove = mistakeNode.children[0]
+      return {
+        expectedUci: firstUserMove.uci,
+        node: firstUserMove
+      }
+    }
+
+    // No valid correction found
+    return null
+  }, [currentMistake, study.moves, study.color])
+
   // Find the node and setup position
   const setupPosition = useCallback((mistake: MistakeRecord | undefined) => {
     if (!mistake) return
@@ -196,16 +234,34 @@ export function useMistakesReview({
     if (!result) return
 
     // Set up the position before the mistake
-    chessRef.current = createChess(result.fen)
-    setFen(toChessgroundFen(chessRef.current))
-    setTurnColor(getTurnColor(chessRef.current))
+    const chess = createChess(result.fen)
+
+    // If it's not the user's turn, we need to check if this is valid
+    // The mistake should be at a position where the user plays
+    // If it's the machine's turn, the mistake might have been recorded incorrectly
+    // In that case, we need to play the machine's move to get to the user's position
+    if (getTurnColor(chess) !== study.color) {
+      // Get the mistake node to find what move should be played
+      const mistakeNode = findNodeById(study.moves, mistake.nodeId)
+      if (mistakeNode) {
+        // Play the machine's move (which is the move at the mistake node)
+        const from = mistakeNode.uci.slice(0, 2) as Square
+        const to = mistakeNode.uci.slice(2, 4) as Square
+        const promotion = mistakeNode.uci.length > 4 ? mistakeNode.uci[4] : undefined
+        chess.move({ from, to, promotion })
+      }
+    }
+
+    chessRef.current = chess
+    setFen(toChessgroundFen(chess))
+    setTurnColor(getTurnColor(chess))
     setLastMove(undefined)
-    setInCheck(isCheck(chessRef.current))
+    setInCheck(isCheck(chess))
     setWrongAttempts(0)
     setHintLevel(0)
     setIsCorrect(false)
     setShowWrongMove(false)
-  }, [study.moves])
+  }, [study.moves, study.color])
 
   // Setup initial position
   useEffect(() => {
@@ -230,10 +286,10 @@ export function useMistakesReview({
 
   // Execute move
   const executeMove = useCallback((from: Key, to: Key, promotion?: PromotionPiece) => {
-    if (!currentMistake || isCorrect) return false
+    if (!currentMistake || !correctedExpectedMove || isCorrect) return false
 
     const userUci = `${from}${to}${promotion || ''}`
-    const expectedUci = currentMistake.expectedUci
+    const expectedUci = correctedExpectedMove.expectedUci
 
     // Check if correct
     if (userUci !== expectedUci) {
@@ -356,12 +412,12 @@ export function useMistakesReview({
     return getLegalDests(chessRef.current)
   }, [fen, isCorrect, isUserTurn])
 
-  // Hint shapes
+  // Hint shapes - use corrected expected move
   const hintShapes = useMemo((): DrawShape[] => {
-    if (hintLevel === 0 || isCorrect || !currentMistake) return []
+    if (hintLevel === 0 || isCorrect || !correctedExpectedMove) return []
 
-    const from = currentMistake.expectedUci.slice(0, 2) as Key
-    const to = currentMistake.expectedUci.slice(2, 4) as Key
+    const from = correctedExpectedMove.expectedUci.slice(0, 2) as Key
+    const to = correctedExpectedMove.expectedUci.slice(2, 4) as Key
 
     const shapes: DrawShape[] = []
 
@@ -373,13 +429,42 @@ export function useMistakesReview({
     }
 
     return shapes
-  }, [hintLevel, isCorrect, currentMistake])
+  }, [hintLevel, isCorrect, correctedExpectedMove])
 
-  // Get context node (the node where mistake was made)
+  // Get context node (the node where mistake was made - the move user should play)
   const contextNode = useMemo(() => {
+    if (!correctedExpectedMove) return null
+    return correctedExpectedMove.node
+  }, [correctedExpectedMove])
+
+  // Get parent node (the move played before the user's turn - for context display)
+  // This should be the position context, not necessarily the literal parent
+  const parentNode = useMemo(() => {
     if (!currentMistake) return null
-    return findNodeById(study.moves, currentMistake.nodeId)
-  }, [currentMistake, study.moves])
+
+    // If we have a corrected move, the parent context is the mistake node itself
+    // (because the mistake node is a machine move that was played to get to user's position)
+    const mistakeNode = findNodeById(study.moves, currentMistake.nodeId)
+    if (!mistakeNode) return null
+
+    // Check if the mistake node is a machine move
+    const result = buildPathToNode(study.moves, currentMistake.nodeId)
+    if (!result) return null
+
+    const positionBeforeMistake = createChess(result.fen)
+    const turnBeforeMistake = getTurnColor(positionBeforeMistake)
+
+    // If mistake was at machine move, the context is the mistake node itself
+    if (turnBeforeMistake !== study.color) {
+      return mistakeNode
+    }
+
+    // Otherwise, get the actual parent (the move before user's turn)
+    const path = getPathToNode(study.moves, currentMistake.nodeId)
+    if (path.length <= 1) return null
+    const parentPath = path.slice(0, -1)
+    return getNodeAtPath(study.moves, parentPath)
+  }, [currentMistake, study.moves, study.color])
 
   // Chessground config
   const config: Config = useMemo(() => ({
@@ -421,6 +506,7 @@ export function useMistakesReview({
     // Current mistake info
     currentMistake,
     contextNode,
+    parentNode,
     currentIndex,
     totalMistakes: mistakesToReview.length,
     isComplete,
