@@ -567,7 +567,6 @@ function StudyView({ study }: { study: OpeningStudy }) {
     allLineNodes,
     selectLine,
     nextLine,
-    previousLine,
     restartStudy,
     goToStart,
     makeMove,
@@ -608,7 +607,7 @@ function StudyView({ study }: { study: OpeningStudy }) {
       </div>
 
       {/* Sidebar */}
-      <div className="w-[320px] rounded-lg bg-zinc-800 overflow-hidden flex flex-col">
+      <div className="w-[350px] rounded-lg bg-zinc-800 overflow-hidden flex flex-col">
         {/* Comment - at top when present */}
         {currentComment && (
           <div className="bg-green-500/15 border-b border-green-500/40 p-4">
@@ -699,31 +698,22 @@ function StudyView({ study }: { study: OpeningStudy }) {
 
         {/* Controls */}
         <div className="p-4 border-t border-zinc-700 space-y-2">
-          <div className="flex gap-2">
-            <button
-              onClick={goToStart}
-              className="flex-1 flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Restart
-            </button>
-            <button
-              onClick={previousLine}
-              disabled={currentLineIndex === 0}
-              className="flex-1 flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors disabled:opacity-50"
-            >
-              Prev Line
-            </button>
-          </div>
+          <button
+            onClick={goToStart}
+            className="w-full flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
+          >
+            <RotateCcw className="h-4 w-4" />
+            Restart Line
+          </button>
 
           {/* Next Line Button - only show when line is complete and not on last line */}
           {isComplete && currentLineIndex < allLines.length - 1 && (
             <button
               onClick={nextLine}
-              className="w-full flex items-center justify-center gap-2 rounded-md bg-green-600 px-4 py-3 text-base font-medium text-white hover:bg-green-500 transition-colors"
+              className="w-full flex items-center justify-center gap-2 rounded-md bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-500 transition-colors"
             >
               Next Line
-              <ChevronRight className="h-5 w-5" />
+              <ChevronRight className="h-4 w-4" />
             </button>
           )}
 
@@ -731,9 +721,9 @@ function StudyView({ study }: { study: OpeningStudy }) {
           {isStudyComplete && (
             <button
               onClick={restartStudy}
-              className="w-full flex items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-3 text-base font-medium text-white hover:bg-blue-500 transition-colors"
+              className="w-full flex items-center justify-center gap-2 rounded-md bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-500 transition-colors"
             >
-              <RotateCcw className="h-5 w-5" />
+              <RotateCcw className="h-4 w-4" />
               Restart Study
             </button>
           )}
@@ -789,7 +779,7 @@ function SpeedDrillView({ study }: { study: OpeningStudy }) {
       )}
 
       {/* Board */}
-      <div className="h-[600px] w-[600px] shrink-0 rounded-sm overflow-hidden" key={boardKey}>
+      <div className="h-[600px] w-[600px] shrink-0 overflow-hidden" key={boardKey}>
         <Chessground
           ref={chessgroundRef}
           config={config}
@@ -797,10 +787,10 @@ function SpeedDrillView({ study }: { study: OpeningStudy }) {
         />
       </div>
 
-      {/* Controls */}
-      <div className="w-[320px] space-y-4">
+      {/* Sidebar */}
+      <div className="w-[350px] rounded-lg bg-zinc-800 overflow-hidden flex flex-col">
         {/* Timer Display */}
-        <div className="rounded-lg bg-zinc-800 p-6 text-center">
+        <div className="p-4 border-b border-zinc-700 text-center">
           <Clock className="mx-auto h-8 w-8 text-yellow-400 mb-2" />
           <p className="text-4xl font-mono font-bold text-white">
             {formatTime(elapsedMs)}
@@ -811,7 +801,7 @@ function SpeedDrillView({ study }: { study: OpeningStudy }) {
         </div>
 
         {/* Progress */}
-        <div className="rounded-lg bg-zinc-800 p-4">
+        <div className="p-4 border-b border-zinc-700">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-medium text-zinc-400">Progress</h3>
             <span className="text-sm text-zinc-500">
@@ -827,7 +817,7 @@ function SpeedDrillView({ study }: { study: OpeningStudy }) {
         </div>
 
         {/* Live Stats */}
-        <div className="rounded-lg bg-zinc-800 p-4">
+        <div className="p-4 border-b border-zinc-700">
           <h3 className="text-sm font-medium text-zinc-400 mb-3">Stats</h3>
           <div className="grid grid-cols-2 gap-3">
             <div className="text-center">
@@ -855,7 +845,7 @@ function SpeedDrillView({ study }: { study: OpeningStudy }) {
 
         {/* Results Panel */}
         {showResults && finalStats && (
-          <div className="rounded-lg bg-yellow-500/10 border border-yellow-500/30 p-4">
+          <div className="p-4 border-b border-zinc-700 bg-yellow-500/10">
             <Trophy className="mx-auto h-10 w-10 text-yellow-400 mb-3" />
             <h3 className="text-lg font-bold text-white text-center mb-2">Drill Complete!</h3>
             <div className="space-y-1 text-sm">
@@ -866,14 +856,19 @@ function SpeedDrillView({ study }: { study: OpeningStudy }) {
           </div>
         )}
 
+        {/* Spacer */}
+        <div className="flex-1" />
+
         {/* Controls */}
-        <button
-          onClick={handleReset}
-          className="w-full flex items-center justify-center gap-2 rounded-md bg-yellow-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-yellow-500 transition-colors"
-        >
-          <RotateCcw className="h-4 w-4" />
-          {isComplete ? 'Try Again' : 'Reset'}
-        </button>
+        <div className="p-4 border-t border-zinc-700">
+          <button
+            onClick={handleReset}
+            className="w-full flex items-center justify-center gap-2 rounded-md bg-yellow-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-yellow-500 transition-colors"
+          >
+            <RotateCcw className="h-4 w-4" />
+            {isComplete ? 'Try Again' : 'Reset'}
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -951,7 +946,7 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
       )}
 
       {/* Board */}
-      <div className="h-[600px] w-[600px] shrink-0 rounded-sm overflow-hidden" key={boardKey}>
+      <div className="h-[600px] w-[600px] shrink-0 overflow-hidden" key={boardKey}>
         <Chessground
           ref={chessgroundRef}
           config={config}
@@ -959,10 +954,10 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
         />
       </div>
 
-      {/* Controls */}
-      <div className="w-[320px] space-y-4">
-        {/* Info */}
-        <div className="rounded-lg bg-orange-500/10 border border-orange-500/30 p-4">
+      {/* Sidebar */}
+      <div className="w-[350px] rounded-lg bg-zinc-800 overflow-hidden flex flex-col">
+        {/* Info Header */}
+        <div className="p-4 border-b border-zinc-700 bg-orange-500/10">
           <h3 className="text-sm font-medium text-orange-400 mb-1">Mistakes Review</h3>
           <p className="text-xs text-zinc-400">
             Practice positions where you made mistakes. Spaced repetition helps you remember.
@@ -970,7 +965,7 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
         </div>
 
         {/* Progress */}
-        <div className="rounded-lg bg-zinc-800 p-4">
+        <div className="p-4 border-b border-zinc-700">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-medium text-zinc-400">Progress</h3>
             <span className="text-sm text-zinc-500">
@@ -987,7 +982,7 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
 
         {/* Current Position Info */}
         {contextNode && (
-          <div className="rounded-lg bg-zinc-800 p-4">
+          <div className="p-4 border-b border-zinc-700">
             <h3 className="text-sm font-medium text-zinc-400 mb-2">Find the move after:</h3>
             <p className="text-lg font-bold text-white">{contextNode.san}</p>
             {currentMistake && (
@@ -999,7 +994,7 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
         )}
 
         {/* Status */}
-        <div className="rounded-lg bg-zinc-800 p-4">
+        <div className="p-4 border-b border-zinc-700">
           {isCorrect ? (
             <div className="rounded-md bg-green-500/20 p-4 text-center">
               <CheckCircle className="mx-auto mb-2 h-8 w-8 text-green-500" />
@@ -1023,7 +1018,7 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
         </div>
 
         {/* Stats */}
-        <div className="rounded-lg bg-zinc-800 p-4">
+        <div className="p-4 border-b border-zinc-700">
           <div className="grid grid-cols-2 gap-3 text-center">
             <div>
               <p className="text-2xl font-bold text-green-400">{correctCount}</p>
@@ -1036,52 +1031,57 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
           </div>
         </div>
 
-        {/* Controls */}
-        <div className="flex gap-2">
-          {!isCorrect ? (
-            <>
-              <button
-                onClick={showHint}
-                disabled={hintLevel >= 2}
-                className="flex-1 flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors disabled:opacity-50"
-              >
-                <Lightbulb className={`h-4 w-4 ${hintLevel > 0 ? 'text-yellow-400' : ''}`} />
-                Hint
-              </button>
-              <button
-                onClick={skipMistake}
-                className="flex-1 flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
-              >
-                <SkipForward className="h-4 w-4" />
-                Skip
-              </button>
-            </>
-          ) : currentIndex < totalMistakes - 1 ? (
-            <button
-              onClick={nextMistake}
-              className="flex-1 flex items-center justify-center gap-2 rounded-md bg-green-600 px-3 py-2.5 text-sm font-medium text-white hover:bg-green-500 transition-colors"
-            >
-              Next
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          ) : (
-            <button
-              onClick={nextMistake}
-              className="flex-1 flex items-center justify-center gap-2 rounded-md bg-green-600 px-3 py-2.5 text-sm font-medium text-white hover:bg-green-500 transition-colors"
-            >
-              <Trophy className="h-4 w-4" />
-              Finish Review
-            </button>
-          )}
-        </div>
+        {/* Spacer */}
+        <div className="flex-1" />
 
-        {/* Clear mistakes button */}
-        <button
-          onClick={clearAllMistakes}
-          className="w-full text-xs text-zinc-500 hover:text-zinc-400 transition-colors"
-        >
-          Clear all mistakes for this study
-        </button>
+        {/* Controls */}
+        <div className="p-4 border-t border-zinc-700 space-y-2">
+          <div className="flex gap-2">
+            {!isCorrect ? (
+              <>
+                <button
+                  onClick={showHint}
+                  disabled={hintLevel >= 2}
+                  className="flex-1 flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors disabled:opacity-50"
+                >
+                  <Lightbulb className={`h-4 w-4 ${hintLevel > 0 ? 'text-yellow-400' : ''}`} />
+                  Hint
+                </button>
+                <button
+                  onClick={skipMistake}
+                  className="flex-1 flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
+                >
+                  <SkipForward className="h-4 w-4" />
+                  Skip
+                </button>
+              </>
+            ) : currentIndex < totalMistakes - 1 ? (
+              <button
+                onClick={nextMistake}
+                className="flex-1 flex items-center justify-center gap-2 rounded-md bg-green-600 px-3 py-2.5 text-sm font-medium text-white hover:bg-green-500 transition-colors"
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            ) : (
+              <button
+                onClick={nextMistake}
+                className="flex-1 flex items-center justify-center gap-2 rounded-md bg-green-600 px-3 py-2.5 text-sm font-medium text-white hover:bg-green-500 transition-colors"
+              >
+                <Trophy className="h-4 w-4" />
+                Finish Review
+              </button>
+            )}
+          </div>
+
+          {/* Clear mistakes button */}
+          <button
+            onClick={clearAllMistakes}
+            className="w-full text-xs text-zinc-500 hover:text-zinc-400 transition-colors"
+          >
+            Clear all mistakes for this study
+          </button>
+        </div>
       </div>
     </div>
   )
