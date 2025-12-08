@@ -21,7 +21,6 @@ import {
   XCircle,
   ChevronDown,
   Edit,
-  Milestone,
   Shuffle,
   SkipForward,
   Lightbulb,
@@ -247,7 +246,6 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
     makeMove,
     resetLine,
     nextLine,
-    skipLine,
     selectLine,
     resetProgress,
     hintLevel,
@@ -518,14 +516,6 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
               <Lightbulb className={`h-4 w-4 ${hintLevel > 0 ? 'text-yellow-400' : ''}`} />
               Hint {hintLevel > 0 && `(${hintLevel})`}
             </button>
-            <button
-              onClick={skipLine}
-              disabled={currentLineIndex >= allLines.length - 1}
-              className="flex-1 flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <SkipForward className="h-4 w-4" />
-              Skip
-            </button>
           </div>
 
           {/* Next line button when complete */}
@@ -539,12 +529,15 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
             </button>
           )}
 
-          {/* All lines completed */}
+          {/* All lines completed - Reset practice button */}
           {progressInfo.completedLines === progressInfo.totalLines && (
-            <div className="w-full flex items-center justify-center gap-2 rounded-md bg-green-600 px-4 py-2.5 text-sm font-medium text-white">
-              <Milestone className="h-4 w-4" />
-              All Lines Completed!
-            </div>
+            <button
+              onClick={resetProgress}
+              className="w-full flex items-center justify-center gap-2 rounded-md bg-orange-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-orange-500 transition-colors"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Reset Practice
+            </button>
           )}
         </div>
       </div>
@@ -608,16 +601,6 @@ function StudyView({ study }: { study: OpeningStudy }) {
 
       {/* Sidebar */}
       <div className="w-[350px] rounded-lg bg-zinc-800 overflow-hidden flex flex-col">
-        {/* Comment - at top when present */}
-        {currentComment && (
-          <div className="bg-green-500/15 border-b border-green-500/40 p-4">
-            <div className="flex items-start gap-3">
-              <OctagonAlert className="h-5 w-5 text-red-400 mt-0.5 shrink-0" />
-              <p className="text-sm text-green-100">{currentComment}</p>
-            </div>
-          </div>
-        )}
-
         {/* Current Line Selector */}
         <div className="p-4 border-b border-zinc-700">
           <button
@@ -686,15 +669,22 @@ function StudyView({ study }: { study: OpeningStudy }) {
           />
         </div>
 
-        {/* Status */}
-        {isComplete && (
+        {/* Status / Comment Area */}
+        {isComplete ? (
           <div className="bg-green-500/20 p-4 text-center border-t border-zinc-700">
             <CheckCircle className="mx-auto mb-2 h-8 w-8 text-green-500" />
             <p className="text-green-400 font-medium">
               {isStudyComplete ? 'Study completed!' : 'Line completed!'}
             </p>
           </div>
-        )}
+        ) : currentComment ? (
+          <div className="bg-amber-500/15 p-4 border-t border-amber-500/40">
+            <div className="flex items-start gap-3">
+              <OctagonAlert className="h-5 w-5 text-amber-400 mt-0.5 shrink-0" />
+              <p className="text-sm text-amber-100">{currentComment}</p>
+            </div>
+          </div>
+        ) : null}
 
         {/* Controls */}
         <div className="p-4 border-t border-zinc-700 space-y-2">
