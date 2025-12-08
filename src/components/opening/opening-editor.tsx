@@ -618,9 +618,9 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
                 <Pen className="h-3.5 w-3.5" />
                 Annotate
               </TabsTrigger>
-              <TabsTrigger value="stats" className="flex items-center gap-1.5 text-xs">
+              <TabsTrigger value="explorer" className="flex items-center gap-1.5 text-xs">
                 <BarChart3 className="h-3.5 w-3.5" />
-                Stats
+                Explorer
               </TabsTrigger>
               <TabsTrigger value="settings" className="flex items-center gap-1.5 text-xs">
                 <Settings className="h-3.5 w-3.5" />
@@ -852,17 +852,15 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
               )}
             </TabsContent>
 
-            {/* Stats Tab */}
-            <TabsContent value="stats" className="mt-3">
-              <div className="rounded-lg bg-zinc-800 p-4">
-                <OpeningStatsPanel
-                  stats={stats}
-                  isLoading={statsLoading}
-                  error={statsError}
-                  repertoireMoves={repertoireMoves}
-                  sideToMove={turnColor}
-                />
-              </div>
+            {/* Explorer Tab */}
+            <TabsContent value="explorer" className="mt-3">
+              <OpeningStatsPanel
+                stats={stats}
+                isLoading={statsLoading}
+                error={statsError}
+                repertoireMoves={repertoireMoves}
+                sideToMove={turnColor}
+              />
             </TabsContent>
 
             {/* Settings Tab */}

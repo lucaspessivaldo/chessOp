@@ -71,7 +71,7 @@ function MoveTree({
   return (
     <>
       {/* Main move */}
-      <span className="inline">
+      <span className="inline-flex items-center">
         {/* Move number for white */}
         {isWhiteToMove && (
           <span className="text-zinc-500 mr-1">{moveNumber}.</span>
@@ -81,10 +81,10 @@ function MoveTree({
           <span className="text-zinc-500 mr-1">{moveNumber}...</span>
         )}
 
-        {/* The move itself */}
+        {/* The move itself with NAGs inside the button */}
         <button
           onClick={() => onMoveClick(mainNode.id)}
-          className={`hover:bg-zinc-700 px-1 rounded transition-colors ${isCurrentMove
+          className={`hover:bg-zinc-700 px-1 rounded transition-colors inline-flex items-center gap-0.5 ${isCurrentMove
             ? 'bg-blue-600 text-white'
             : isInPath
               ? 'text-blue-400'
@@ -92,20 +92,18 @@ function MoveTree({
             } ${mainNode.isMainLine ? '' : 'text-zinc-400'} ${isPracticeStart ? 'ring-1 ring-green-500' : ''}`}
         >
           {mainNode.san}
-          {nagString && <span className="text-yellow-500 ml-0.5">{nagString}</span>}
+          {nagString && <span className={`${isCurrentMove ? 'text-yellow-300' : 'text-yellow-500'}`}>{nagString}</span>}
+          {/* Practice start marker inside button */}
+          {isPracticeStart && (
+            <Flag className="h-3 w-3 text-green-500" />
+          )}
+          {/* Inline comment indicator inside button */}
+          {mainNode.comment && (
+            <span title={mainNode.comment}>
+              <MessageSquare className={`h-3 w-3 ${isCurrentMove ? 'text-zinc-300' : 'text-zinc-500'}`} />
+            </span>
+          )}
         </button>
-
-        {/* Practice start marker */}
-        {isPracticeStart && (
-          <Flag className="inline-block h-3 w-3 text-green-500 ml-0.5" />
-        )}
-
-        {/* Inline comment indicator */}
-        {mainNode.comment && (
-          <span className="ml-1" title={mainNode.comment}>
-            <MessageSquare className="inline-block h-3 w-3 text-zinc-500" />
-          </span>
-        )}
       </span>
 
       {/* Variations (inline, parenthesized) */}

@@ -91,7 +91,7 @@ export function OpeningStatsPanel({
       {stats.opening && (
         <div className="text-xs">
           <span className="text-zinc-500">{stats.opening.eco}</span>
-          <span className="text-zinc-300 ml-2">{stats.opening.name}</span>
+          <span className="text-zinc-300 ml-2 font-semibold">{stats.opening.name}</span>
         </div>
       )}
 
