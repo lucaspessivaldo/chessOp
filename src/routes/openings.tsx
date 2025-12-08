@@ -7,6 +7,7 @@ import { useOpeningStudy } from '@/hooks/use-opening-study'
 import { useSpeedDrill, type SpeedDrillStats } from '@/hooks/use-speed-drill'
 import { useMistakesReview, getMistakesDueForReview } from '@/hooks/use-mistakes-review'
 import type { OpeningStudy } from '@/types/opening'
+import { getLineName } from '@/lib/opening-utils'
 import {
   CompactMoveList,
   OpeningSelector,
@@ -274,13 +275,6 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
     setShowVariationSelector(false)
   }
 
-  // Format line name for display
-  const getLineName = (line: typeof currentLine, index: number) => {
-    if (line.length === 0) return `Line ${index + 1}`
-    const moves = line.slice(0, 4).map(m => m.san).join(' ')
-    return line.length > 4 ? `${moves}...` : moves
-  }
-
   return (
     <div className="flex justify-center gap-8 p-6">
       {/* Promotion Dialog */}
@@ -535,13 +529,6 @@ function StudyView({ study }: { study: OpeningStudy }) {
 
   // Check if all lines are completed (on last line and it's complete)
   const isStudyComplete = isComplete && currentLineIndex === allLines.length - 1
-
-  // Format line name for display
-  const getLineName = (line: typeof currentLine, index: number) => {
-    if (line.length === 0) return `Line ${index + 1}`
-    const moves = line.slice(0, 4).map(m => m.san).join(' ')
-    return line.length > 4 ? `${moves}...` : moves
-  }
 
   return (
     <div className="flex justify-center gap-8 p-6">

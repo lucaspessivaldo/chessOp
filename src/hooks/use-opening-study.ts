@@ -5,20 +5,17 @@ import type { Config } from '@lichess-org/chessground/config'
 import type { Key } from '@lichess-org/chessground/types'
 import type { DrawShape } from '@lichess-org/chessground/draw'
 import type { OpeningStudy, OpeningMoveNode } from '@/types/opening'
-import type { PromotionPiece } from '@/components/promotion-dialog'
+import type { PendingPromotion, PromotionPiece } from '@/types/chess'
 import {
   createChess,
   getTurnColor,
   toChessgroundFen,
   isCheck,
+  parseUci,
+  isPromotionMove as checkIsPromotionMove,
 } from '@/chess/chess-utils'
 import { playSound, getMoveSound } from '@/lib/sounds'
 import { createNagShape } from '@/chess/nag-shapes'
-
-export interface PendingPromotion {
-  from: Key
-  to: Key
-}
 
 export interface UseOpeningStudyOptions {
   study: OpeningStudy
@@ -116,14 +113,6 @@ export function useOpeningStudy(options: UseOpeningStudyOptions) {
   const userColor = study.color
   const orientation = userColor
 
-  // Parse UCI move
-  const parseUci = (uci: string) => {
-    const from = uci.slice(0, 2) as Square
-    const to = uci.slice(2, 4) as Square
-    const promotion = uci.length > 4 ? (uci[4] as PromotionPiece) : undefined
-    return { from, to, promotion }
-  }
-
   // Check if it's user's turn
   const isUserTurn = useCallback(() => {
     return getTurnColor(chessRef.current) === userColor
@@ -187,14 +176,6 @@ export function useOpeningStudy(options: UseOpeningStudyOptions) {
       return () => clearTimeout(timeout)
     }
   }, [currentLineIndex, moves, isComplete, isUserTurn, playMachineMove])
-
-  // Check if move is promotion
-  const isPromotionMove = useCallback((from: Key, to: Key): boolean => {
-    const piece = chessRef.current.get(from as Square)
-    if (!piece || piece.type !== 'p') return false
-    const toRank = to[1]
-    return (piece.color === 'w' && toRank === '8') || (piece.color === 'b' && toRank === '1')
-  }, [])
 
   // Execute user move (same logic as puzzle - validate against expected)
   const executeMove = useCallback((from: Key, to: Key, promotion?: PromotionPiece) => {
@@ -261,14 +242,14 @@ export function useOpeningStudy(options: UseOpeningStudyOptions) {
   const makeMove = useCallback((from: Key, to: Key) => {
     if (isComplete) return false
 
-    if (isPromotionMove(from, to)) {
+    if (checkIsPromotionMove(chessRef.current, from, to)) {
       setPendingPromotion({ from, to })
       setBoardKey(k => k + 1)
       return false
     }
 
     return executeMove(from, to)
-  }, [isComplete, isPromotionMove, executeMove])
+  }, [isComplete, executeMove])
 
   // Complete promotion
   const completePromotion = useCallback((piece: PromotionPiece) => {

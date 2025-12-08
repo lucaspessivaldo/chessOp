@@ -5,6 +5,7 @@ import type { Config } from '@lichess-org/chessground/config'
 import type { Key } from '@lichess-org/chessground/types'
 import type { DrawShape } from '@lichess-org/chessground/draw'
 import type { ChessgroundRef } from '@/components/chessground'
+import type { PendingPromotion, PromotionPiece } from '@/types/chess'
 import {
   createChess,
   getLegalDests,
@@ -12,16 +13,12 @@ import {
   toChessgroundFen,
   isCheck,
   isCheckmate,
+  parseUci,
+  isPromotionMove as checkIsPromotionMove,
 } from '@/chess/chess-utils'
 import { playSound, getMoveSound } from '@/lib/sounds'
 import { parseMoves, getUserColor } from '@/lib/puzzle-utils'
 import type { Puzzle, PuzzleStatus } from '@/types/puzzle'
-import type { PromotionPiece } from '@/components/promotion-dialog'
-
-export interface PendingPromotion {
-  from: Key
-  to: Key
-}
 
 export interface UsePuzzleOptions {
   puzzle: Puzzle
@@ -58,14 +55,6 @@ export function usePuzzle(options: UsePuzzleOptions) {
   const orientation = userColor
 
   const legalDests = useMemo(() => getLegalDests(chessRef.current), [fen])
-
-  // Parse UCI move string into from, to, and optional promotion
-  const parseUci = (uci: string) => {
-    const from = uci.slice(0, 2) as Square
-    const to = uci.slice(2, 4) as Square
-    const promotion = uci.length > 4 ? (uci[4] as PromotionPiece) : undefined
-    return { from, to, promotion }
-  }
 
   // Ref to store executeMove for use in playMachineMove (avoids circular dependency)
   const executeMoveRef = useRef<(from: Key, to: Key, promotion?: PromotionPiece) => boolean>(() => false)
@@ -137,20 +126,6 @@ export function usePuzzle(options: UsePuzzleOptions) {
       return () => clearTimeout(timeout)
     }
   }, []) // Only on mount
-
-  // Check if a move is a promotion
-  const isPromotionMove = useCallback((from: Key, to: Key): boolean => {
-    const chess = chessRef.current
-    const piece = chess.get(from as Square)
-
-    if (!piece || piece.type !== 'p') return false
-
-    const toRank = to[1]
-    const isWhitePromotion = piece.color === 'w' && toRank === '8'
-    const isBlackPromotion = piece.color === 'b' && toRank === '1'
-
-    return isWhitePromotion || isBlackPromotion
-  }, [])
 
   // Validate and execute user move
   const executeMove = useCallback(
@@ -285,7 +260,7 @@ export function usePuzzle(options: UsePuzzleOptions) {
     (from: Key, to: Key) => {
       if (status !== 'playing') return false
 
-      if (isPromotionMove(from, to)) {
+      if (checkIsPromotionMove(chessRef.current, from, to)) {
         setPendingPromotion({ from, to })
         // Force chessground to re-mount with correct state by changing the key
         setBoardKey((k) => k + 1)
@@ -294,7 +269,7 @@ export function usePuzzle(options: UsePuzzleOptions) {
 
       return executeMove(from, to)
     },
-    [status, isPromotionMove, executeMove]
+    [status, executeMove]
   )
 
   // Complete a pending promotion

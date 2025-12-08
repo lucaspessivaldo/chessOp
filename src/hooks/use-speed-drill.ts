@@ -4,21 +4,18 @@ import type { Square } from '@jackstenglein/chess'
 import type { Config } from '@lichess-org/chessground/config'
 import type { Key } from '@lichess-org/chessground/types'
 import type { OpeningStudy, OpeningMoveNode } from '@/types/opening'
-import type { PromotionPiece } from '@/components/promotion-dialog'
+import type { PendingPromotion, PromotionPiece } from '@/types/chess'
 import {
   createChess,
   getLegalDests,
   getTurnColor,
   toChessgroundFen,
   isCheck,
+  parseUci,
+  isPromotionMove as checkIsPromotionMove,
 } from '@/chess/chess-utils'
 import { playSound, getMoveSound } from '@/lib/sounds'
 import { shuffleArray, INITIAL_FEN } from '@/lib/opening-utils'
-
-export interface PendingPromotion {
-  from: Key
-  to: Key
-}
 
 export interface SpeedDrillStats {
   totalMoves: number
@@ -171,14 +168,6 @@ export function useSpeedDrill({
       }
     }
   }, [isRunning, startTime, timeLimit, stopTimer])
-
-  // Parse UCI move
-  const parseUci = (uci: string) => {
-    const from = uci.slice(0, 2) as Square
-    const to = uci.slice(2, 4) as Square
-    const promotion = uci.length > 4 ? (uci[4] as PromotionPiece) : undefined
-    return { from, to, promotion }
-  }
 
   // Play machine move
   const playMachineMove = useCallback((index: number) => {
@@ -344,14 +333,6 @@ export function useSpeedDrill({
     }
   }, [currentLineIndex, moves, isComplete, isUserTurn, playMachineMove, isRunning])
 
-  // Check if move is promotion
-  const isPromotionMove = useCallback((from: Key, to: Key): boolean => {
-    const piece = chessRef.current.get(from as Square)
-    if (!piece || piece.type !== 'p') return false
-    const toRank = to[1]
-    return (piece.color === 'w' && toRank === '8') || (piece.color === 'b' && toRank === '1')
-  }, [])
-
   // Execute move
   const executeMove = useCallback((from: Key, to: Key, promotion?: PromotionPiece) => {
     if (!isRunningRef.current) {
@@ -429,13 +410,13 @@ export function useSpeedDrill({
   const makeMove = useCallback((from: Key, to: Key) => {
     if (isComplete) return false
 
-    if (isPromotionMove(from, to)) {
+    if (checkIsPromotionMove(chessRef.current, from, to)) {
       setPendingPromotion({ from, to })
       return false
     }
 
     return executeMove(from, to)
-  }, [isComplete, isPromotionMove, executeMove])
+  }, [isComplete, executeMove])
 
   // Complete promotion
   const completePromotion = useCallback((piece: PromotionPiece) => {

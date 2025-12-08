@@ -5,13 +5,14 @@ import type { Config } from '@lichess-org/chessground/config'
 import type { Key } from '@lichess-org/chessground/types'
 import type { DrawShape } from '@lichess-org/chessground/draw'
 import type { OpeningStudy, OpeningMoveNode } from '@/types/opening'
-import type { PromotionPiece } from '@/components/promotion-dialog'
+import type { PendingPromotion, PromotionPiece, HintLevel } from '@/types/chess'
 import {
   createChess,
   getLegalDests,
   getTurnColor,
   toChessgroundFen,
   isCheck,
+  isPromotionMove as checkIsPromotionMove,
 } from '@/chess/chess-utils'
 import { playSound, getMoveSound } from '@/lib/sounds'
 import { INITIAL_FEN, findNodeById, getPathToNode, getNodeAtPath } from '@/lib/opening-utils'
@@ -28,13 +29,6 @@ export interface MistakeRecord {
   nextReview: number // timestamp for spaced repetition
   streak: number // consecutive correct answers
 }
-
-export interface PendingPromotion {
-  from: Key
-  to: Key
-}
-
-export type HintLevel = 0 | 1 | 2 // 0=none, 1=piece, 2=arrow
 
 export interface UseMistakesReviewOptions {
   study: OpeningStudy
@@ -297,14 +291,6 @@ export function useMistakesReview({
     return getTurnColor(chessRef.current) === userColor
   }, [userColor])
 
-  // Check if move is promotion
-  const isPromotionMove = useCallback((from: Key, to: Key): boolean => {
-    const piece = chessRef.current.get(from as Square)
-    if (!piece || piece.type !== 'p') return false
-    const toRank = to[1]
-    return (piece.color === 'w' && toRank === '8') || (piece.color === 'b' && toRank === '1')
-  }, [])
-
   // Execute move
   const executeMove = useCallback((from: Key, to: Key, promotion?: PromotionPiece) => {
     // Use refs to always get the latest values
@@ -376,12 +362,12 @@ export function useMistakesReview({
 
   // Handle move from chessground
   const makeMove = useCallback((from: Key, to: Key) => {
-    if (isPromotionMove(from, to)) {
+    if (checkIsPromotionMove(chessRef.current, from, to)) {
       setPendingPromotion({ from, to })
       return false
     }
     return executeMove(from, to)
-  }, [isPromotionMove, executeMove])
+  }, [executeMove])
 
   // Complete promotion
   const completePromotion = useCallback((piece: PromotionPiece) => {

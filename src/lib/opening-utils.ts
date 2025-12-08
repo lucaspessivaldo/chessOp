@@ -641,3 +641,12 @@ export function filterLinesByNodes(
     line.some(node => includeNodeIds.has(node.id))
   )
 }
+
+/**
+ * Format a line name for display (first N moves)
+ */
+export function getLineName(line: { san: string }[], index: number, maxMoves = 4): string {
+  if (line.length === 0) return `Line ${index + 1}`
+  const moves = line.slice(0, maxMoves).map(m => m.san).join(' ')
+  return line.length > maxMoves ? `${moves}...` : moves
+}

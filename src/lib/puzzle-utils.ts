@@ -29,10 +29,3 @@ export function getUserColor(fen: string): 'white' | 'black' {
   // Machine plays first (index 0), so if white to move, machine is white → user is black
   return sideToMove === 'w' ? 'black' : 'white'
 }
-
-/**
- * Get board orientation (same as user color)
- */
-export function getOrientation(fen: string): 'white' | 'black' {
-  return getUserColor(fen)
-}

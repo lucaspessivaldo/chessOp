@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import type { OpeningMoveNode } from '@/types/opening'
+import { getAllLines, getLineName } from '@/lib/opening-utils'
 import { CheckCircle, Circle } from 'lucide-react'
 
 interface VariationSelectorProps {
@@ -8,36 +9,8 @@ interface VariationSelectorProps {
   onCancel: () => void
 }
 
-/**
- * Get all lines with their display info
- */
-function getAllLinesWithInfo(nodes: OpeningMoveNode[]): { line: OpeningMoveNode[]; name: string }[] {
-  const lines: { line: OpeningMoveNode[]; name: string }[] = []
-
-  function traverse(node: OpeningMoveNode, currentLine: OpeningMoveNode[]) {
-    const newLine = [...currentLine, node]
-
-    if (node.children.length === 0) {
-      // Generate name from first few moves
-      const moves = newLine.slice(0, 6).map(m => m.san).join(' ')
-      const name = newLine.length > 6 ? `${moves}...` : moves
-      lines.push({ line: newLine, name })
-    } else {
-      for (const child of node.children) {
-        traverse(child, newLine)
-      }
-    }
-  }
-
-  for (const root of nodes) {
-    traverse(root, [])
-  }
-
-  return lines
-}
-
 export function VariationSelector({ moves, onStart, onCancel }: VariationSelectorProps) {
-  const allLines = useMemo(() => getAllLinesWithInfo(moves), [moves])
+  const allLines = useMemo(() => getAllLines(moves), [moves])
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(
     new Set(allLines.map((_, i) => i)) // All selected by default
   )
@@ -95,15 +68,15 @@ export function VariationSelector({ moves, onStart, onCancel }: VariationSelecto
 
       {/* Lines list */}
       <div className="space-y-1 max-h-[300px] overflow-y-auto mb-4">
-        {allLines.map((item, index) => {
+        {allLines.map((line, index) => {
           const isSelected = selectedIndices.has(index)
           return (
             <button
               key={index}
               onClick={() => toggleLine(index)}
               className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center gap-2 ${isSelected
-                  ? 'bg-blue-600/20 text-blue-400 border border-blue-600/30'
-                  : 'bg-zinc-700 text-zinc-400 hover:bg-zinc-600'
+                ? 'bg-blue-600/20 text-blue-400 border border-blue-600/30'
+                : 'bg-zinc-700 text-zinc-400 hover:bg-zinc-600'
                 }`}
             >
               {isSelected ? (
@@ -111,7 +84,7 @@ export function VariationSelector({ moves, onStart, onCancel }: VariationSelecto
               ) : (
                 <Circle className="h-4 w-4 shrink-0" />
               )}
-              <span className="truncate">Line {index + 1}: {item.name}</span>
+              <span className="truncate">Line {index + 1}: {getLineName(line, index, 6)}</span>
             </button>
           )
         })}

@@ -27,7 +27,7 @@ import {
   promoteToMainLine,
   INITIAL_FEN,
 } from '@/lib/opening-utils'
-import { createChess, getLegalDests, getTurnColor, toChessgroundFen, isCheck } from '@/chess/chess-utils'
+import { createChess, getLegalDests, getTurnColor, toChessgroundFen, isCheck, isPromotionMove as checkIsPromotionMove } from '@/chess/chess-utils'
 import { playSound, getMoveSound } from '@/lib/sounds'
 import { Save, Trash2, RotateCcw, ChevronLeft, ChevronRight, Undo2, Redo2, ArrowUpRight, List, GitBranch, Flag, BarChart3, MessageSquare, Sparkles, Settings, Network, Pen } from 'lucide-react'
 
@@ -247,22 +247,14 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
     return true
   }, []) // No dependencies needed since we use refs
 
-  // Check if move is promotion
-  const isPromotionMove = useCallback((from: Key, to: Key): boolean => {
-    const piece = chessRef.current.get(from as Square)
-    if (!piece || piece.type !== 'p') return false
-    const toRank = to[1]
-    return (piece.color === 'w' && toRank === '8') || (piece.color === 'b' && toRank === '1')
-  }, [])
-
   // Handle move from board
   const handleMove = useCallback((from: Key, to: Key) => {
-    if (isPromotionMove(from, to)) {
+    if (checkIsPromotionMove(chessRef.current, from, to)) {
       setPendingPromotion({ from, to })
       return
     }
     executeMove(from, to)
-  }, [isPromotionMove, executeMove])
+  }, [executeMove])
 
   // Complete promotion
   const completePromotion = useCallback((piece: PromotionPiece) => {
