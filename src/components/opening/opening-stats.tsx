@@ -13,6 +13,8 @@ interface OpeningStatsProps {
   sideToMove: 'white' | 'black'
   /** Callback when user clicks on a move */
   onMoveClick?: (uci: string, san: string) => void
+  /** Callback when user hovers over a move (null when mouse leaves) */
+  onMoveHover?: (uci: string | null) => void
 }
 
 export function OpeningStatsPanel({
@@ -22,6 +24,7 @@ export function OpeningStatsPanel({
   repertoireMoves = [],
   sideToMove,
   onMoveClick,
+  onMoveHover,
 }: OpeningStatsProps) {
   const [showSettings, setShowSettings] = useState(false)
   const [showAllMoves, setShowAllMoves] = useState(false)
@@ -138,6 +141,7 @@ export function OpeningStatsPanel({
                 sideToMove={sideToMove}
                 isInRepertoire={repertoireMoves.includes(move.uci)}
                 onClick={() => onMoveClick?.(move.uci, move.san)}
+                onHover={(hovering) => onMoveHover?.(hovering ? move.uci : null)}
               />
             ))}
           </div>
@@ -177,9 +181,10 @@ interface MoveRowProps {
   sideToMove: 'white' | 'black'
   isInRepertoire: boolean
   onClick?: () => void
+  onHover?: (hovering: boolean) => void
 }
 
-function MoveRow({ move, sideToMove, isInRepertoire, onClick }: MoveRowProps) {
+function MoveRow({ move, sideToMove, isInRepertoire, onClick, onHover }: MoveRowProps) {
   const totalGames = move.white + move.draws + move.black
   const winRate = calculateWinRate(move, sideToMove)
   // totalGames used for bar width relative to siblings
@@ -187,6 +192,8 @@ function MoveRow({ move, sideToMove, isInRepertoire, onClick }: MoveRowProps) {
   return (
     <button
       onClick={onClick}
+      onMouseEnter={() => onHover?.(true)}
+      onMouseLeave={() => onHover?.(false)}
       className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors ${isInRepertoire
         ? 'bg-green-600/20 hover:bg-green-600/30'
         : 'bg-zinc-700/50 hover:bg-zinc-700'

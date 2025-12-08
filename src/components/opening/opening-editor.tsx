@@ -80,6 +80,9 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
   // Stats panel toggle (kept for accordion state tracking)
   const [showStats] = useState(true)
 
+  // Hovered explorer move (for showing arrow on board)
+  const [hoveredMoveUci, setHoveredMoveUci] = useState<string | null>(null)
+
   // Undo/Redo history
   const [history, setHistory] = useState<OpeningMoveNode[][]>([initialStudy?.moves || []])
   const [historyIndex, setHistoryIndex] = useState(0)
@@ -455,11 +458,23 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
   }, [currentNode, moves])
 
   // Convert saved shapes to drawable shapes
-  const autoShapes: DrawShape[] = currentNode?.shapes?.map(s => ({
+  const savedShapes: DrawShape[] = currentNode?.shapes?.map(s => ({
     orig: s.orig as Key,
     dest: s.dest as Key | undefined,
     brush: s.brush,
   })) ?? []
+
+  // Create hover arrow shape if a move is being hovered in explorer
+  const hoverArrowShape: DrawShape | null = hoveredMoveUci ? {
+    orig: hoveredMoveUci.slice(0, 2) as Key,
+    dest: hoveredMoveUci.slice(2, 4) as Key,
+    brush: 'blue',
+  } : null
+
+  // Combine saved shapes with hover arrow
+  const autoShapes: DrawShape[] = hoverArrowShape
+    ? [...savedShapes, hoverArrowShape]
+    : savedShapes
 
   // Chessground config with drawing enabled
   const config: Config = {
@@ -860,6 +875,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
                 error={statsError}
                 repertoireMoves={repertoireMoves}
                 sideToMove={turnColor}
+                onMoveHover={setHoveredMoveUci}
               />
             </TabsContent>
 
