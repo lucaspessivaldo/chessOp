@@ -721,7 +721,7 @@ function StudyView({ study }: { study: OpeningStudy }) {
           {isStudyComplete && (
             <button
               onClick={restartStudy}
-              className="w-full flex items-center justify-center gap-2 rounded-md bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-500 transition-colors"
+              className="w-full flex items-center justify-center gap-2 rounded-md bg-orange-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-orange-500 transition-colors"
             >
               <RotateCcw className="h-4 w-4" />
               Restart Study

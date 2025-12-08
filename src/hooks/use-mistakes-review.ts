@@ -107,6 +107,19 @@ export function markCorrect(studyId: string, nodeId: string): void {
   }
 }
 
+// Mark a mistake as correctly answered but reset streak (used when solved with wrong attempts)
+export function markCorrectWithReset(studyId: string, nodeId: string): void {
+  const mistakes = loadMistakes()
+  const existing = mistakes.find(m => m.studyId === studyId && m.nodeId === nodeId)
+
+  if (existing) {
+    existing.streak = 0 // Reset streak due to wrong attempts
+    existing.nextReview = getNextReviewTime(0) // Schedule for shortest interval (1 hour)
+    existing.lastAttempt = Date.now()
+    saveMistakes(mistakes)
+  }
+}
+
 // Get mistakes due for review
 export function getMistakesDueForReview(studyId: string): MistakeRecord[] {
   const mistakes = loadMistakes()
@@ -177,6 +190,7 @@ export function useMistakesReview({
 
   // Attempt tracking
   const [wrongAttempts, setWrongAttempts] = useState(0)
+  const wrongAttemptsRef = useRef(0)
   const [showWrongMove, setShowWrongMove] = useState(false)
   const [hintLevel, setHintLevel] = useState<HintLevel>(0)
   const [isCorrect, setIsCorrect] = useState(false)
@@ -187,6 +201,8 @@ export function useMistakesReview({
 
   // Current mistake
   const currentMistake = mistakesToReview[currentIndex]
+  const currentMistakeRef = useRef(currentMistake)
+  currentMistakeRef.current = currentMistake
 
   // Compute the actual expected move - handles cases where mistake was recorded at wrong node
   const correctedExpectedMove = useMemo(() => {
@@ -226,6 +242,10 @@ export function useMistakesReview({
     return null
   }, [currentMistake, study.moves, study.color])
 
+  // Keep a ref to the latest expected move to avoid stale closures
+  const correctedExpectedMoveRef = useRef(correctedExpectedMove)
+  correctedExpectedMoveRef.current = correctedExpectedMove
+
   // Find the node and setup position
   const setupPosition = useCallback((mistake: MistakeRecord | undefined) => {
     if (!mistake) return
@@ -258,6 +278,7 @@ export function useMistakesReview({
     setLastMove(undefined)
     setInCheck(isCheck(chess))
     setWrongAttempts(0)
+    wrongAttemptsRef.current = 0
     setHintLevel(0)
     setIsCorrect(false)
     setShowWrongMove(false)
@@ -286,20 +307,26 @@ export function useMistakesReview({
 
   // Execute move
   const executeMove = useCallback((from: Key, to: Key, promotion?: PromotionPiece) => {
-    if (!currentMistake || !correctedExpectedMove || isCorrect) return false
+    // Use refs to always get the latest values
+    const expectedMove = correctedExpectedMoveRef.current
+    const mistake = currentMistakeRef.current
+    if (!mistake || !expectedMove || isCorrect) return false
 
     const userUci = `${from}${to}${promotion || ''}`
-    const expectedUci = correctedExpectedMove.expectedUci
+    const expectedUci = expectedMove.expectedUci
 
     // Check if correct
     if (userUci !== expectedUci) {
       playSound('wrong')
-      setWrongAttempts(prev => prev + 1)
+      setWrongAttempts(prev => {
+        wrongAttemptsRef.current = prev + 1
+        return prev + 1
+      })
       setWrongCount(prev => prev + 1)
       setShowWrongMove(true)
 
-      // Progressive hints
-      if (wrongAttempts >= 1) {
+      // Progressive hints - use ref for current value
+      if (wrongAttemptsRef.current >= 1) {
         setHintLevel(2)
       } else {
         setHintLevel(1)
@@ -330,12 +357,12 @@ export function useMistakesReview({
       })
       playSound(soundType)
 
-      // Mark as correct in storage (only if no wrong attempts)
-      if (wrongAttempts === 0) {
-        markCorrect(study.id, currentMistake.nodeId)
+      // Mark as correct in storage - use ref for current mistake
+      if (wrongAttemptsRef.current === 0) {
+        markCorrect(study.id, mistake.nodeId)
       } else {
-        // Re-record mistake to reset streak
-        recordMistake(study.id, currentMistake.nodeId, expectedUci)
+        // Solved but with wrong attempts - schedule for shorter interval review (streak stays at 0)
+        markCorrectWithReset(study.id, mistake.nodeId)
       }
 
       // Notify parent that a mistake was completed (for badge update)
@@ -345,7 +372,7 @@ export function useMistakesReview({
     }
 
     return false
-  }, [currentMistake, isCorrect, wrongAttempts, study.id, onMistakeCompleted])
+  }, [isCorrect, study.id, onMistakeCompleted])
 
   // Handle move from chessground
   const makeMove = useCallback((from: Key, to: Key) => {
