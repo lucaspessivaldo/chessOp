@@ -24,7 +24,6 @@ import {
   Shuffle,
   SkipForward,
   Lightbulb,
-  MessageSquare,
   Play,
   BookOpen,
   Zap,
@@ -241,7 +240,6 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
     progressInfo,
     completedLines,
     skippedLines,
-    userColor,
     chessgroundConfig,
     makeMove,
     resetLine,
@@ -435,54 +433,20 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
           )}
         </div>
 
-        {/* Current Moves with Comment */}
-        <div className="p-4 flex-1 overflow-y-auto">
-          <h3 className="text-sm font-medium text-zinc-400 mb-3">Moves</h3>
-          <CompactMoveList
-            line={currentLine}
-            currentMoveIndex={progressInfo.currentMove}
-            startColor={study.color === 'white' ? 'white' : 'black'}
-          />
-          {/* Show current move comment if exists */}
-          {currentLine[progressInfo.currentMove - 1]?.comment && (
-            <div className="mt-3 p-3 bg-zinc-700/50 rounded-md border-l-2 border-blue-500">
-              <div className="flex items-start gap-2">
-                <MessageSquare className="h-4 w-4 text-blue-400 mt-0.5 shrink-0" />
-                <p className="text-sm text-zinc-300">
-                  {currentLine[progressInfo.currentMove - 1].comment}
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
+        {/* Spacer to push controls to bottom */}
+        <div className="flex-1" />
 
-        {/* Status */}
-        {(status === 'playing' || status === 'line-complete') && (
+        {/* Status - only show for wrong moves and line complete */}
+        {(showWrongMove || status === 'line-complete') && (
           <div className="p-4 border-t border-zinc-700">
-            {status === 'playing' && (
-              <div className={`rounded-md p-4 text-center transition-colors ${showWrongMove ? 'bg-red-500/20' : 'bg-blue-500/20'
-                }`}>
-                {showWrongMove ? (
-                  <>
-                    <XCircle className="mx-auto mb-2 h-8 w-8 text-red-500" />
-                    <p className="text-red-400 font-medium">Wrong move! Try again.</p>
-                  </>
-                ) : wrongAttempts > 0 ? (
-                  <>
-                    <p className="text-blue-400 font-medium">Keep trying!</p>
-                    <p className="text-xs text-zinc-400 mt-1">
-                      {wrongAttempts} wrong {wrongAttempts === 1 ? 'attempt' : 'attempts'}
-                    </p>
-                  </>
-                ) : (
-                  <p className="text-blue-400 font-medium">
-                    Your turn as {userColor} - find the correct move!
-                  </p>
-                )}
+            {showWrongMove && (
+              <div className="rounded-md p-4 text-center bg-red-500/20">
+                <XCircle className="mx-auto mb-2 h-8 w-8 text-red-500" />
+                <p className="text-red-400 font-medium">Wrong move! Try again.</p>
               </div>
             )}
 
-            {status === 'line-complete' && (
+            {status === 'line-complete' && !showWrongMove && (
               <div className="rounded-md bg-green-500/20 p-4 text-center">
                 <CheckCircle className="mx-auto mb-2 h-8 w-8 text-green-500" />
                 <p className="text-green-400 font-medium">Line completed!</p>
