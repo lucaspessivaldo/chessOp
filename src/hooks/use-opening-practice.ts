@@ -16,7 +16,6 @@ import {
 import { playSound, getMoveSound } from '@/lib/sounds'
 import { shuffleArray, findNodeById, getPathToNode } from '@/lib/opening-utils'
 import { loadPracticeProgress, savePracticeProgress, clearPracticeProgress } from '@/lib/practice-storage'
-import { createNagShape } from '@/chess/nag-shapes'
 import { recordMistake } from '@/hooks/use-mistakes-review'
 
 export interface PendingPromotion {
@@ -595,43 +594,10 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
     return shapes
   }, [hintLevel, moves, moveIndex, isComplete, isUserTurn])
 
-  // Saved shapes from the current position's node (the last played move)
-  const savedShapes = useMemo(() => {
-    // Current position is after move (moveIndex - 1)
-    // So we want the shapes from that node
-    if (moveIndex === 0) return []
-    const lastPlayedNode = currentLineNodes[moveIndex - 1]
-    if (!lastPlayedNode?.shapes) return []
-    return lastPlayedNode.shapes.map(s => ({
-      orig: s.orig as Key,
-      dest: s.dest as Key | undefined,
-      brush: s.brush,
-    }))
-  }, [moveIndex, currentLineNodes])
-
-  // NAG shape for the last played move
-  const nagShape = useMemo((): DrawShape | null => {
-    if (moveIndex === 0) return null
-    const lastNode = currentLineNodes[moveIndex - 1]
-    if (!lastNode?.nags?.length) return null
-
-    // Get destination square from the last move
-    const lastUci = lastNode.uci
-    const to = lastUci.slice(2, 4) as Key
-
-    // Use the first NAG (primary annotation) - accepts $1, !, or 1 format
-    const nag = lastNode.nags[0]
-    return createNagShape(to, nag) || null
-  }, [currentLineNodes, moveIndex])
-
-  // Combined shapes (saved + hints + NAG)
+  // Combined shapes (only hints - no saved shapes or NAGs in practice mode to avoid revealing answers)
   const allShapes = useMemo(() => {
-    const shapes: DrawShape[] = [...savedShapes, ...hintShapes]
-    if (nagShape) {
-      shapes.push(nagShape)
-    }
-    return shapes
-  }, [savedShapes, hintShapes, nagShape])
+    return [...hintShapes]
+  }, [hintShapes])
 
   // Progress info
   const progressInfo = useMemo(() => ({
