@@ -33,6 +33,7 @@ import {
   Trophy,
   Clock,
   Target,
+  OctagonAlert,
 } from 'lucide-react'
 
 export const Route = createFileRoute('/openings')({
@@ -307,9 +308,9 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
       </div>
 
       {/* Sidebar */}
-      <div className="w-[350px] space-y-4">
+      <div className="w-[350px] rounded-lg bg-zinc-800 overflow-hidden flex flex-col">
         {/* Practice Options */}
-        <div className="rounded-lg bg-zinc-800 p-4">
+        <div className="p-4 border-b border-zinc-700">
           <div className="flex items-center justify-between gap-2">
             <span className="text-sm font-medium text-zinc-400">Options</span>
             <div className="flex gap-2">
@@ -351,7 +352,7 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
         )}
 
         {/* Progress Overview */}
-        <div className="rounded-lg bg-zinc-800 p-4">
+        <div className="p-4 border-b border-zinc-700">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-medium text-zinc-400">Progress</span>
             <div className="flex items-center gap-3">
@@ -382,7 +383,7 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
         </div>
 
         {/* Current Line Selector */}
-        <div className="rounded-lg bg-zinc-800 p-4">
+        <div className="p-4 border-b border-zinc-700">
           <button
             onClick={() => setShowLineSelector(!showLineSelector)}
             className="w-full flex items-center justify-between text-left"
@@ -437,7 +438,7 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
         </div>
 
         {/* Current Moves with Comment */}
-        <div className="rounded-lg bg-zinc-800 p-4">
+        <div className="p-4 flex-1 overflow-y-auto">
           <h3 className="text-sm font-medium text-zinc-400 mb-3">Moves</h3>
           <CompactMoveList
             line={currentLine}
@@ -458,45 +459,47 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
         </div>
 
         {/* Status */}
-        <div className="rounded-lg bg-zinc-800 p-4">
-          {status === 'playing' && (
-            <div className={`rounded-md p-4 text-center transition-colors ${showWrongMove ? 'bg-red-500/20' : 'bg-blue-500/20'
-              }`}>
-              {showWrongMove ? (
-                <>
-                  <XCircle className="mx-auto mb-2 h-8 w-8 text-red-500" />
-                  <p className="text-red-400 font-medium">Wrong move! Try again.</p>
-                </>
-              ) : wrongAttempts > 0 ? (
-                <>
-                  <p className="text-blue-400 font-medium">Keep trying!</p>
-                  <p className="text-xs text-zinc-400 mt-1">
-                    {wrongAttempts} wrong {wrongAttempts === 1 ? 'attempt' : 'attempts'}
+        {(status === 'playing' || status === 'line-complete') && (
+          <div className="p-4 border-t border-zinc-700">
+            {status === 'playing' && (
+              <div className={`rounded-md p-4 text-center transition-colors ${showWrongMove ? 'bg-red-500/20' : 'bg-blue-500/20'
+                }`}>
+                {showWrongMove ? (
+                  <>
+                    <XCircle className="mx-auto mb-2 h-8 w-8 text-red-500" />
+                    <p className="text-red-400 font-medium">Wrong move! Try again.</p>
+                  </>
+                ) : wrongAttempts > 0 ? (
+                  <>
+                    <p className="text-blue-400 font-medium">Keep trying!</p>
+                    <p className="text-xs text-zinc-400 mt-1">
+                      {wrongAttempts} wrong {wrongAttempts === 1 ? 'attempt' : 'attempts'}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-blue-400 font-medium">
+                    Your turn as {userColor} - find the correct move!
                   </p>
-                </>
-              ) : (
-                <p className="text-blue-400 font-medium">
-                  Your turn as {userColor} - find the correct move!
-                </p>
-              )}
-            </div>
-          )}
+                )}
+              </div>
+            )}
 
-          {status === 'line-complete' && (
-            <div className="rounded-md bg-green-500/20 p-4 text-center">
-              <CheckCircle className="mx-auto mb-2 h-8 w-8 text-green-500" />
-              <p className="text-green-400 font-medium">Line completed!</p>
-              {wrongAttempts > 0 && (
-                <p className="text-xs text-zinc-400 mt-1">
-                  With {wrongAttempts} wrong {wrongAttempts === 1 ? 'attempt' : 'attempts'}
-                </p>
-              )}
-            </div>
-          )}
-        </div>
+            {status === 'line-complete' && (
+              <div className="rounded-md bg-green-500/20 p-4 text-center">
+                <CheckCircle className="mx-auto mb-2 h-8 w-8 text-green-500" />
+                <p className="text-green-400 font-medium">Line completed!</p>
+                {wrongAttempts > 0 && (
+                  <p className="text-xs text-zinc-400 mt-1">
+                    With {wrongAttempts} wrong {wrongAttempts === 1 ? 'attempt' : 'attempts'}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Controls */}
-        <div className="space-y-3">
+        <div className="p-4 border-t border-zinc-700 space-y-3">
           {/* Main controls row */}
           <div className="flex gap-2">
             <button
@@ -552,6 +555,7 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
 // Study Mode View - Step through repertoire with annotations
 function StudyView({ study }: { study: OpeningStudy }) {
   const chessgroundRef = useRef<ChessgroundRef>(null)
+  const [showLineSelector, setShowLineSelector] = useState(false)
 
   const {
     isComplete,
@@ -560,8 +564,11 @@ function StudyView({ study }: { study: OpeningStudy }) {
     currentLine,
     currentLineIndex,
     allLines,
+    allLineNodes,
+    selectLine,
     nextLine,
     previousLine,
+    restartStudy,
     goToStart,
     makeMove,
     pendingPromotion,
@@ -569,6 +576,16 @@ function StudyView({ study }: { study: OpeningStudy }) {
     cancelPromotion,
     chessgroundConfig,
   } = useOpeningStudy({ study })
+
+  // Check if all lines are completed (on last line and it's complete)
+  const isStudyComplete = isComplete && currentLineIndex === allLines.length - 1
+
+  // Format line name for display
+  const getLineName = (line: typeof currentLine, index: number) => {
+    if (line.length === 0) return `Line ${index + 1}`
+    const moves = line.slice(0, 4).map(m => m.san).join(' ')
+    return line.length > 4 ? `${moves}...` : moves
+  }
 
   return (
     <div className="flex justify-center gap-8 p-6">
@@ -596,11 +613,50 @@ function StudyView({ study }: { study: OpeningStudy }) {
         {currentComment && (
           <div className="bg-green-500/15 border-b border-green-500/40 p-4">
             <div className="flex items-start gap-3">
-              <MessageSquare className="h-5 w-5 text-green-400 mt-0.5 shrink-0" />
+              <OctagonAlert className="h-5 w-5 text-red-400 mt-0.5 shrink-0" />
               <p className="text-sm text-green-100">{currentComment}</p>
             </div>
           </div>
         )}
+
+        {/* Current Line Selector */}
+        <div className="p-4 border-b border-zinc-700">
+          <button
+            onClick={() => setShowLineSelector(!showLineSelector)}
+            className="w-full flex items-center justify-between text-left"
+          >
+            <div>
+              <span className="text-sm text-zinc-400">Current Line</span>
+              <p className="text-white font-medium">
+                Line {currentLineIndex + 1}: {getLineName(currentLine, currentLineIndex)}
+              </p>
+            </div>
+            <ChevronDown className={`h-5 w-5 text-zinc-400 transition-transform ${showLineSelector ? 'rotate-180' : ''}`} />
+          </button>
+
+          {showLineSelector && (
+            <div className="mt-3 space-y-1 max-h-[200px] overflow-y-auto">
+              {allLineNodes.map((lineNodes, index) => (
+                <button
+                  key={index}
+                  onClick={() => {
+                    selectLine(index)
+                    setShowLineSelector(false)
+                  }}
+                  className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${index === currentLineIndex
+                    ? 'bg-green-600 text-white'
+                    : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
+                    }`}
+                >
+                  <span className="flex items-center gap-2">
+                    {index === currentLineIndex && <CheckCircle className="h-4 w-4" />}
+                    Line {index + 1}: {getLineName(lineNodes, index)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Line Progress */}
         <div className="p-4 border-b border-zinc-700">
@@ -635,7 +691,9 @@ function StudyView({ study }: { study: OpeningStudy }) {
         {isComplete && (
           <div className="bg-green-500/20 p-4 text-center border-t border-zinc-700">
             <CheckCircle className="mx-auto mb-2 h-8 w-8 text-green-500" />
-            <p className="text-green-400 font-medium">Line completed!</p>
+            <p className="text-green-400 font-medium">
+              {isStudyComplete ? 'Study completed!' : 'Line completed!'}
+            </p>
           </div>
         )}
 
@@ -658,7 +716,7 @@ function StudyView({ study }: { study: OpeningStudy }) {
             </button>
           </div>
 
-          {/* Next Line Button - only show when line is complete */}
+          {/* Next Line Button - only show when line is complete and not on last line */}
           {isComplete && currentLineIndex < allLines.length - 1 && (
             <button
               onClick={nextLine}
@@ -666,6 +724,17 @@ function StudyView({ study }: { study: OpeningStudy }) {
             >
               Next Line
               <ChevronRight className="h-5 w-5" />
+            </button>
+          )}
+
+          {/* Restart Study Button - show when all lines are complete */}
+          {isStudyComplete && (
+            <button
+              onClick={restartStudy}
+              className="w-full flex items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-3 text-base font-medium text-white hover:bg-blue-500 transition-colors"
+            >
+              <RotateCcw className="h-5 w-5" />
+              Restart Study
             </button>
           )}
         </div>

@@ -334,6 +334,11 @@ export function useOpeningStudy(options: UseOpeningStudyOptions) {
     }
   }, [currentLineIndex, selectLine])
 
+  // Restart entire study from line 1
+  const restartStudy = useCallback(() => {
+    selectLine(0)
+  }, [selectLine])
+
   // NAG shape for the last played move
   const nagShape = useMemo((): DrawShape | null => {
     if (moveIndex === 0) return null
@@ -461,9 +466,11 @@ export function useOpeningStudy(options: UseOpeningStudyOptions) {
     currentLine: currentLineNodes,
     currentLineIndex,
     allLines,
+    allLineNodes,
     selectLine,
     nextLine,
     previousLine,
+    restartStudy,
 
     // Actions
     makeMove,

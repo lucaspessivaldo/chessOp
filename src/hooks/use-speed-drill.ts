@@ -231,25 +231,6 @@ export function useSpeedDrill({
     }
   }, [userColor, allLines.length])
 
-  // Start next line
-  const startNextLine = useCallback(() => {
-    const nextLineIdx = currentLineIndexRef.current + 1
-    if (nextLineIdx >= allLines.length) {
-      completeSession()
-      return
-    }
-
-    chessRef.current = createChess(study.rootFen || INITIAL_FEN)
-    setFen(toChessgroundFen(chessRef.current))
-    setTurnColor(getTurnColor(chessRef.current))
-    setLastMove(undefined)
-    setInCheck(false)
-    moveIndexRef.current = 0
-    setMoveIndex(0)
-    currentLineIndexRef.current = nextLineIdx
-    setCurrentLineIndex(nextLineIdx)
-  }, [allLines.length, study.rootFen])
-
   // Complete the session
   const completeSession = useCallback(() => {
     stopTimer()
@@ -272,7 +253,86 @@ export function useSpeedDrill({
     onComplete?.(stats)
   }, [stopTimer, onComplete])
 
-  // Start first machine move if needed
+  // Start next line
+  const startNextLine = useCallback(() => {
+    const nextLineIdx = currentLineIndexRef.current + 1
+    if (nextLineIdx >= allLines.length) {
+      completeSession()
+      return
+    }
+
+    chessRef.current = createChess(study.rootFen || INITIAL_FEN)
+    setFen(toChessgroundFen(chessRef.current))
+    setTurnColor(getTurnColor(chessRef.current))
+    setLastMove(undefined)
+    setInCheck(false)
+    moveIndexRef.current = 0
+    setMoveIndex(0)
+    currentLineIndexRef.current = nextLineIdx
+    setCurrentLineIndex(nextLineIdx)
+
+    // If user is black, play the first machine move (white's move)
+    if (userColor === 'black') {
+      setTimeout(() => {
+        const nextLineMoves = allLines[nextLineIdx]
+        if (nextLineMoves && nextLineMoves.length > 0) {
+          const uciMove = nextLineMoves[0]
+          const { from, to, promotion } = parseUci(uciMove)
+          const move = chessRef.current.move({ from, to, promotion })
+          if (move) {
+            setFen(toChessgroundFen(chessRef.current))
+            setTurnColor(getTurnColor(chessRef.current))
+            setLastMove([from as Key, to as Key])
+            const checkAfterMove = isCheck(chessRef.current)
+            setInCheck(checkAfterMove)
+            const soundType = getMoveSound({
+              isCapture: !!move.captured,
+              isCastle: move.san === 'O-O' || move.san === 'O-O-O',
+              isCheck: checkAfterMove,
+              isPromotion: !!move.promotion,
+            })
+            playSound(soundType)
+            moveIndexRef.current = 1
+            setMoveIndex(1)
+          }
+        }
+      }, 200)
+    }
+  }, [allLines, study.rootFen, userColor, completeSession])
+
+  // Start first machine move if user is black (on initial load)
+  useEffect(() => {
+    // Only run once on mount for black players
+    if (userColor === 'black' && moveIndexRef.current === 0 && moves.length > 0 && !isComplete) {
+      const timeout = setTimeout(() => {
+        const uciMove = moves[0]
+        if (uciMove) {
+          const { from, to, promotion } = parseUci(uciMove)
+          const move = chessRef.current.move({ from, to, promotion })
+          if (move) {
+            setFen(toChessgroundFen(chessRef.current))
+            setTurnColor(getTurnColor(chessRef.current))
+            setLastMove([from as Key, to as Key])
+            const checkAfterMove = isCheck(chessRef.current)
+            setInCheck(checkAfterMove)
+            const soundType = getMoveSound({
+              isCapture: !!move.captured,
+              isCastle: move.san === 'O-O' || move.san === 'O-O-O',
+              isCheck: checkAfterMove,
+              isPromotion: !!move.promotion,
+            })
+            playSound(soundType)
+            moveIndexRef.current = 1
+            setMoveIndex(1)
+          }
+        }
+      }, 500)
+      return () => clearTimeout(timeout)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Only run on mount
+
+  // Start first machine move if needed (for subsequent lines when running)
   useEffect(() => {
     if (moveIndexRef.current === 0 && moves.length > 0 && !isComplete && isRunning) {
       const timeout = setTimeout(() => {
