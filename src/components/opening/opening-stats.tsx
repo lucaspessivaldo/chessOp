@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { OpeningStats, MoveStats } from '@/lib/lichess-api'
 import { calculateWinRate, formatGameCount } from '@/lib/lichess-api'
-import { ChevronDown, ChevronUp, Loader2, AlertCircle, BarChart3, Settings, Check } from 'lucide-react'
+import { ChevronDown, ChevronUp, Loader2, AlertCircle, BarChart3, Settings, Check, Plus } from 'lucide-react'
 
 interface OpeningStatsProps {
   stats: OpeningStats | null
@@ -194,14 +194,16 @@ function MoveRow({ move, sideToMove, isInRepertoire, onClick, onHover }: MoveRow
       onClick={onClick}
       onMouseEnter={() => onHover?.(true)}
       onMouseLeave={() => onHover?.(false)}
-      className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors ${isInRepertoire
+      className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors group ${isInRepertoire
         ? 'bg-green-600/20 hover:bg-green-600/30'
         : 'bg-zinc-700/50 hover:bg-zinc-700'
         }`}
     >
-      {/* In repertoire indicator */}
-      {isInRepertoire && (
-        <Check className="h-3 w-3 text-green-500 shrink-0" />
+      {/* In repertoire indicator or add button */}
+      {isInRepertoire ? (
+        <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />
+      ) : (
+        <Plus className="h-3.5 w-3.5 text-zinc-500 group-hover:text-blue-400 shrink-0 transition-colors" />
       )}
 
       {/* Move name */}

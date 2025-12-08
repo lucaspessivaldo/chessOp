@@ -84,11 +84,11 @@ function MoveTree({
         {/* The move itself with NAGs inside the button */}
         <button
           onClick={() => onMoveClick(mainNode.id)}
-          className={`hover:bg-zinc-700 px-1 rounded transition-colors inline-flex items-center gap-0.5 ${isCurrentMove
+          className={`px-1.5 py-0.5 rounded transition-colors inline-flex items-center gap-0.5 ${isCurrentMove
             ? 'bg-blue-600 text-white'
             : isInPath
-              ? 'text-blue-400'
-              : 'text-zinc-200'
+              ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+              : 'bg-zinc-700/50 text-zinc-200 hover:bg-zinc-700'
             } ${mainNode.isMainLine ? '' : 'text-zinc-400'} ${isPracticeStart ? 'ring-1 ring-green-500' : ''}`}
         >
           {mainNode.san}
@@ -118,7 +118,9 @@ function MoveTree({
                 {isWhiteToMove && <span>{moveNumber}.</span>}
                 <button
                   onClick={() => onMoveClick(variation.id)}
-                  className={`hover:bg-zinc-700 px-0.5 rounded transition-colors ${currentPath.includes(variation.id) ? 'text-blue-400' : 'text-zinc-400'
+                  className={`px-1 py-0.5 rounded transition-colors ${currentPath.includes(variation.id)
+                    ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+                    : 'bg-zinc-700/30 text-zinc-400 hover:bg-zinc-700/50'
                     } ${isVariationPracticeStart ? 'ring-1 ring-green-500' : ''}`}
                 >
                   {variation.san}
