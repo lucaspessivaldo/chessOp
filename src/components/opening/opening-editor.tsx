@@ -526,8 +526,12 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
   const moveNumber = Math.floor(currentPath.length / 2) + 1
   const isBlackToMove = turnColor === 'black'
 
-  return (
-    <div className="min-h-screen bg-zinc-900 p-4">
+  // Mobile tab state
+  const [mobileTab, setMobileTab] = useState<'moves' | 'explorer' | 'settings'>('moves')
+
+  // Shared dialogs and modals
+  const sharedDialogs = (
+    <>
       {/* Dialogs */}
       <ConfirmDialog
         isOpen={deleteConfirm}
@@ -558,18 +562,18 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
 
       {/* Graph Modal */}
       {showGraphModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-          <div className="w-[90vw] max-w-[1200px] h-[80vh] bg-zinc-800 rounded-lg p-4 flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-white">Opening Tree Graph</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+          <div className="w-full max-w-[1200px] h-[80vh] max-h-[80vh] bg-zinc-800 rounded-lg p-3 md:p-4 flex flex-col">
+            <div className="flex items-center justify-between mb-3 md:mb-4">
+              <h2 className="text-base md:text-lg font-semibold text-white">Opening Tree Graph</h2>
               <button
                 onClick={() => setShowGraphModal(false)}
-                className="p-2 rounded-md hover:bg-zinc-700 transition-colors"
+                className="p-2 rounded-md hover:bg-zinc-700 transition-colors touch-target"
               >
                 <X className="h-5 w-5 text-zinc-400" />
               </button>
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-h-0">
               <OpeningTree
                 moves={moves}
                 currentPath={currentPath}
@@ -631,376 +635,535 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
           </div>
         </div>
       )}
+    </>
+  )
 
-      <div className="mx-auto max-w-[1100px]">
-        <div className="flex gap-6">
-          {/* Left Column: Board + Controls */}
-          <div className="flex flex-col gap-3">
-            {/* Chessboard */}
-            <div className="h-[560px] w-[560px] shrink-0 rounded-sm">
-              <Chessground ref={chessgroundRef} config={config} onMove={handleMove} />
-            </div>
+  // Navigation buttons component (shared between mobile and desktop)
+  const NavigationButtons = ({ compact = false }: { compact?: boolean }) => (
+    <>
+      <button
+        onClick={goToStart}
+        className={`${compact ? 'p-2.5' : 'p-2'} rounded-md hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white touch-target`}
+        title="Go to start"
+      >
+        <ChevronsLeft className={`${compact ? 'h-4 w-4' : 'h-5 w-5'}`} />
+      </button>
+      <button
+        onClick={goToPreviousMove}
+        disabled={currentPath.length === 0}
+        className={`${compact ? 'p-2.5' : 'p-2'} rounded-md hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed touch-target`}
+        title="Previous move"
+      >
+        <ChevronLeft className={`${compact ? 'h-4 w-4' : 'h-5 w-5'}`} />
+      </button>
+      <button
+        onClick={goToNextMove}
+        disabled={!currentNode?.children.length && (currentPath.length === 0 ? moves.length === 0 : true)}
+        className={`${compact ? 'p-2.5' : 'p-2'} rounded-md hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed touch-target`}
+        title="Next move"
+      >
+        <ChevronRight className={`${compact ? 'h-4 w-4' : 'h-5 w-5'}`} />
+      </button>
+      <button
+        onClick={() => {
+          // Go to end of main line
+          let node = currentNode
+          let path = [...currentPath]
+          const nodesToTraverse = currentPath.length === 0 ? moves : (node?.children || [])
+          let mainNode = nodesToTraverse.find(n => n.isMainLine) || nodesToTraverse[0]
+          while (mainNode) {
+            path.push(mainNode.id)
+            const nextMain = mainNode.children.find(n => n.isMainLine) || mainNode.children[0]
+            if (!nextMain) break
+            mainNode = nextMain
+          }
+          if (path.length > currentPath.length) {
+            setCurrentPath(path)
+            const endNode = getNodeAtPath(moves, path)
+            if (endNode) {
+              syncChess(endNode.fen)
+              setLastMove([endNode.uci.slice(0, 2) as Key, endNode.uci.slice(2, 4) as Key])
+            }
+          }
+        }}
+        className={`${compact ? 'p-2.5' : 'p-2'} rounded-md hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white touch-target`}
+        title="Go to end"
+      >
+        <ChevronsRight className={`${compact ? 'h-4 w-4' : 'h-5 w-5'}`} />
+      </button>
+    </>
+  )
 
-            {/* Navigation Bar */}
-            <div className="flex items-center gap-2 bg-zinc-800 rounded-lg p-2">
+  // Moves content component (shared)
+  const MovesContent = ({ mobile = false }: { mobile?: boolean }) => (
+    <>
+      {/* Header */}
+      <div className={`${mobile ? 'p-2' : 'p-3'} border-b border-zinc-700 shrink-0`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1 bg-zinc-700 rounded-md p-0.5">
               <button
-                onClick={goToStart}
-                className="p-2 rounded-md hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white"
-                title="Go to start"
+                onClick={() => setMoveViewMode('list')}
+                className={`p-1.5 rounded transition-colors ${moveViewMode === 'list'
+                  ? 'bg-zinc-600 text-white'
+                  : 'text-zinc-400 hover:text-white'
+                  }`}
+                title="Compact list"
               >
-                <ChevronsLeft className="h-5 w-5" />
+                <List className="h-4 w-4" />
               </button>
               <button
-                onClick={goToPreviousMove}
-                disabled={currentPath.length === 0}
-                className="p-2 rounded-md hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
-                title="Previous move (←)"
+                onClick={() => setMoveViewMode('tree')}
+                className={`p-1.5 rounded transition-colors ${moveViewMode === 'tree'
+                  ? 'bg-zinc-600 text-white'
+                  : 'text-zinc-400 hover:text-white'
+                  }`}
+                title="Variation tree"
               >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-              <button
-                onClick={goToNextMove}
-                disabled={!currentNode?.children.length && (currentPath.length === 0 ? moves.length === 0 : true)}
-                className="p-2 rounded-md hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
-                title="Next move (→)"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </button>
-              <button
-                onClick={() => {
-                  // Go to end of main line
-                  let node = currentNode
-                  let path = [...currentPath]
-                  const nodesToTraverse = currentPath.length === 0 ? moves : (node?.children || [])
-                  let mainNode = nodesToTraverse.find(n => n.isMainLine) || nodesToTraverse[0]
-                  while (mainNode) {
-                    path.push(mainNode.id)
-                    const nextMain = mainNode.children.find(n => n.isMainLine) || mainNode.children[0]
-                    if (!nextMain) break
-                    mainNode = nextMain
-                  }
-                  if (path.length > currentPath.length) {
-                    setCurrentPath(path)
-                    const endNode = getNodeAtPath(moves, path)
-                    if (endNode) {
-                      syncChess(endNode.fen)
-                      setLastMove([endNode.uci.slice(0, 2) as Key, endNode.uci.slice(2, 4) as Key])
-                    }
-                  }
-                }}
-                className="p-2 rounded-md hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white"
-                title="Go to end"
-              >
-                <ChevronsRight className="h-5 w-5" />
-              </button>
-
-              <div className="flex-1" />
-
-              <button
-                onClick={() => setShowGraphModal(true)}
-                className="p-2 rounded-md hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white flex items-center gap-1.5"
-                title="Open tree graph"
-              >
-                <Network className="h-5 w-5" />
-                <span className="text-sm">Tree Graph</span>
+                <GitBranch className="h-4 w-4" />
               </button>
             </div>
           </div>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setShowGraphModal(true)}
+              className="p-1.5 rounded text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors"
+              title="Open tree graph"
+            >
+              <Network className="h-4 w-4" />
+            </button>
+            {currentNode && (
+              <button
+                onClick={handleDeleteClick}
+                className="p-1.5 rounded text-red-400 hover:bg-red-600/20 transition-colors"
+                title="Delete this move"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+      {/* Move List */}
+      <div className={`${mobile ? 'p-2' : 'p-3'} flex-1 overflow-y-auto scrollbar-thin min-h-0`}>
+        {moveViewMode === 'list' ? (
+          <MoveList
+            moves={moves}
+            currentPath={currentPath}
+            onMoveClick={goToNode}
+            practiceStartNodeId={practiceStartNodeId}
+          />
+        ) : (
+          <VariationExplorer
+            moves={moves}
+            currentPath={currentPath}
+            onMoveClick={goToNode}
+            startColor={color}
+            practiceStartNodeId={practiceStartNodeId}
+          />
+        )}
+      </div>
 
-          {/* Right Column: Editor Panel */}
-          <div className="flex-1 min-w-[380px] max-w-[450px]">
-            {/* Tabbed Interface */}
-            <Tabs defaultValue="moves" className="w-full h-[600px]">
-              <div className="rounded-lg bg-zinc-800 overflow-hidden h-full flex flex-col">
-                {/* Tabs Header */}
-                <TabsList className="w-full grid grid-cols-3 p-1 border-b border-zinc-700 bg-transparent rounded-none shrink-0">
-                  <TabsTrigger value="moves" className="flex items-center gap-1.5 text-xs">
-                    <List className="h-3.5 w-3.5" />
-                    Moves
-                  </TabsTrigger>
-                  <TabsTrigger value="explorer" className="flex items-center gap-1.5 text-xs">
-                    <BarChart3 className="h-3.5 w-3.5" />
-                    Explorer
-                  </TabsTrigger>
-                  <TabsTrigger value="settings" className="flex items-center gap-1.5 text-xs">
-                    <Settings className="h-3.5 w-3.5" />
-                    Settings
-                  </TabsTrigger>
-                </TabsList>
-
-                {/* Moves Tab */}
-                <TabsContent value="moves" className="mt-0 flex-1 overflow-hidden flex flex-col">
-                  {/* Header */}
-                  <div className="p-3 border-b border-zinc-700 shrink-0">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="flex gap-1 bg-zinc-700 rounded-md p-0.5">
-                          <button
-                            onClick={() => setMoveViewMode('list')}
-                            className={`p-1.5 rounded transition-colors ${moveViewMode === 'list'
-                              ? 'bg-zinc-600 text-white'
-                              : 'text-zinc-400 hover:text-white'
-                              }`}
-                            title="Compact list"
-                          >
-                            <List className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => setMoveViewMode('tree')}
-                            className={`p-1.5 rounded transition-colors ${moveViewMode === 'tree'
-                              ? 'bg-zinc-600 text-white'
-                              : 'text-zinc-400 hover:text-white'
-                              }`}
-                            title="Variation tree"
-                          >
-                            <GitBranch className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                      {currentNode && (
-                        <button
-                          onClick={handleDeleteClick}
-                          className="p-1.5 rounded text-red-400 hover:bg-red-600/20 transition-colors"
-                          title="Delete this move"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  {/* Move List */}
-                  <div className="p-3 flex-1 overflow-y-auto scrollbar-thin min-h-0">
-                    {moveViewMode === 'list' ? (
-                      <MoveList
-                        moves={moves}
-                        currentPath={currentPath}
-                        onMoveClick={goToNode}
-                        practiceStartNodeId={practiceStartNodeId}
-                      />
-                    ) : (
-                      <VariationExplorer
-                        moves={moves}
-                        currentPath={currentPath}
-                        onMoveClick={goToNode}
-                        startColor={color}
-                        practiceStartNodeId={practiceStartNodeId}
-                      />
-                    )}
-                  </div>
-
-                  {/* Annotation Section */}
-                  {currentNode && (
-                    <div className="border-t border-zinc-700 shrink-0">
-                      {/* Entry Point - only show for nodes on the linear trunk */}
-                      {(practiceStartNodeId === currentNode.id || isOnLinearTrunk(moves, currentNode.id)) && (
-                        <div className="p-3 border-b border-zinc-700">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <Flag className="h-3.5 w-3.5 text-zinc-400" />
-                              <span className="text-xs text-zinc-400">Set this move as Entry Point</span>
-                            </div>
-                            {practiceStartNodeId === currentNode.id ? (
-                              <button
-                                onClick={() => setPracticeStartNodeId(undefined)}
-                                className="flex items-center gap-1 text-xs text-green-400 hover:text-green-300 transition-colors"
-                              >
-                                <Flag className="h-3 w-3" />
-                                Clear
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => setPracticeStartNodeId(currentNode.id)}
-                                className="flex items-center gap-1 text-xs text-zinc-400 hover:text-white transition-colors"
-                              >
-                                <Flag className="h-3 w-3" />
-                                Set
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* NAGs & Move Info */}
-                      <div className="p-3 border-b border-zinc-700">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs text-zinc-400">
-                            {currentNode.san}
-                            {!isUserMove && <span className="ml-1 text-zinc-500">(opponent)</span>}
-                          </span>
-                          {!currentNode.isMainLine && (
-                            <button
-                              onClick={handlePromoteToMain}
-                              className="flex items-center gap-1 text-xs text-zinc-400 hover:text-white transition-colors"
-                              title="Promote to main line"
-                            >
-                              <ArrowUpRight className="h-3 w-3" />
-                              Promote
-                            </button>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {nagButtons.map(({ nag, symbol, label }) => {
-                            const isActive = currentNode.nags?.includes(nag)
-                            return (
-                              <button
-                                key={nag}
-                                onClick={() => toggleNag(nag)}
-                                title={label}
-                                aria-label={label}
-                                className={`px-2 py-1 rounded text-xs font-bold transition-colors ${isActive
-                                  ? 'bg-yellow-500 text-black'
-                                  : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
-                                  }`}
-                              >
-                                {symbol}
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </div>
-
-                      {/* Comment */}
-                      <div className="p-3">
-                        <div className="flex items-center gap-2 mb-2">
-                          <MessageSquare className="h-3.5 w-3.5 text-zinc-400" />
-                          <span className="text-xs text-zinc-400">Comment</span>
-                          {currentNode.comment && isUserMove && (
-                            <span className="text-xs text-green-400">●</span>
-                          )}
-                        </div>
-                        {isUserMove ? (
-                          <>
-                            <textarea
-                              value={commentText}
-                              onChange={(e) => setCommentText(e.target.value)}
-                              onFocus={() => setEditingComment(true)}
-                              placeholder="Add commentary..."
-                              rows={2}
-                              className="w-full rounded-md bg-zinc-700 border border-zinc-600 py-1.5 px-2 text-xs text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none resize-none"
-                            />
-                            {editingComment && commentText !== (currentNode.comment || '') && (
-                              <div className="flex gap-2 mt-2">
-                                <button
-                                  onClick={saveComment}
-                                  className="flex-1 rounded-md bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-500 transition-colors"
-                                >
-                                  Save
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setCommentText(currentNode.comment || '')
-                                    setEditingComment(false)
-                                  }}
-                                  className="flex-1 rounded-md bg-zinc-700 px-2 py-1 text-xs font-medium text-white hover:bg-zinc-600 transition-colors"
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          <p className="text-xs text-zinc-500">Only for your moves ({color})</p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </TabsContent>
-
-                {/* Explorer Tab */}
-                <TabsContent value="explorer" className="mt-0 flex-1 overflow-y-auto">
-                  <OpeningStatsPanel
-                    stats={stats}
-                    isLoading={statsLoading}
-                    error={statsError}
-                    repertoireMoves={repertoireMoves}
-                    sideToMove={turnColor}
-                    onMoveHover={setHoveredMoveUci}
-                    onMoveClick={(uci, san) => {
-                      // Add the move from explorer to the repertoire
-                      const from = uci.slice(0, 2) as Key
-                      const to = uci.slice(2, 4) as Key
-                      const promotion = uci.length > 4 ? uci[4] as PromotionPiece : undefined
-                      handleMove(from, to, promotion)
-                    }}
-                  />
-                </TabsContent>
-
-                {/* Settings Tab */}
-                <TabsContent value="settings" className="mt-0 flex-1 overflow-y-auto">
-                  {/* Opening Name */}
-                  <div className="p-4 border-b border-zinc-700">
-                    <label className="block text-sm font-medium text-zinc-400 mb-1.5">
-                      Opening Name <span className="text-red-400">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g., My Sicilian Repertoire"
-                      className="w-full rounded-md bg-zinc-700 border border-zinc-600 py-2 px-3 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none"
-                    />
-                  </div>
-
-                  {/* Description */}
-                  <div className="p-4 border-b border-zinc-700">
-                    <label className="block text-sm font-medium text-zinc-400 mb-1.5">
-                      Description
-                    </label>
-                    <textarea
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Notes about this opening..."
-                      rows={2}
-                      className="w-full rounded-md bg-zinc-700 border border-zinc-600 py-2 px-3 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none resize-none"
-                    />
-                  </div>
-
-                  {/* Playing as */}
-                  <div className="p-4">
-                    <label className="block text-sm font-medium text-zinc-400 mb-1.5">
-                      Playing as
-                    </label>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setColor('white')}
-                        className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${color === 'white'
-                          ? 'bg-zinc-200 text-zinc-900'
-                          : 'bg-zinc-700 text-zinc-400 hover:text-white'
-                          }`}
-                      >
-                        White
-                      </button>
-                      <button
-                        onClick={() => setColor('black')}
-                        className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${color === 'black'
-                          ? 'bg-zinc-600 text-white border border-zinc-500'
-                          : 'bg-zinc-700 text-zinc-400 hover:text-white'
-                          }`}
-                      >
-                        Black
-                      </button>
-                    </div>
-                  </div>
-                </TabsContent>
-
-                {/* Action Buttons - shown on all tabs */}
-                <div className="p-4 flex gap-2 border-t border-zinc-700 mt-auto shrink-0">
-                  <button
-                    onClick={onCancel}
-                    className="flex-1 rounded-md bg-zinc-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSave}
-                    className="flex-1 flex items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-500 transition-colors"
-                  >
-                    <Save className="h-4 w-4" />
-                    Save
-                  </button>
+      {/* Annotation Section */}
+      {currentNode && (
+        <div className="border-t border-zinc-700 shrink-0">
+          {/* Entry Point - only show for nodes on the linear trunk */}
+          {(practiceStartNodeId === currentNode.id || isOnLinearTrunk(moves, currentNode.id)) && (
+            <div className={`${mobile ? 'p-2' : 'p-3'} border-b border-zinc-700`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Flag className="h-3.5 w-3.5 text-zinc-400" />
+                  <span className="text-xs text-zinc-400">Entry Point</span>
                 </div>
+                {practiceStartNodeId === currentNode.id ? (
+                  <button
+                    onClick={() => setPracticeStartNodeId(undefined)}
+                    className="flex items-center gap-1 text-xs text-green-400 hover:text-green-300 transition-colors touch-target"
+                  >
+                    <Flag className="h-3 w-3" />
+                    Clear
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setPracticeStartNodeId(currentNode.id)}
+                    className="flex items-center gap-1 text-xs text-zinc-400 hover:text-white transition-colors touch-target"
+                  >
+                    <Flag className="h-3 w-3" />
+                    Set
+                  </button>
+                )}
               </div>
-            </Tabs>
+            </div>
+          )}
+
+          {/* NAGs & Move Info */}
+          <div className={`${mobile ? 'p-2' : 'p-3'} border-b border-zinc-700`}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-zinc-400">
+                {currentNode.san}
+                {!isUserMove && <span className="ml-1 text-zinc-500">(opponent)</span>}
+              </span>
+              {!currentNode.isMainLine && (
+                <button
+                  onClick={handlePromoteToMain}
+                  className="flex items-center gap-1 text-xs text-zinc-400 hover:text-white transition-colors touch-target"
+                  title="Promote to main line"
+                >
+                  <ArrowUpRight className="h-3 w-3" />
+                  Promote
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {nagButtons.map(({ nag, symbol, label }) => {
+                const isActive = currentNode.nags?.includes(nag)
+                return (
+                  <button
+                    key={nag}
+                    onClick={() => toggleNag(nag)}
+                    title={label}
+                    aria-label={label}
+                    className={`px-2.5 py-1.5 rounded text-xs font-bold transition-colors touch-target ${isActive
+                      ? 'bg-yellow-500 text-black'
+                      : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
+                      }`}
+                  >
+                    {symbol}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Comment */}
+          <div className={`${mobile ? 'p-2' : 'p-3'}`}>
+            <div className="flex items-center gap-2 mb-2">
+              <MessageSquare className="h-3.5 w-3.5 text-zinc-400" />
+              <span className="text-xs text-zinc-400">Comment</span>
+              {currentNode.comment && isUserMove && (
+                <span className="text-xs text-green-400">●</span>
+              )}
+            </div>
+            {isUserMove ? (
+              <>
+                <textarea
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  onFocus={() => setEditingComment(true)}
+                  placeholder="Add commentary..."
+                  rows={2}
+                  className="w-full rounded-md bg-zinc-700 border border-zinc-600 py-1.5 px-2 text-xs text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none resize-none"
+                />
+                {editingComment && commentText !== (currentNode.comment || '') && (
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={saveComment}
+                      className="flex-1 rounded-md bg-blue-600 px-2 py-1.5 text-xs font-medium text-white hover:bg-blue-500 transition-colors touch-target"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => {
+                        setCommentText(currentNode.comment || '')
+                        setEditingComment(false)
+                      }}
+                      className="flex-1 rounded-md bg-zinc-700 px-2 py-1.5 text-xs font-medium text-white hover:bg-zinc-600 transition-colors touch-target"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="text-xs text-zinc-500">Only for your moves ({color})</p>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  )
+
+  // Settings content component (shared)
+  const SettingsContent = ({ mobile = false }: { mobile?: boolean }) => (
+    <>
+      {/* Opening Name */}
+      <div className={`${mobile ? 'p-3' : 'p-4'} border-b border-zinc-700`}>
+        <label className="block text-sm font-medium text-zinc-400 mb-1.5">
+          Opening Name <span className="text-red-400">*</span>
+        </label>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="e.g., My Sicilian Repertoire"
+          className="w-full rounded-md bg-zinc-700 border border-zinc-600 py-2 px-3 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none"
+        />
+      </div>
+
+      {/* Description */}
+      <div className={`${mobile ? 'p-3' : 'p-4'} border-b border-zinc-700`}>
+        <label className="block text-sm font-medium text-zinc-400 mb-1.5">
+          Description
+        </label>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Notes about this opening..."
+          rows={2}
+          className="w-full rounded-md bg-zinc-700 border border-zinc-600 py-2 px-3 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none resize-none"
+        />
+      </div>
+
+      {/* Playing as */}
+      <div className={`${mobile ? 'p-3' : 'p-4'}`}>
+        <label className="block text-sm font-medium text-zinc-400 mb-1.5">
+          Playing as
+        </label>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setColor('white')}
+            className={`flex-1 py-2.5 rounded-md text-sm font-medium transition-colors touch-target ${color === 'white'
+              ? 'bg-zinc-200 text-zinc-900'
+              : 'bg-zinc-700 text-zinc-400 hover:text-white'
+              }`}
+          >
+            White
+          </button>
+          <button
+            onClick={() => setColor('black')}
+            className={`flex-1 py-2.5 rounded-md text-sm font-medium transition-colors touch-target ${color === 'black'
+              ? 'bg-zinc-600 text-white border border-zinc-500'
+              : 'bg-zinc-700 text-zinc-400 hover:text-white'
+              }`}
+          >
+            Black
+          </button>
+        </div>
+      </div>
+    </>
+  )
+
+  return (
+    <div className="min-h-screen bg-zinc-900">
+      {sharedDialogs}
+
+      {/* Mobile Layout */}
+      <div className="lg:hidden flex flex-col min-h-[calc(100vh-3.5rem)] safe-bottom">
+        {/* Top Bar with Name Input and Actions */}
+        <div className="flex items-center gap-2 px-3 py-2 bg-zinc-800 border-b border-zinc-700">
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Opening name..."
+            className="flex-1 min-w-0 rounded-md bg-zinc-700 border border-zinc-600 py-1.5 px-2.5 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none"
+          />
+          <button
+            onClick={onCancel}
+            className="p-2 rounded-md bg-zinc-700 text-zinc-400 hover:text-white transition-colors touch-target"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          <button
+            onClick={handleSave}
+            className="p-2 rounded-md bg-blue-600 text-white hover:bg-blue-500 transition-colors touch-target"
+          >
+            <Save className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Chessboard */}
+        <div className="flex items-center justify-center p-2 bg-zinc-900">
+          <div className="chess-board-container rounded-sm">
+            <Chessground ref={chessgroundRef} config={config} onMove={handleMove} />
+          </div>
+        </div>
+
+        {/* Navigation Bar */}
+        <div className="flex items-center justify-center gap-1 px-3 py-1.5 bg-zinc-800 border-y border-zinc-700">
+          <NavigationButtons compact />
+          <div className="w-px h-5 bg-zinc-600 mx-2" />
+          <button
+            onClick={undo}
+            disabled={historyIndex === 0}
+            className="p-2.5 rounded-md hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white disabled:opacity-30 touch-target"
+            title="Undo"
+          >
+            <Undo2 className="h-4 w-4" />
+          </button>
+          <button
+            onClick={redo}
+            disabled={historyIndex >= history.length - 1}
+            className="p-2.5 rounded-md hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white disabled:opacity-30 touch-target"
+            title="Redo"
+          >
+            <Redo2 className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Tab Content */}
+        <div className="flex-1 flex flex-col min-h-0 bg-zinc-800">
+          {/* Tab Headers */}
+          <div className="flex border-b border-zinc-700 shrink-0">
+            <button
+              onClick={() => setMobileTab('moves')}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors ${mobileTab === 'moves'
+                ? 'text-white border-b-2 border-blue-500'
+                : 'text-zinc-400'
+                }`}
+            >
+              <List className="h-3.5 w-3.5" />
+              Moves
+            </button>
+            <button
+              onClick={() => setMobileTab('explorer')}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors ${mobileTab === 'explorer'
+                ? 'text-white border-b-2 border-blue-500'
+                : 'text-zinc-400'
+                }`}
+            >
+              <BarChart3 className="h-3.5 w-3.5" />
+              Explorer
+            </button>
+            <button
+              onClick={() => setMobileTab('settings')}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors ${mobileTab === 'settings'
+                ? 'text-white border-b-2 border-blue-500'
+                : 'text-zinc-400'
+                }`}
+            >
+              <Settings className="h-3.5 w-3.5" />
+              Settings
+            </button>
+          </div>
+
+          {/* Tab Content Area */}
+          <div className="flex-1 overflow-y-auto min-h-0">
+            {mobileTab === 'moves' && (
+              <div className="flex flex-col h-full">
+                <MovesContent mobile />
+              </div>
+            )}
+            {mobileTab === 'explorer' && (
+              <OpeningStatsPanel
+                stats={stats}
+                isLoading={statsLoading}
+                error={statsError}
+                repertoireMoves={repertoireMoves}
+                sideToMove={turnColor}
+                onMoveHover={setHoveredMoveUci}
+                onMoveClick={(uci) => {
+                  const from = uci.slice(0, 2) as Key
+                  const to = uci.slice(2, 4) as Key
+                  const promotion = uci.length > 4 ? uci[4] as PromotionPiece : undefined
+                  handleMove(from, to, promotion)
+                }}
+              />
+            )}
+            {mobileTab === 'settings' && (
+              <SettingsContent mobile />
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop Layout */}
+      <div className="hidden lg:block p-4">
+        <div className="mx-auto max-w-[1100px]">
+          <div className="flex gap-6">
+            {/* Left Column: Board + Controls */}
+            <div className="flex flex-col gap-3">
+              {/* Chessboard */}
+              <div className="h-[560px] w-[560px] shrink-0 rounded-sm">
+                <Chessground ref={chessgroundRef} config={config} onMove={handleMove} />
+              </div>
+
+              {/* Navigation Bar */}
+              <div className="flex items-center gap-2 bg-zinc-800 rounded-lg p-2">
+                <NavigationButtons />
+
+                <div className="flex-1" />
+
+                <button
+                  onClick={() => setShowGraphModal(true)}
+                  className="p-2 rounded-md hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white flex items-center gap-1.5"
+                  title="Open tree graph"
+                >
+                  <Network className="h-5 w-5" />
+                  <span className="text-sm">Tree Graph</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Right Column: Editor Panel */}
+            <div className="flex-1 min-w-[380px] max-w-[450px]">
+              {/* Tabbed Interface */}
+              <Tabs defaultValue="moves" className="w-full h-[600px]">
+                <div className="rounded-lg bg-zinc-800 overflow-hidden h-full flex flex-col">
+                  {/* Tabs Header */}
+                  <TabsList className="w-full grid grid-cols-3 p-1 border-b border-zinc-700 bg-transparent rounded-none shrink-0">
+                    <TabsTrigger value="moves" className="flex items-center gap-1.5 text-xs">
+                      <List className="h-3.5 w-3.5" />
+                      Moves
+                    </TabsTrigger>
+                    <TabsTrigger value="explorer" className="flex items-center gap-1.5 text-xs">
+                      <BarChart3 className="h-3.5 w-3.5" />
+                      Explorer
+                    </TabsTrigger>
+                    <TabsTrigger value="settings" className="flex items-center gap-1.5 text-xs">
+                      <Settings className="h-3.5 w-3.5" />
+                      Settings
+                    </TabsTrigger>
+                  </TabsList>
+
+                  {/* Moves Tab */}
+                  <TabsContent value="moves" className="mt-0 flex-1 overflow-hidden flex flex-col">
+                    <MovesContent />
+                  </TabsContent>
+
+                  {/* Explorer Tab */}
+                  <TabsContent value="explorer" className="mt-0 flex-1 overflow-y-auto">
+                    <OpeningStatsPanel
+                      stats={stats}
+                      isLoading={statsLoading}
+                      error={statsError}
+                      repertoireMoves={repertoireMoves}
+                      sideToMove={turnColor}
+                      onMoveHover={setHoveredMoveUci}
+                      onMoveClick={(uci) => {
+                        // Add the move from explorer to the repertoire
+                        const from = uci.slice(0, 2) as Key
+                        const to = uci.slice(2, 4) as Key
+                        const promotion = uci.length > 4 ? uci[4] as PromotionPiece : undefined
+                        handleMove(from, to, promotion)
+                      }}
+                    />
+                  </TabsContent>
+
+                  {/* Settings Tab */}
+                  <TabsContent value="settings" className="mt-0 flex-1 overflow-y-auto">
+                    <SettingsContent />
+                  </TabsContent>
+
+                  {/* Action Buttons - shown on all tabs */}
+                  <div className="p-4 flex gap-2 border-t border-zinc-700 mt-auto shrink-0">
+                    <button
+                      onClick={onCancel}
+                      className="flex-1 rounded-md bg-zinc-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSave}
+                      className="flex-1 flex items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-500 transition-colors"
+                    >
+                      <Save className="h-4 w-4" />
+                      Save
+                    </button>
+                  </div>
+                </div>
+              </Tabs>
+            </div>
           </div>
         </div>
       </div>

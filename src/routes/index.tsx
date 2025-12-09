@@ -105,9 +105,9 @@ function HomePage() {
                     <div className="absolute top-4 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-teal-400" />
                     <div className="absolute top-12 left-1/3 w-2 h-2 rounded-full bg-zinc-700" />
                     <div className="absolute top-12 right-1/3 w-2 h-2 rounded-full bg-zinc-700" />
-                    <svg className="absolute inset-0 w-full h-full pointer-events-none stroke-zinc-800">
-                      <path d="M50% 24 L33% 48" />
-                      <path d="M50% 24 L66% 48" />
+                    <svg className="absolute inset-0 w-full h-full pointer-events-none stroke-zinc-800" viewBox="0 0 100 100" preserveAspectRatio="none">
+                      <line x1="50" y1="12" x2="33" y2="25" strokeWidth="1" />
+                      <line x1="50" y1="12" x2="67" y2="25" strokeWidth="1" />
                     </svg>
                   </div>
                 </div>

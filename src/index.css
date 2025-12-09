@@ -189,3 +189,122 @@
     animation: none;
   }
 }
+
+/* ===== MOBILE RESPONSIVE UTILITIES ===== */
+
+/* Safe area padding for notched devices */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0);
+}
+
+/* Responsive chess board container */
+.chess-board-container {
+  width: 100%;
+  max-width: min(100vw - 2rem, 600px);
+  aspect-ratio: 1;
+  margin: 0 auto;
+}
+
+@media (min-width: 1024px) {
+  .chess-board-container {
+    max-width: 560px;
+  }
+}
+
+/* Touch-friendly tap targets */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Mobile-first flex utilities */
+.mobile-stack {
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 1024px) {
+  .mobile-stack {
+    flex-direction: row;
+  }
+}
+
+/* Hide on mobile, show on desktop */
+.desktop-only {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .desktop-only {
+    display: block;
+  }
+}
+
+/* Show on mobile, hide on desktop */
+.mobile-only {
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .mobile-only {
+    display: none;
+  }
+}
+
+/* Scrollable horizontal tabs */
+.scroll-tabs {
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.scroll-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+/* Bottom sheet styles */
+.bottom-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: oklch(0.205 0 0);
+  border-top: 1px solid oklch(1 0 0 / 10%);
+  border-radius: 1rem 1rem 0 0;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  z-index: 40;
+}
+
+/* Collapsible panel animation */
+.collapsible-content {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.2s ease-out;
+}
+
+.collapsible-content[data-open="true"] {
+  grid-template-rows: 1fr;
+}
+
+.collapsible-content > div {
+  overflow: hidden;
+}
+
+/* Mobile card styles */
+.mobile-card {
+  background: oklch(0.205 0 0);
+  border: 1px solid oklch(1 0 0 / 10%);
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+
+/* Ensure chessground fills container on mobile */
+cg-container {
+  width: 100% !important;
+  height: 100% !important;
+}
