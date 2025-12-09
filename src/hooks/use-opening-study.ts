@@ -339,6 +339,19 @@ export function useOpeningStudy(options: UseOpeningStudyOptions) {
   const moveArrows = useMemo((): DrawShape[] => {
     const shapes: DrawShape[] = []
 
+    // Add saved shapes from the current position's node
+    // The current position is the node at moveIndex - 1 (last played move)
+    const currentNode = moveIndex > 0 ? currentLineNodes[moveIndex - 1] : null
+    if (currentNode?.shapes) {
+      for (const shape of currentNode.shapes) {
+        shapes.push({
+          orig: shape.orig as Key,
+          dest: shape.dest as Key | undefined,
+          brush: shape.brush,
+        })
+      }
+    }
+
     // Add NAG shape if present
     if (nagShape) {
       shapes.push(nagShape)
@@ -359,7 +372,7 @@ export function useOpeningStudy(options: UseOpeningStudyOptions) {
     }
 
     return shapes
-  }, [moves, moveIndex, isComplete, isUserTurn, nagShape])
+  }, [moves, moveIndex, isComplete, isUserTurn, nagShape, currentLineNodes])
 
   // Study destinations - only allow the expected move
   const studyDests = useMemo(() => {

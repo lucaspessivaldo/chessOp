@@ -459,8 +459,9 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
       }))
 
     const updatedMoves = updateNodeShapes(moves, currentNode.id, boardShapes)
+    pushToHistory(updatedMoves)
     setMoves(updatedMoves)
-  }, [currentNode, moves])
+  }, [currentNode, moves, pushToHistory])
 
   // Convert saved shapes to drawable shapes
   const savedShapes: DrawShape[] = currentNode?.shapes?.map(s => ({
@@ -476,10 +477,8 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
     brush: 'blue',
   } : null
 
-  // Combine saved shapes with hover arrow
-  const autoShapes: DrawShape[] = hoverArrowShape
-    ? [...savedShapes, hoverArrowShape]
-    : savedShapes
+  // Hover arrow shape (programmatic, shown in autoShapes)
+  const autoShapes: DrawShape[] = hoverArrowShape ? [hoverArrowShape] : []
 
   // Chessground config with drawing enabled
   const config: Config = {
@@ -500,7 +499,8 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
       enabled: true,
       visible: true,
       defaultSnapToValidMove: true,
-      autoShapes,
+      shapes: savedShapes, // User-drawn shapes (can be cleared with right-click)
+      autoShapes, // Programmatic shapes (hover arrow)
       onChange: handleShapesChange,
     },
   }
