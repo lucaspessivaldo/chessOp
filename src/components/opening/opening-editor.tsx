@@ -950,7 +950,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
                   </div>
 
                   {/* Playing as */}
-                  <div className="p-4 border-b border-zinc-700">
+                  <div className="p-4">
                     <label className="block text-sm font-medium text-zinc-400 mb-1.5">
                       Playing as
                     </label>
@@ -975,24 +975,24 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
                       </button>
                     </div>
                   </div>
-
-                  {/* Action Buttons */}
-                  <div className="p-4 flex gap-2">
-                    <button
-                      onClick={onCancel}
-                      className="flex-1 rounded-md bg-zinc-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleSave}
-                      className="flex-1 flex items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-500 transition-colors"
-                    >
-                      <Save className="h-4 w-4" />
-                      Save Opening
-                    </button>
-                  </div>
                 </TabsContent>
+
+                {/* Action Buttons - shown on all tabs */}
+                <div className="p-4 flex gap-2 border-t border-zinc-700 mt-auto shrink-0">
+                  <button
+                    onClick={onCancel}
+                    className="flex-1 rounded-md bg-zinc-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    className="flex-1 flex items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-500 transition-colors"
+                  >
+                    <Save className="h-4 w-4" />
+                    Save
+                  </button>
+                </div>
               </div>
             </Tabs>
           </div>
