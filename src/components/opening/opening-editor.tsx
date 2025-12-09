@@ -30,6 +30,7 @@ import {
   INITIAL_FEN,
 } from '@/lib/opening-utils'
 import { createChess, getLegalDests, getTurnColor, toChessgroundFen, isCheck, isPromotionMove as checkIsPromotionMove } from '@/chess/chess-utils'
+import { createNagShape } from '@/chess/nag-shapes'
 import { playSound, getMoveSound } from '@/lib/sounds'
 import { Save, Trash2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Undo2, Redo2, ArrowUpRight, List, GitBranch, Flag, BarChart3, MessageSquare, Network, X, Settings } from 'lucide-react'
 
@@ -477,8 +478,16 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
     brush: 'blue',
   } : null
 
-  // Hover arrow shape (programmatic, shown in autoShapes)
-  const autoShapes: DrawShape[] = hoverArrowShape ? [hoverArrowShape] : []
+  // Create NAG shape for current move (if it has NAGs)
+  const nagShape: DrawShape | null = currentNode?.nags?.length
+    ? createNagShape(currentNode.uci.slice(2, 4) as Key, currentNode.nags[0]) || null
+    : null
+
+  // Programmatic shapes (hover arrow + NAG shape)
+  const autoShapes: DrawShape[] = [
+    ...(hoverArrowShape ? [hoverArrowShape] : []),
+    ...(nagShape ? [nagShape] : []),
+  ]
 
   // Chessground config with drawing enabled
   const config: Config = {
