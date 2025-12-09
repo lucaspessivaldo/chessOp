@@ -29,7 +29,7 @@ import {
 } from '@/lib/opening-utils'
 import { createChess, getLegalDests, getTurnColor, toChessgroundFen, isCheck, isPromotionMove as checkIsPromotionMove } from '@/chess/chess-utils'
 import { playSound, getMoveSound } from '@/lib/sounds'
-import { Save, Trash2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Undo2, Redo2, ArrowUpRight, List, GitBranch, Flag, BarChart3, MessageSquare, Network, Pen, X, Settings } from 'lucide-react'
+import { Save, Trash2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Undo2, Redo2, ArrowUpRight, List, GitBranch, Flag, BarChart3, MessageSquare, Network, X, Settings } from 'lucide-react'
 
 interface OpeningEditorProps {
   initialStudy?: OpeningStudy
@@ -714,66 +714,66 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
           {/* Right Column: Editor Panel */}
           <div className="flex-1 min-w-[380px] max-w-[450px]">
             {/* Tabbed Interface */}
-            <Tabs defaultValue="moves" className="w-full">
-              <TabsList className="w-full grid grid-cols-4 bg-zinc-800 rounded-lg p-1">
-                <TabsTrigger value="moves" className="flex items-center gap-1.5 text-xs">
-                  <List className="h-3.5 w-3.5" />
-                  Moves
-                </TabsTrigger>
-                <TabsTrigger value="annotate" className="flex items-center gap-1.5 text-xs">
-                  <Pen className="h-3.5 w-3.5" />
-                  Annotate
-                </TabsTrigger>
-                <TabsTrigger value="explorer" className="flex items-center gap-1.5 text-xs">
-                  <BarChart3 className="h-3.5 w-3.5" />
-                  Explorer
-                </TabsTrigger>
-                <TabsTrigger value="settings" className="flex items-center gap-1.5 text-xs">
-                  <Settings className="h-3.5 w-3.5" />
-                  Settings
-                </TabsTrigger>
-              </TabsList>
+            <Tabs defaultValue="moves" className="w-full h-[600px]">
+              <div className="rounded-lg bg-zinc-800 overflow-hidden h-full flex flex-col">
+                {/* Tabs Header */}
+                <TabsList className="w-full grid grid-cols-3 p-1 border-b border-zinc-700 bg-transparent rounded-none shrink-0">
+                  <TabsTrigger value="moves" className="flex items-center gap-1.5 text-xs">
+                    <List className="h-3.5 w-3.5" />
+                    Moves
+                  </TabsTrigger>
+                  <TabsTrigger value="explorer" className="flex items-center gap-1.5 text-xs">
+                    <BarChart3 className="h-3.5 w-3.5" />
+                    Explorer
+                  </TabsTrigger>
+                  <TabsTrigger value="settings" className="flex items-center gap-1.5 text-xs">
+                    <Settings className="h-3.5 w-3.5" />
+                    Settings
+                  </TabsTrigger>
+                </TabsList>
 
-              {/* Moves Tab */}
-              <TabsContent value="moves" className="mt-3 space-y-3">
-                {/* Move List */}
-                <div className="rounded-lg bg-zinc-800 p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="flex gap-1 bg-zinc-700 rounded-md p-0.5">
-                        <button
-                          onClick={() => setMoveViewMode('list')}
-                          className={`p-1.5 rounded transition-colors ${moveViewMode === 'list'
-                            ? 'bg-zinc-600 text-white'
-                            : 'text-zinc-400 hover:text-white'
-                            }`}
-                          title="Compact list"
-                        >
-                          <List className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => setMoveViewMode('tree')}
-                          className={`p-1.5 rounded transition-colors ${moveViewMode === 'tree'
-                            ? 'bg-zinc-600 text-white'
-                            : 'text-zinc-400 hover:text-white'
-                            }`}
-                          title="Variation tree"
-                        >
-                          <GitBranch className="h-4 w-4" />
-                        </button>
+                {/* Moves Tab */}
+                <TabsContent value="moves" className="mt-0 flex-1 overflow-hidden flex flex-col">
+                  {/* Header */}
+                  <div className="p-3 border-b border-zinc-700 shrink-0">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="flex gap-1 bg-zinc-700 rounded-md p-0.5">
+                          <button
+                            onClick={() => setMoveViewMode('list')}
+                            className={`p-1.5 rounded transition-colors ${moveViewMode === 'list'
+                              ? 'bg-zinc-600 text-white'
+                              : 'text-zinc-400 hover:text-white'
+                              }`}
+                            title="Compact list"
+                          >
+                            <List className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => setMoveViewMode('tree')}
+                            className={`p-1.5 rounded transition-colors ${moveViewMode === 'tree'
+                              ? 'bg-zinc-600 text-white'
+                              : 'text-zinc-400 hover:text-white'
+                              }`}
+                            title="Variation tree"
+                          >
+                            <GitBranch className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
+                      {currentNode && (
+                        <button
+                          onClick={handleDeleteClick}
+                          className="p-1.5 rounded text-red-400 hover:bg-red-600/20 transition-colors"
+                          title="Delete this move"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
-                    {currentNode && (
-                      <button
-                        onClick={handleDeleteClick}
-                        className="p-1.5 rounded text-red-400 hover:bg-red-600/20 transition-colors"
-                        title="Delete this move"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    )}
                   </div>
-                  <div className="max-h-[450px] overflow-y-auto scrollbar-thin">
+                  {/* Move List */}
+                  <div className="p-3 flex-1 overflow-y-auto scrollbar-thin min-h-0">
                     {moveViewMode === 'list' ? (
                       <MoveList
                         moves={moves}
@@ -791,164 +791,146 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
                       />
                     )}
                   </div>
-                </div>
-              </TabsContent>
 
-              {/* Annotate Tab */}
-              <TabsContent value="annotate" className="mt-3 space-y-3">
-                {currentNode ? (
-                  <>
-                    {/* Current Move Info */}
-                    <div className="rounded-lg bg-zinc-800 p-4">
-                      <h3 className="text-sm font-medium text-zinc-400 mb-3">
-                        Annotating: <span className="text-white font-bold">{currentNode.san}</span>
-                        {!isUserMove && (
-                          <span className="ml-2 text-xs text-zinc-500">(opponent move)</span>
-                        )}
-                      </h3>
-
-                      {/* NAG buttons */}
-                      <div className="flex flex-wrap gap-2">
-                        {nagButtons.map(({ nag, symbol, label }) => {
-                          const isActive = currentNode.nags?.includes(nag)
-                          return (
-                            <button
-                              key={nag}
-                              onClick={() => toggleNag(nag)}
-                              title={label}
-                              aria-label={label}
-                              className={`px-3 py-1.5 rounded-md text-sm font-bold transition-colors ${isActive
-                                ? 'bg-yellow-500 text-black'
-                                : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
-                                }`}
-                            >
-                              {symbol}
-                            </button>
-                          )
-                        })}
-                      </div>
-
-                      {/* Promote to main line */}
-                      {!currentNode.isMainLine && (
-                        <button
-                          onClick={handlePromoteToMain}
-                          className="mt-3 w-full flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
-                        >
-                          <ArrowUpRight className="h-4 w-4" />
-                          Promote to main line
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Comment Editor */}
-                    <div className="rounded-lg bg-zinc-800 p-4">
-                      <div className="flex items-center gap-2 mb-3">
-                        <MessageSquare className="h-4 w-4 text-zinc-400" />
-                        <h3 className="text-sm font-medium text-zinc-400">Comment</h3>
-                        {currentNode.comment && isUserMove && (
-                          <span className="text-xs text-green-400">●</span>
-                        )}
-                      </div>
-                      {isUserMove ? (
-                        <>
-                          <textarea
-                            value={commentText}
-                            onChange={(e) => setCommentText(e.target.value)}
-                            onFocus={() => setEditingComment(true)}
-                            placeholder="Add commentary for this move..."
-                            rows={3}
-                            className="w-full rounded-md bg-zinc-700 border border-zinc-600 py-2 px-3 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none resize-none"
-                          />
-                          {editingComment && commentText !== (currentNode.comment || '') && (
-                            <div className="flex gap-2 mt-2">
-                              <button
-                                onClick={saveComment}
-                                className="flex-1 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500 transition-colors"
-                              >
-                                Save
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setCommentText(currentNode.comment || '')
-                                  setEditingComment(false)
-                                }}
-                                className="flex-1 rounded-md bg-zinc-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        <p className="text-sm text-zinc-500">
-                          Comments can only be added to your moves ({color}).
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Practice Start Point */}
-                    <div className="rounded-lg bg-zinc-800 p-4">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Flag className="h-4 w-4 text-zinc-400" />
-                        <h3 className="text-sm font-medium text-zinc-400">Practice Start</h3>
-                      </div>
-                      {practiceStartNodeId === currentNode.id ? (
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-sm text-green-400">
-                            <Flag className="h-4 w-4" />
-                            <span>Practice starts here</span>
+                  {/* Annotation Section */}
+                  {currentNode && (
+                    <div className="border-t border-zinc-700 shrink-0">
+                      {/* Entry Point */}
+                      <div className="p-3 border-b border-zinc-700">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Flag className="h-3.5 w-3.5 text-zinc-400" />
+                            <span className="text-xs text-zinc-400">Set this move as Entry Point</span>
                           </div>
-                          <button
-                            onClick={() => setPracticeStartNodeId(undefined)}
-                            className="w-full rounded-md bg-zinc-700 px-3 py-1.5 text-sm font-medium text-zinc-300 hover:bg-zinc-600 transition-colors"
-                          >
-                            Clear start point
-                          </button>
+                          {practiceStartNodeId === currentNode.id ? (
+                            <button
+                              onClick={() => setPracticeStartNodeId(undefined)}
+                              className="flex items-center gap-1 text-xs text-green-400 hover:text-green-300 transition-colors"
+                            >
+                              <Flag className="h-3 w-3" />
+                              Clear
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => setPracticeStartNodeId(currentNode.id)}
+                              className="flex items-center gap-1 text-xs text-zinc-400 hover:text-white transition-colors"
+                            >
+                              <Flag className="h-3 w-3" />
+                              Set
+                            </button>
+                          )}
                         </div>
-                      ) : (
-                        <button
-                          onClick={() => setPracticeStartNodeId(currentNode.id)}
-                          className="w-full flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
-                        >
-                          <Flag className="h-4 w-4" />
-                          Set as practice start
-                        </button>
-                      )}
+                      </div>
+
+                      {/* NAGs & Move Info */}
+                      <div className="p-3 border-b border-zinc-700">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs text-zinc-400">
+                            {currentNode.san}
+                            {!isUserMove && <span className="ml-1 text-zinc-500">(opponent)</span>}
+                          </span>
+                          {!currentNode.isMainLine && (
+                            <button
+                              onClick={handlePromoteToMain}
+                              className="flex items-center gap-1 text-xs text-zinc-400 hover:text-white transition-colors"
+                              title="Promote to main line"
+                            >
+                              <ArrowUpRight className="h-3 w-3" />
+                              Promote
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {nagButtons.map(({ nag, symbol, label }) => {
+                            const isActive = currentNode.nags?.includes(nag)
+                            return (
+                              <button
+                                key={nag}
+                                onClick={() => toggleNag(nag)}
+                                title={label}
+                                aria-label={label}
+                                className={`px-2 py-1 rounded text-xs font-bold transition-colors ${isActive
+                                  ? 'bg-yellow-500 text-black'
+                                  : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
+                                  }`}
+                              >
+                                {symbol}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Comment */}
+                      <div className="p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <MessageSquare className="h-3.5 w-3.5 text-zinc-400" />
+                          <span className="text-xs text-zinc-400">Comment</span>
+                          {currentNode.comment && isUserMove && (
+                            <span className="text-xs text-green-400">●</span>
+                          )}
+                        </div>
+                        {isUserMove ? (
+                          <>
+                            <textarea
+                              value={commentText}
+                              onChange={(e) => setCommentText(e.target.value)}
+                              onFocus={() => setEditingComment(true)}
+                              placeholder="Add commentary..."
+                              rows={2}
+                              className="w-full rounded-md bg-zinc-700 border border-zinc-600 py-1.5 px-2 text-xs text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none resize-none"
+                            />
+                            {editingComment && commentText !== (currentNode.comment || '') && (
+                              <div className="flex gap-2 mt-2">
+                                <button
+                                  onClick={saveComment}
+                                  className="flex-1 rounded-md bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-500 transition-colors"
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setCommentText(currentNode.comment || '')
+                                    setEditingComment(false)
+                                  }}
+                                  className="flex-1 rounded-md bg-zinc-700 px-2 py-1 text-xs font-medium text-white hover:bg-zinc-600 transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <p className="text-xs text-zinc-500">Only for your moves ({color})</p>
+                        )}
+                      </div>
                     </div>
-                  </>
-                ) : (
-                  <div className="rounded-lg bg-zinc-800 p-6">
-                    <p className="text-sm text-zinc-500 text-center">
-                      Play a move or select one to annotate
-                    </p>
-                  </div>
-                )}
-              </TabsContent>
+                  )}
+                </TabsContent>
 
-              {/* Explorer Tab */}
-              <TabsContent value="explorer" className="mt-3">
-                <OpeningStatsPanel
-                  stats={stats}
-                  isLoading={statsLoading}
-                  error={statsError}
-                  repertoireMoves={repertoireMoves}
-                  sideToMove={turnColor}
-                  onMoveHover={setHoveredMoveUci}
-                  onMoveClick={(uci, san) => {
-                    // Add the move from explorer to the repertoire
-                    const from = uci.slice(0, 2) as Key
-                    const to = uci.slice(2, 4) as Key
-                    const promotion = uci.length > 4 ? uci[4] as PromotionPiece : undefined
-                    handleMove(from, to, promotion)
-                  }}
-                />
-              </TabsContent>
+                {/* Explorer Tab */}
+                <TabsContent value="explorer" className="mt-0 flex-1 overflow-y-auto">
+                  <OpeningStatsPanel
+                    stats={stats}
+                    isLoading={statsLoading}
+                    error={statsError}
+                    repertoireMoves={repertoireMoves}
+                    sideToMove={turnColor}
+                    onMoveHover={setHoveredMoveUci}
+                    onMoveClick={(uci, san) => {
+                      // Add the move from explorer to the repertoire
+                      const from = uci.slice(0, 2) as Key
+                      const to = uci.slice(2, 4) as Key
+                      const promotion = uci.length > 4 ? uci[4] as PromotionPiece : undefined
+                      handleMove(from, to, promotion)
+                    }}
+                  />
+                </TabsContent>
 
-              {/* Settings Tab */}
-              <TabsContent value="settings" className="mt-3 space-y-3">
-                <div className="rounded-lg bg-zinc-800 p-4 space-y-4">
+                {/* Settings Tab */}
+                <TabsContent value="settings" className="mt-0 flex-1 overflow-y-auto">
                   {/* Opening Name */}
-                  <div>
+                  <div className="p-4 border-b border-zinc-700">
                     <label className="block text-sm font-medium text-zinc-400 mb-1.5">
                       Opening Name <span className="text-red-400">*</span>
                     </label>
@@ -962,7 +944,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
                   </div>
 
                   {/* Description */}
-                  <div>
+                  <div className="p-4 border-b border-zinc-700">
                     <label className="block text-sm font-medium text-zinc-400 mb-1.5">
                       Description
                     </label>
@@ -976,7 +958,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
                   </div>
 
                   {/* Playing as */}
-                  <div>
+                  <div className="p-4 border-b border-zinc-700">
                     <label className="block text-sm font-medium text-zinc-400 mb-1.5">
                       Playing as
                     </label>
@@ -1001,25 +983,25 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
                       </button>
                     </div>
                   </div>
-                </div>
 
-                {/* Action Buttons */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={onCancel}
-                    className="flex-1 rounded-md bg-zinc-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSave}
-                    className="flex-1 flex items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-500 transition-colors"
-                  >
-                    <Save className="h-4 w-4" />
-                    Save Opening
-                  </button>
-                </div>
-              </TabsContent>
+                  {/* Action Buttons */}
+                  <div className="p-4 flex gap-2">
+                    <button
+                      onClick={onCancel}
+                      className="flex-1 rounded-md bg-zinc-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSave}
+                      className="flex-1 flex items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-500 transition-colors"
+                    >
+                      <Save className="h-4 w-4" />
+                      Save Opening
+                    </button>
+                  </div>
+                </TabsContent>
+              </div>
             </Tabs>
           </div>
         </div>

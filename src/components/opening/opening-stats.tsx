@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { OpeningStats, MoveStats } from '@/lib/lichess-api'
 import { calculateWinRate, formatGameCount } from '@/lib/lichess-api'
-import { ChevronDown, ChevronUp, Loader2, AlertCircle, BarChart3, Settings, Check, Plus } from 'lucide-react'
+import { ChevronDown, ChevronUp, Loader2, AlertCircle, Check, Plus } from 'lucide-react'
 
 interface OpeningStatsProps {
   stats: OpeningStats | null
@@ -26,13 +26,12 @@ export function OpeningStatsPanel({
   onMoveClick,
   onMoveHover,
 }: OpeningStatsProps) {
-  const [showSettings, setShowSettings] = useState(false)
   const [showAllMoves, setShowAllMoves] = useState(false)
 
   // Loading state
   if (isLoading) {
     return (
-      <div className="rounded-lg bg-zinc-800 p-4">
+      <div className="p-4">
         <div className="flex items-center gap-2 text-zinc-400">
           <Loader2 className="h-4 w-4 animate-spin" />
           <span className="text-sm">Loading stats...</span>
@@ -44,7 +43,7 @@ export function OpeningStatsPanel({
   // Error state
   if (error) {
     return (
-      <div className="rounded-lg bg-zinc-800 p-4">
+      <div className="p-4">
         <div className="flex items-center gap-2 text-red-400">
           <AlertCircle className="h-4 w-4" />
           <span className="text-sm">Failed to load stats</span>
@@ -56,7 +55,7 @@ export function OpeningStatsPanel({
   // No stats
   if (!stats) {
     return (
-      <div className="rounded-lg bg-zinc-800 p-4">
+      <div className="p-4">
         <div className="text-sm text-zinc-500 italic">
           No statistics available
         </div>
@@ -74,22 +73,7 @@ export function OpeningStatsPanel({
   const hasMoreMoves = stats.moves.length > 5
 
   return (
-    <div className="rounded-lg bg-zinc-800 p-4 space-y-3">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <BarChart3 className="h-4 w-4 text-zinc-400" />
-          <span className="text-sm font-medium text-zinc-300">Position Stats</span>
-        </div>
-        <button
-          onClick={() => setShowSettings(!showSettings)}
-          className="p-1 rounded hover:bg-zinc-700 transition-colors"
-          title="Settings"
-        >
-          <Settings className="h-4 w-4 text-zinc-500" />
-        </button>
-      </div>
-
+    <div className="p-4 space-y-3">
       {/* Opening name */}
       {stats.opening && (
         <div className="text-xs">

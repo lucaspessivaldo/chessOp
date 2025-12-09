@@ -552,6 +552,25 @@ function StudyView({ study }: { study: OpeningStudy }) {
 
       {/* Sidebar */}
       <div className="w-[350px] rounded-lg bg-zinc-800 overflow-hidden flex flex-col">
+        {/* Progress Overview */}
+        <div className="p-4 border-b border-zinc-700">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium text-zinc-400">Progress</span>
+            <span className="text-sm text-white">
+              {currentLineIndex + (isComplete ? 1 : 0)} / {allLines.length} lines
+            </span>
+          </div>
+          <div className="w-full bg-zinc-700 rounded-full h-2 overflow-hidden">
+            <div
+              className="bg-blue-500 h-2 rounded-full transition-all duration-300 progress-bar-striped"
+              style={{ width: `${((currentLineIndex + (isComplete ? 1 : 0)) / allLines.length) * 100}%` }}
+            />
+          </div>
+          <p className="text-xs text-zinc-500 mt-2">
+            Move {moveInfo.current} of {moveInfo.total}
+          </p>
+        </div>
+
         {/* Current Line Selector */}
         <div className="p-4 border-b border-zinc-700">
           <button
@@ -577,7 +596,7 @@ function StudyView({ study }: { study: OpeningStudy }) {
                     setShowLineSelector(false)
                   }}
                   className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${index === currentLineIndex
-                    ? 'bg-green-600 text-white'
+                    ? 'bg-blue-600 text-white'
                     : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
                     }`}
                 >
@@ -589,25 +608,6 @@ function StudyView({ study }: { study: OpeningStudy }) {
               ))}
             </div>
           )}
-        </div>
-
-        {/* Line Progress */}
-        <div className="p-4 border-b border-zinc-700">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-zinc-400">Line Progress</h3>
-            <span className="text-sm text-zinc-500">
-              {currentLineIndex + 1} / {allLines.length}
-            </span>
-          </div>
-          <div className="h-2 bg-zinc-700 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-blue-500 transition-all duration-300 progress-bar-striped"
-              style={{ width: `${((currentLineIndex + (isComplete ? 1 : 0)) / allLines.length) * 100}%` }}
-            />
-          </div>
-          <p className="text-xs text-zinc-500 mt-2">
-            Move {moveInfo.current} of {moveInfo.total}
-          </p>
         </div>
 
         {/* Current Moves */}
