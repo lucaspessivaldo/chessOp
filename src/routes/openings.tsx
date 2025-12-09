@@ -41,25 +41,35 @@ export const Route = createFileRoute('/openings')({
 
 type PageView = 'selector' | 'study' | 'editor'
 
+interface NewStudyData {
+  name: string
+  description: string
+  color: 'white' | 'black'
+}
+
 function OpeningsPage() {
   const [view, setView] = useState<PageView>('selector')
   const [selectedStudy, setSelectedStudy] = useState<OpeningStudy | null>(null)
+  const [newStudyData, setNewStudyData] = useState<NewStudyData | null>(null)
 
   const handleSelectStudy = (study: OpeningStudy) => {
     setSelectedStudy(study)
     setView('study')
   }
 
-  const handleCreateNew = () => {
+  const handleCreateNew = (data: NewStudyData) => {
+    setNewStudyData(data)
     setView('editor')
   }
 
   const handleSaveEditor = (study: OpeningStudy) => {
     setSelectedStudy(study)
+    setNewStudyData(null)
     setView('study')
   }
 
   const handleCancelEditor = () => {
+    setNewStudyData(null)
     if (selectedStudy) {
       setView('study')
     } else {
@@ -69,6 +79,7 @@ function OpeningsPage() {
 
   const handleBackToSelector = () => {
     setSelectedStudy(null)
+    setNewStudyData(null)
     setView('selector')
   }
 
@@ -87,11 +98,22 @@ function OpeningsPage() {
     )
   }
 
-  if (view === 'editor' && !selectedStudy) {
+  if (view === 'editor' && !selectedStudy && newStudyData) {
     // Only show standalone editor when creating new study (no existing study)
+    // Create a partial study object with the dialog data
+    const partialStudy: OpeningStudy = {
+      id: '',
+      name: newStudyData.name,
+      description: newStudyData.description,
+      color: newStudyData.color,
+      moves: [],
+      rootFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    }
     return (
       <OpeningEditor
-        initialStudy={undefined}
+        initialStudy={partialStudy}
         onSave={handleSaveEditor}
         onCancel={handleCancelEditor}
       />

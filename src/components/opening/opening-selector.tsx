@@ -3,11 +3,11 @@ import type { OpeningStudy } from '@/types/opening'
 import { loadOpeningStudies, deleteOpeningStudy } from '@/lib/opening-utils'
 import { Search, Plus, Trash2 } from 'lucide-react'
 import { OpeningSelectorSkeleton } from '@/components/ui/skeleton'
-import { ConfirmDialog } from '@/components/ui/dialog'
+import { ConfirmDialog, CreateStudyDialog } from '@/components/ui/dialog'
 
 interface OpeningSelectorProps {
   onSelect: (study: OpeningStudy) => void
-  onCreateNew: () => void
+  onCreateNew: (data: { name: string; description: string; color: 'white' | 'black' }) => void
 }
 
 export function OpeningSelector({ onSelect, onCreateNew }: OpeningSelectorProps) {
@@ -15,6 +15,7 @@ export function OpeningSelector({ onSelect, onCreateNew }: OpeningSelectorProps)
   const [colorFilter, setColorFilter] = useState<'all' | 'white' | 'black'>('all')
   const [customStudies, setCustomStudies] = useState<OpeningStudy[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; studyId: string | null }>({
     isOpen: false,
     studyId: null,
@@ -54,6 +55,16 @@ export function OpeningSelector({ onSelect, onCreateNew }: OpeningSelectorProps)
 
   return (
     <div className="w-full max-w-2xl mx-auto">
+      {/* Create Study Dialog */}
+      <CreateStudyDialog
+        isOpen={showCreateDialog}
+        onConfirm={(data) => {
+          setShowCreateDialog(false)
+          onCreateNew(data)
+        }}
+        onCancel={() => setShowCreateDialog(false)}
+      />
+
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         isOpen={deleteConfirm.isOpen}
@@ -113,7 +124,7 @@ export function OpeningSelector({ onSelect, onCreateNew }: OpeningSelectorProps)
         <div className="space-y-2">
           {/* Create new button */}
           <button
-            onClick={onCreateNew}
+            onClick={() => setShowCreateDialog(true)}
             className="w-full text-left rounded-lg border-2 border-dashed border-zinc-700 hover:border-blue-500 p-4 transition-colors group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           >
             <div className="flex items-center justify-center gap-2 text-zinc-400 group-hover:text-blue-400">
