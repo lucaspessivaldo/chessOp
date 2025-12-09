@@ -367,14 +367,13 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
     setEditingComment(true)
   }, [currentNode])
 
-  // Toggle NAG annotation for current move
+  // Toggle NAG annotation for current move (single selection only)
   const toggleNag = useCallback((nag: string) => {
     if (!currentNode) return
     const currentNags = currentNode.nags || []
     const hasNag = currentNags.includes(nag)
-    const newNags = hasNag
-      ? currentNags.filter(n => n !== nag)
-      : [...currentNags, nag]
+    // If already has this NAG, remove it; otherwise replace with this NAG only
+    const newNags = hasNag ? [] : [nag]
     const newMoves = updateNodeNags(moves, currentNode.id, newNags.length > 0 ? newNags : undefined)
     pushToHistory(newMoves)
     setMoves(newMoves)
@@ -520,7 +519,6 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
     { nag: '$2', symbol: '?', label: 'Poor move' },
     { nag: '$3', symbol: '!!', label: 'Brilliant' },
     { nag: '$4', symbol: '??', label: 'Blunder' },
-    { nag: '$5', symbol: '!?', label: 'Interesting' },
     { nag: '$6', symbol: '?!', label: 'Dubious' },
   ]
 
@@ -619,10 +617,9 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
                   const node = findNodeById(moves, nodeId)
                   if (!node) return
                   const currentNags = node.nags || []
-                  const newNags = currentNags.includes(nag)
-                    ? currentNags.filter(n => n !== nag)
-                    : [...currentNags, nag]
-                  const newMoves = updateNodeNags(moves, nodeId, newNags)
+                  // Single selection: if already has this NAG, remove it; otherwise replace
+                  const newNags = currentNags.includes(nag) ? [] : [nag]
+                  const newMoves = updateNodeNags(moves, nodeId, newNags.length > 0 ? newNags : undefined)
                   pushToHistory(newMoves)
                   setMoves(newMoves)
                 }}

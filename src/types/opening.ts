@@ -24,7 +24,7 @@ export interface OpeningMoveNode {
   fen: string
   /** Optional commentary for study mode */
   comment?: string
-  /** NAG annotations (!, ?, !!, ??, !?, ?!) as strings */
+  /** NAG annotations (!, ?, !!, ??, ?!) as strings */
   nags?: string[]
   /** Arrows and circles drawn on the board for this position */
   shapes?: BoardShape[]
@@ -88,7 +88,6 @@ export const NAG_SYMBOLS: Record<string, string> = {
   '$2': '?',    // Poor move
   '$3': '!!',   // Brilliant move
   '$4': '??',   // Blunder
-  '$5': '!?',   // Interesting move
   '$6': '?!',   // Dubious move
   '$10': '=',   // Equal position
   '$14': '+=',  // White slightly better

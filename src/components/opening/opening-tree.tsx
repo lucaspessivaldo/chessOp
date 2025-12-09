@@ -40,7 +40,6 @@ const nagButtons = [
   { nag: '$2', symbol: '?', label: 'Poor move' },
   { nag: '$3', symbol: '!!', label: 'Brilliant' },
   { nag: '$4', symbol: '??', label: 'Blunder' },
-  { nag: '$5', symbol: '!?', label: 'Interesting' },
   { nag: '$6', symbol: '?!', label: 'Dubious' },
 ]
 
