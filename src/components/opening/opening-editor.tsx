@@ -25,6 +25,7 @@ import {
   getPathToNode,
   saveOpeningStudy,
   promoteToMainLine,
+  findNodeById,
   INITIAL_FEN,
 } from '@/lib/opening-utils'
 import { createChess, getLegalDests, getTurnColor, toChessgroundFen, isCheck, isPromotionMove as checkIsPromotionMove } from '@/chess/chess-utils'
@@ -598,6 +599,24 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
                   pushToHistory(newMoves)
                   setMoves(newMoves)
                 }}
+                onUpdateComment={(nodeId, comment) => {
+                  const newMoves = updateNodeComment(moves, nodeId, comment)
+                  pushToHistory(newMoves)
+                  setMoves(newMoves)
+                  addToast(comment ? 'Comment saved' : 'Comment removed', 'success')
+                }}
+                onToggleNag={(nodeId, nag) => {
+                  const node = findNodeById(moves, nodeId)
+                  if (!node) return
+                  const currentNags = node.nags || []
+                  const newNags = currentNags.includes(nag)
+                    ? currentNags.filter(n => n !== nag)
+                    : [...currentNags, nag]
+                  const newMoves = updateNodeNags(moves, nodeId, newNags)
+                  pushToHistory(newMoves)
+                  setMoves(newMoves)
+                }}
+                getNodeData={(nodeId) => findNodeById(moves, nodeId) || undefined}
                 startColor={color}
                 practiceStartNodeId={practiceStartNodeId}
               />

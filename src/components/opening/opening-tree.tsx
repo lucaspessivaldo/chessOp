@@ -13,7 +13,7 @@ import '@xyflow/react/dist/style.css'
 import type { OpeningMoveNode } from '@/types/opening'
 import { MoveTreeNode } from './opening-tree-node'
 import { treeToFlow, layoutTree, getTreeStats, type MoveNode, type MoveNodeData } from './opening-tree-utils'
-import { Flag, Trash2, ArrowUpRight, Copy } from 'lucide-react'
+import { Flag, Trash2, ArrowUpRight, Copy, MessageSquare } from 'lucide-react'
 
 interface OpeningTreeProps {
   moves: OpeningMoveNode[]
@@ -22,13 +22,26 @@ interface OpeningTreeProps {
   onSetPracticeStart?: (nodeId: string) => void
   onDeleteVariation?: (nodeId: string) => void
   onPromoteToMain?: (nodeId: string) => void
+  onUpdateComment?: (nodeId: string, comment: string) => void
+  onToggleNag?: (nodeId: string, nag: string) => void
   startColor?: 'white' | 'black'
   practiceStartNodeId?: string
+  getNodeData?: (nodeId: string) => OpeningMoveNode | undefined
 }
 
 const nodeTypes = {
   move: MoveTreeNode,
 }
+
+// NAG buttons configuration
+const nagButtons = [
+  { nag: '$1', symbol: '!', label: 'Good move' },
+  { nag: '$2', symbol: '?', label: 'Poor move' },
+  { nag: '$3', symbol: '!!', label: 'Brilliant' },
+  { nag: '$4', symbol: '??', label: 'Blunder' },
+  { nag: '$5', symbol: '!?', label: 'Interesting' },
+  { nag: '$6', symbol: '?!', label: 'Dubious' },
+]
 
 export function OpeningTree({
   moves,
@@ -37,12 +50,17 @@ export function OpeningTree({
   onSetPracticeStart,
   onDeleteVariation,
   onPromoteToMain,
+  onUpdateComment,
+  onToggleNag,
   startColor = 'white',
   practiceStartNodeId,
+  getNodeData,
 }: OpeningTreeProps) {
   const reactFlowInstance = useRef<ReactFlowInstance<MoveNode> | null>(null)
   const [contextNode, setContextNode] = useState<MoveNode | null>(null)
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null)
+  const [commentText, setCommentText] = useState('')
+  const [showCommentInput, setShowCommentInput] = useState(false)
 
   // Convert tree to flow format
   const { nodes: initialNodes, edges: initialEdges } = useMemo(() => {
@@ -112,22 +130,31 @@ export function OpeningTree({
       event.preventDefault()
       if (node.id === 'start') return
 
+      const originalNode = getNodeData?.(node.id)
+      setCommentText(originalNode?.comment || '')
+      setShowCommentInput(false)
       setContextNode(node as MoveNode)
       setContextMenuPos({ x: event.clientX, y: event.clientY })
     },
-    []
+    [getNodeData]
   )
 
   const closeContextMenu = useCallback(() => {
     setContextNode(null)
     setContextMenuPos(null)
+    setShowCommentInput(false)
   }, [])
 
   // Close context menu when clicking outside
   useEffect(() => {
     if (!contextMenuPos) return
 
-    const handleClick = () => closeContextMenu()
+    const handleClick = (e: MouseEvent) => {
+      // Don't close if clicking inside the context menu
+      const target = e.target as HTMLElement
+      if (target.closest('[data-context-menu]')) return
+      closeContextMenu()
+    }
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') closeContextMenu()
     }
@@ -176,6 +203,22 @@ export function OpeningTree({
     }
     closeContextMenu()
   }, [contextNode, closeContextMenu])
+
+  const handleToggleNag = useCallback((nag: string) => {
+    if (contextNode && onToggleNag) {
+      onToggleNag(contextNode.id, nag)
+    }
+  }, [contextNode, onToggleNag])
+
+  const handleSaveComment = useCallback(() => {
+    if (contextNode && onUpdateComment) {
+      onUpdateComment(contextNode.id, commentText)
+    }
+    closeContextMenu()
+  }, [contextNode, commentText, onUpdateComment, closeContextMenu])
+
+  // Get current NAGs for the context node
+  const currentNags = contextNode ? (getNodeData?.(contextNode.id)?.nags || []) : []
 
   return (
     <div className="relative w-full h-full">
@@ -230,15 +273,91 @@ export function OpeningTree({
       {/* Context Menu */}
       {contextMenuPos && contextNode && (
         <div
-          className="fixed z-50 min-w-48 rounded-md border border-zinc-700 bg-zinc-800 p-1 text-zinc-100 shadow-lg"
-          style={{ left: contextMenuPos.x, top: contextMenuPos.y }}
+          data-context-menu
+          className="fixed z-50 min-w-56 rounded-md border border-zinc-700 bg-zinc-800 p-1 text-zinc-100 shadow-lg"
+          style={{
+            left: Math.min(contextMenuPos.x, window.innerWidth - 240),
+            top: Math.min(contextMenuPos.y, window.innerHeight - 400)
+          }}
+          onClick={(e) => e.stopPropagation()}
         >
+          {/* Move name header */}
+          <div className="px-2 py-1.5 text-xs text-zinc-400 border-b border-zinc-700 mb-1">
+            Move: <span className="text-blue-400 font-medium">{contextNode.data.san}</span>
+          </div>
+
+          {/* NAG Buttons - available for all moves */}
+          {onToggleNag && (
+            <div className="px-2 py-1.5 border-b border-zinc-700 mb-1">
+              <span className="text-xs text-zinc-500 mb-1.5 block">Evaluation</span>
+              <div className="flex flex-wrap gap-1">
+                {nagButtons.map(({ nag, symbol, label }) => {
+                  const isActive = currentNags.includes(nag)
+                  return (
+                    <button
+                      key={nag}
+                      onClick={() => handleToggleNag(nag)}
+                      title={label}
+                      className={`px-2 py-0.5 rounded text-xs font-bold transition-colors ${isActive
+                        ? 'bg-yellow-500 text-black'
+                        : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
+                        }`}
+                    >
+                      {symbol}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Comment section - only for user moves */}
+          {onUpdateComment && contextNode.data.color === startColor && (
+            <div className="px-2 py-1.5 border-b border-zinc-700 mb-1">
+              {!showCommentInput ? (
+                <button
+                  onClick={() => setShowCommentInput(true)}
+                  className="w-full flex items-center rounded-sm px-1 py-1 text-sm hover:bg-zinc-700 transition-colors"
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  {commentText ? 'Edit comment' : 'Add comment'}
+                </button>
+              ) : (
+                <div className="space-y-2">
+                  <textarea
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    placeholder="Add a comment..."
+                    rows={2}
+                    autoFocus
+                    className="w-full rounded bg-zinc-700 border border-zinc-600 py-1.5 px-2 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none resize-none"
+                  />
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={handleSaveComment}
+                      className="flex-1 rounded bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-500 transition-colors"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => setShowCommentInput(false)}
+                      className="flex-1 rounded bg-zinc-700 px-2 py-1 text-xs font-medium text-white hover:bg-zinc-600 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Actions */}
           <button
             onClick={handleSetPracticeStart}
             className="w-full flex items-center rounded-sm px-2 py-1.5 text-sm hover:bg-zinc-700 transition-colors"
           >
             <Flag className="h-4 w-4 mr-2" />
-            {contextNode.data.isPracticeStart ? 'Clear practice start' : 'Set practice start'}
+            {contextNode.data.isPracticeStart ? 'Clear entry point' : 'Set as entry point'}
           </button>
 
           {!contextNode.data.isMainLine && (
