@@ -14,6 +14,7 @@ import type { OpeningMoveNode } from '@/types/opening'
 import { MoveTreeNode } from './opening-tree-node'
 import { treeToFlow, layoutTree, getTreeStats, type MoveNode, type MoveNodeData } from './opening-tree-utils'
 import { Flag, Trash2, ArrowUpRight, Copy, MessageSquare } from 'lucide-react'
+import { isOnLinearTrunk } from '@/lib/opening-utils'
 
 interface OpeningTreeProps {
   moves: OpeningMoveNode[]
@@ -352,13 +353,15 @@ export function OpeningTree({
           )}
 
           {/* Actions */}
-          <button
-            onClick={handleSetPracticeStart}
-            className="w-full flex items-center rounded-sm px-2 py-1.5 text-sm hover:bg-zinc-700 transition-colors"
-          >
-            <Flag className="h-4 w-4 mr-2" />
-            {contextNode.data.isPracticeStart ? 'Clear entry point' : 'Set as entry point'}
-          </button>
+          {(contextNode.data.isPracticeStart || isOnLinearTrunk(moves, contextNode.id)) && (
+            <button
+              onClick={handleSetPracticeStart}
+              className="w-full flex items-center rounded-sm px-2 py-1.5 text-sm hover:bg-zinc-700 transition-colors"
+            >
+              <Flag className="h-4 w-4 mr-2" />
+              {contextNode.data.isPracticeStart ? 'Clear entry point' : 'Set as entry point'}
+            </button>
+          )}
 
           {!contextNode.data.isMainLine && (
             <button

@@ -26,6 +26,7 @@ import {
   saveOpeningStudy,
   promoteToMainLine,
   findNodeById,
+  isOnLinearTrunk,
   INITIAL_FEN,
 } from '@/lib/opening-utils'
 import { createChess, getLegalDests, getTurnColor, toChessgroundFen, isCheck, isPromotionMove as checkIsPromotionMove } from '@/chess/chess-utils'
@@ -687,46 +688,16 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
                 <ChevronsRight className="h-5 w-5" />
               </button>
 
-              <div className="h-5 w-px bg-zinc-700 mx-1" />
-
-              <button
-                onClick={undo}
-                disabled={historyIndex <= 0}
-                className="p-2 rounded-md hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
-                title="Undo (Ctrl+Z)"
-              >
-                <Undo2 className="h-5 w-5" />
-              </button>
-              <button
-                onClick={redo}
-                disabled={historyIndex >= history.length - 1}
-                className="p-2 rounded-md hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
-                title="Redo (Ctrl+Y)"
-              >
-                <Redo2 className="h-5 w-5" />
-              </button>
-
-              <div className="h-5 w-px bg-zinc-700 mx-1" />
+              <div className="flex-1" />
 
               <button
                 onClick={() => setShowGraphModal(true)}
-                className="p-2 rounded-md hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white"
+                className="p-2 rounded-md hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white flex items-center gap-1.5"
                 title="Open tree graph"
               >
                 <Network className="h-5 w-5" />
+                <span className="text-sm">Tree Graph</span>
               </button>
-
-              {/* Position info */}
-              <div className="flex-1 text-right">
-                <span className="text-sm text-zinc-400">
-                  {currentPath.length === 0 ? 'Starting position' : `Move ${moveNumber}${isBlackToMove ? '...' : '.'}`}
-                </span>
-                {stats?.opening && (
-                  <span className="text-sm text-zinc-500 ml-2">
-                    {stats.opening.eco}
-                  </span>
-                )}
-              </div>
             </div>
           </div>
 
@@ -814,32 +785,34 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
                   {/* Annotation Section */}
                   {currentNode && (
                     <div className="border-t border-zinc-700 shrink-0">
-                      {/* Entry Point */}
-                      <div className="p-3 border-b border-zinc-700">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Flag className="h-3.5 w-3.5 text-zinc-400" />
-                            <span className="text-xs text-zinc-400">Set this move as Entry Point</span>
+                      {/* Entry Point - only show for nodes on the linear trunk */}
+                      {(practiceStartNodeId === currentNode.id || isOnLinearTrunk(moves, currentNode.id)) && (
+                        <div className="p-3 border-b border-zinc-700">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Flag className="h-3.5 w-3.5 text-zinc-400" />
+                              <span className="text-xs text-zinc-400">Set this move as Entry Point</span>
+                            </div>
+                            {practiceStartNodeId === currentNode.id ? (
+                              <button
+                                onClick={() => setPracticeStartNodeId(undefined)}
+                                className="flex items-center gap-1 text-xs text-green-400 hover:text-green-300 transition-colors"
+                              >
+                                <Flag className="h-3 w-3" />
+                                Clear
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => setPracticeStartNodeId(currentNode.id)}
+                                className="flex items-center gap-1 text-xs text-zinc-400 hover:text-white transition-colors"
+                              >
+                                <Flag className="h-3 w-3" />
+                                Set
+                              </button>
+                            )}
                           </div>
-                          {practiceStartNodeId === currentNode.id ? (
-                            <button
-                              onClick={() => setPracticeStartNodeId(undefined)}
-                              className="flex items-center gap-1 text-xs text-green-400 hover:text-green-300 transition-colors"
-                            >
-                              <Flag className="h-3 w-3" />
-                              Clear
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => setPracticeStartNodeId(currentNode.id)}
-                              className="flex items-center gap-1 text-xs text-zinc-400 hover:text-white transition-colors"
-                            >
-                              <Flag className="h-3 w-3" />
-                              Set
-                            </button>
-                          )}
                         </div>
-                      </div>
+                      )}
 
                       {/* NAGs & Move Info */}
                       <div className="p-3 border-b border-zinc-700">

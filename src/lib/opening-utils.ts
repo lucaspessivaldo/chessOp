@@ -194,6 +194,37 @@ export function findNodeById(nodes: OpeningMoveNode[], id: string): OpeningMoveN
 }
 
 /**
+ * Check if a node is on the linear trunk (before any variations start).
+ * A node is on the trunk if:
+ * 1. It's part of the main line
+ * 2. All ancestors have exactly one child (no branching before this node)
+ * 
+ * Entry points should only be allowed on the trunk.
+ */
+export function isOnLinearTrunk(nodes: OpeningMoveNode[], nodeId: string): boolean {
+  // Walk the main line and check if we reach the node before any branching
+  let current: OpeningMoveNode | undefined = nodes.find(n => n.isMainLine) || nodes[0]
+
+  while (current) {
+    // If this is the node we're looking for, it's on the trunk
+    if (current.id === nodeId) {
+      return true
+    }
+
+    // If there's more than one child here, we've hit a branch point
+    // Any node after this (including this node's children) is not on the trunk
+    if (current.children.length > 1) {
+      return false
+    }
+
+    // Move to the next node (only child or main line child)
+    current = current.children.find(c => c.isMainLine) || current.children[0]
+  }
+
+  return false
+}
+
+/**
  * Get the main line as a flat array of moves
  */
 export function getMainLine(nodes: OpeningMoveNode[]): OpeningMoveNode[] {
