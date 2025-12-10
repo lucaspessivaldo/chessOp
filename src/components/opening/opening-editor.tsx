@@ -257,12 +257,12 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
   }, []) // No dependencies needed since we use refs
 
   // Handle move from board
-  const handleMove = useCallback((from: Key, to: Key) => {
-    if (checkIsPromotionMove(chessRef.current, from, to)) {
+  const handleMove = useCallback((from: Key, to: Key, promotion?: PromotionPiece) => {
+    if (!promotion && checkIsPromotionMove(chessRef.current, from, to)) {
       setPendingPromotion({ from, to })
       return
     }
-    executeMove(from, to)
+    executeMove(from, to, promotion)
   }, [executeMove])
 
   // Complete promotion
@@ -360,12 +360,6 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
     setEditingComment(false)
     addToast('Comment saved', 'success')
   }, [currentNode, commentText, moves, pushToHistory, addToast])
-
-  // Start editing comment
-  const startEditComment = useCallback(() => {
-    setCommentText(currentNode?.comment || '')
-    setEditingComment(true)
-  }, [currentNode])
 
   // Toggle NAG annotation for current move (single selection only)
   const toggleNag = useCallback((nag: string) => {
@@ -521,10 +515,6 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
     { nag: '$4', symbol: '??', label: 'Blunder' },
     { nag: '$6', symbol: '?!', label: 'Dubious' },
   ]
-
-  // Calculate move number for display
-  const moveNumber = Math.floor(currentPath.length / 2) + 1
-  const isBlackToMove = turnColor === 'black'
 
   // Mobile tab state
   const [mobileTab, setMobileTab] = useState<'moves' | 'explorer' | 'settings'>('moves')

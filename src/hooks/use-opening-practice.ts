@@ -3,7 +3,6 @@ import { Chess } from '@jackstenglein/chess'
 import type { Square } from '@jackstenglein/chess'
 import type { Config } from '@lichess-org/chessground/config'
 import type { Key } from '@lichess-org/chessground/types'
-import type { DrawShape } from '@lichess-org/chessground/draw'
 import type { OpeningStudy, OpeningMoveNode } from '@/types/opening'
 import type { PendingPromotion, PromotionPiece, HintLevel } from '@/types/chess'
 import {
@@ -240,11 +239,6 @@ export function useOpeningPractice(options: UseOpeningPracticeOptions) {
   const movesRef = useRef(moves)
   movesRef.current = moves // Always keep ref in sync
   const currentLineNodes = useMemo(() => allLineNodes[currentLineIndex] || [], [allLineNodes, currentLineIndex])
-
-  // Get the current starting FEN for the current line (considering Practice Start marker)
-  const currentStartFen = useMemo(() => {
-    return allStartFens[currentLineIndex] || study.rootFen
-  }, [allStartFens, currentLineIndex, study.rootFen])
 
   // Chess state - initialize with the correct starting FEN for the current line
   const chessRef = useRef<Chess>(createChess(computedInitialStartFen))
