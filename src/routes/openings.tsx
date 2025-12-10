@@ -154,7 +154,7 @@ function StudyPageContent({ study, onBack, onStudyUpdate }: StudyPageContentProp
           <div className="flex gap-0.5 md:gap-1 overflow-x-auto scroll-tabs -mx-3 px-3 md:mx-0 md:px-0">
             <button
               onClick={onBack}
-              className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2.5 md:py-3 text-xs md:text-sm font-medium border-b-2 border-transparent text-zinc-400 hover:text-white transition-colors whitespace-nowrap touch-target"
+              className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 text-xs md:text-sm font-medium rounded-sm bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700 border-b-2 border-zinc-950 active:border-b-0 active:translate-y-px transition-all whitespace-nowrap touch-target my-1"
             >
               <ChevronRight className="h-4 w-4 rotate-180" />
               <span className="hidden sm:inline">{study.name}</span>
@@ -328,13 +328,13 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
             <div className="flex gap-2">
               <button
                 onClick={() => setShowVariationSelector(true)}
-                className="px-2 py-1.5 rounded-md text-xs bg-zinc-700 text-zinc-300 touch-target"
+                className="px-2 py-1.5 rounded-sm text-xs bg-zinc-700 text-zinc-300 touch-target border-b-2 border-zinc-900 active:border-b-0 active:translate-y-px transition-all"
               >
                 Lines
               </button>
               <button
                 onClick={() => setRandomOrder(!randomOrder)}
-                className={`p-1.5 rounded-md transition-colors touch-target ${randomOrder ? 'bg-blue-600 text-white' : 'bg-zinc-700 text-zinc-400'}`}
+                className={`p-1.5 rounded-sm transition-all touch-target border-b-2 active:border-b-0 active:translate-y-px ${randomOrder ? 'bg-blue-600 text-white border-blue-800' : 'bg-zinc-700 text-zinc-400 border-zinc-900'}`}
               >
                 <Shuffle className="h-4 w-4" />
               </button>
@@ -387,7 +387,7 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
           <div className="flex gap-2">
             <button
               onClick={resetLine}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-zinc-700 py-2.5 text-sm font-medium text-white touch-target"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-sm bg-zinc-700 py-2.5 text-sm font-medium text-white touch-target border-b-4 border-zinc-900 active:border-b-0 active:translate-y-0.5 transition-all"
             >
               <RotateCcw className="h-4 w-4" />
               <span className="sr-only sm:not-sr-only">Restart</span>
@@ -395,7 +395,7 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
             <button
               onClick={increaseHint}
               disabled={hintLevel >= 3 || status !== 'playing'}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-zinc-700 py-2.5 text-sm font-medium text-white disabled:opacity-50 touch-target"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-sm bg-zinc-700 py-2.5 text-sm font-medium text-white disabled:opacity-50 touch-target border-b-4 border-zinc-900 active:border-b-0 active:translate-y-0.5 transition-all"
             >
               <Lightbulb className={`h-4 w-4 ${hintLevel > 0 ? 'text-yellow-400' : ''}`} />
               <span className="sr-only sm:not-sr-only">Hint</span>
@@ -404,7 +404,7 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
             {status === 'line-complete' && currentLineIndex < allLines.length - 1 && (
               <button
                 onClick={nextLine}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-green-600 py-2.5 text-sm font-medium text-white touch-target"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-sm bg-green-600 py-2.5 text-sm font-medium text-white touch-target border-b-4 border-green-800 active:border-b-0 active:translate-y-0.5 transition-all"
               >
                 <span className="sr-only sm:not-sr-only">Next</span>
                 <ChevronRight className="h-4 w-4" />
@@ -413,7 +413,7 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
             {progressInfo.completedLines === progressInfo.totalLines && (
               <button
                 onClick={resetProgress}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-orange-600 py-2.5 text-sm font-medium text-white touch-target"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-sm bg-orange-600 py-2.5 text-sm font-medium text-white touch-target border-b-4 border-orange-800 active:border-b-0 active:translate-y-0.5 transition-all"
               >
                 <RotateCcw className="h-4 w-4" />
                 <span className="sr-only sm:not-sr-only">Reset</span>
@@ -444,15 +444,15 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowVariationSelector(true)}
-                  className="px-3 py-1.5 rounded-md text-sm bg-zinc-700 text-zinc-300 hover:bg-zinc-600 transition-colors"
+                  className="px-3 py-1.5 rounded-sm text-sm bg-zinc-700 text-zinc-300 hover:bg-zinc-600 transition-all border-b-2 border-zinc-900 active:border-b-0 active:translate-y-px"
                 >
                   Select Lines
                 </button>
                 <button
                   onClick={() => setRandomOrder(!randomOrder)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors ${randomOrder
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-zinc-700 text-zinc-400 hover:text-white'
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-sm text-sm transition-all border-b-2 active:border-b-0 active:translate-y-px ${randomOrder
+                    ? 'bg-blue-600 text-white border-blue-800'
+                    : 'bg-zinc-700 text-zinc-400 hover:text-white border-zinc-900'
                     }`}
                 >
                   <Shuffle className="h-4 w-4" />
@@ -480,7 +480,7 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
                 {(progressInfo.completedLines > 0 || skippedLines.size > 0) && (
                   <button
                     onClick={resetProgress}
-                    className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-zinc-700 text-zinc-400 hover:bg-zinc-600 hover:text-white transition-colors"
+                    className="flex items-center gap-1 px-2 py-1 text-xs rounded-sm bg-zinc-700 text-zinc-400 hover:bg-zinc-600 hover:text-white transition-all border-b-2 border-zinc-900 active:border-b-0 active:translate-y-px"
                     title="Reset all progress"
                   >
                     <RotateCcw className="h-3 w-3" />
@@ -532,7 +532,7 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
                       selectLine(index)
                       setShowLineSelector(false)
                     }}
-                    className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${index === currentLineIndex
+                    className={`w-full text-left px-3 py-2 rounded-sm text-sm transition-colors ${index === currentLineIndex
                       ? 'bg-blue-600 text-white'
                       : completedLines.has(index)
                         ? 'bg-green-600/20 text-green-400'
@@ -585,7 +585,7 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
             <div className="flex gap-2">
               <button
                 onClick={resetLine}
-                className="flex-1 flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 rounded-sm bg-zinc-700 px-3 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-all border-b-4 border-zinc-900 active:border-b-0 active:translate-y-0.5"
               >
                 <RotateCcw className="h-4 w-4" />
                 Restart
@@ -593,7 +593,7 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
               <button
                 onClick={increaseHint}
                 disabled={hintLevel >= 3 || status !== 'playing'}
-                className="flex-1 flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 flex items-center justify-center gap-2 rounded-sm bg-zinc-700 px-3 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed border-b-4 border-zinc-900 active:border-b-0 active:translate-y-0.5"
                 title={`Hint level: ${hintLevel}/3`}
               >
                 <Lightbulb className={`h-4 w-4 ${hintLevel > 0 ? 'text-yellow-400' : ''}`} />
@@ -605,7 +605,7 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
             {status === 'line-complete' && currentLineIndex < allLines.length - 1 && (
               <button
                 onClick={nextLine}
-                className="w-full flex items-center justify-center gap-2 rounded-md bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-500 transition-colors"
+                className="w-full flex items-center justify-center gap-2 rounded-sm bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-500 transition-all border-b-4 border-green-800 active:border-b-0 active:translate-y-0.5"
               >
                 Next Line
                 <ChevronRight className="h-4 w-4" />
@@ -616,7 +616,7 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
             {progressInfo.completedLines === progressInfo.totalLines && (
               <button
                 onClick={resetProgress}
-                className="w-full flex items-center justify-center gap-2 rounded-md bg-orange-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-orange-500 transition-colors"
+                className="w-full flex items-center justify-center gap-2 rounded-sm bg-orange-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-orange-500 transition-all border-b-4 border-orange-800 active:border-b-0 active:translate-y-0.5"
               >
                 <RotateCcw className="h-4 w-4" />
                 Reset Practice
@@ -679,7 +679,7 @@ function StudyView({ study }: { study: OpeningStudy }) {
                 <button
                   key={index}
                   onClick={() => { selectLine(index); setShowLinesModal(false) }}
-                  className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center gap-2 ${index === currentLineIndex
+                  className={`w-full text-left px-3 py-2 rounded-sm text-sm transition-colors flex items-center gap-2 ${index === currentLineIndex
                     ? 'bg-blue-600/20 text-blue-400 border border-blue-600/30'
                     : 'bg-zinc-700 text-zinc-400 hover:bg-zinc-600'
                     }`}
@@ -697,7 +697,7 @@ function StudyView({ study }: { study: OpeningStudy }) {
             <div className="flex justify-end">
               <button
                 onClick={() => setShowLinesModal(false)}
-                className="w-full rounded-md bg-zinc-700 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
+                className="w-full rounded-sm bg-zinc-700 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
               >
                 Cancel
               </button>
@@ -718,7 +718,7 @@ function StudyView({ study }: { study: OpeningStudy }) {
               <span className="text-xs text-zinc-400">Line {currentLineIndex + (isComplete ? 1 : 0)}/{allLines.length}</span>
               <button
                 onClick={() => setShowLinesModal(true)}
-                className="px-2 py-1.5 rounded-md text-xs bg-zinc-700 text-zinc-300 touch-target"
+                className="px-2 py-1.5 rounded-sm text-xs bg-zinc-700 text-zinc-300 touch-target border-b-2 border-zinc-900 active:border-b-0 active:translate-y-px transition-all"
               >
                 Lines
               </button>
@@ -765,7 +765,7 @@ function StudyView({ study }: { study: OpeningStudy }) {
           <div className="flex gap-2">
             <button
               onClick={goToStart}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-zinc-700 py-2.5 text-sm font-medium text-white touch-target"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-sm bg-zinc-700 py-2.5 text-sm font-medium text-white touch-target border-b-4 border-zinc-900 active:border-b-0 active:translate-y-0.5 transition-all"
             >
               <RotateCcw className="h-4 w-4" />
               <span className="sr-only sm:not-sr-only">Restart</span>
@@ -773,7 +773,7 @@ function StudyView({ study }: { study: OpeningStudy }) {
             {isComplete && currentLineIndex < allLines.length - 1 && (
               <button
                 onClick={nextLine}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-green-600 py-2.5 text-sm font-medium text-white touch-target"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-sm bg-green-600 py-2.5 text-sm font-medium text-white touch-target border-b-4 border-green-800 active:border-b-0 active:translate-y-0.5 transition-all"
               >
                 <span className="sr-only sm:not-sr-only">Next</span>
                 <ChevronRight className="h-4 w-4" />
@@ -782,7 +782,7 @@ function StudyView({ study }: { study: OpeningStudy }) {
             {isStudyComplete && (
               <button
                 onClick={restartStudy}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-orange-600 py-2.5 text-sm font-medium text-white touch-target"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-sm bg-orange-600 py-2.5 text-sm font-medium text-white touch-target border-b-4 border-orange-800 active:border-b-0 active:translate-y-0.5 transition-all"
               >
                 <RotateCcw className="h-4 w-4" />
                 <span className="sr-only sm:not-sr-only">Reset</span>
@@ -849,7 +849,7 @@ function StudyView({ study }: { study: OpeningStudy }) {
                       selectLine(index)
                       setShowLineSelector(false)
                     }}
-                    className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${index === currentLineIndex
+                    className={`w-full text-left px-3 py-2 rounded-sm text-sm transition-colors ${index === currentLineIndex
                       ? 'bg-blue-600 text-white'
                       : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
                       }`}
@@ -895,7 +895,7 @@ function StudyView({ study }: { study: OpeningStudy }) {
           <div className="p-4 border-t border-zinc-700 space-y-2">
             <button
               onClick={goToStart}
-              className="w-full flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
+              className="w-full flex items-center justify-center gap-2 rounded-sm bg-zinc-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-all border-b-4 border-zinc-900 active:border-b-0 active:translate-y-0.5"
             >
               <RotateCcw className="h-4 w-4" />
               Restart Line
@@ -905,7 +905,7 @@ function StudyView({ study }: { study: OpeningStudy }) {
             {isComplete && currentLineIndex < allLines.length - 1 && (
               <button
                 onClick={nextLine}
-                className="w-full flex items-center justify-center gap-2 rounded-md bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-500 transition-colors"
+                className="w-full flex items-center justify-center gap-2 rounded-sm bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-500 transition-all border-b-4 border-green-800 active:border-b-0 active:translate-y-0.5"
               >
                 Next Line
                 <ChevronRight className="h-4 w-4" />
@@ -916,7 +916,7 @@ function StudyView({ study }: { study: OpeningStudy }) {
             {isStudyComplete && (
               <button
                 onClick={restartStudy}
-                className="w-full flex items-center justify-center gap-2 rounded-md bg-orange-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-orange-500 transition-colors"
+                className="w-full flex items-center justify-center gap-2 rounded-sm bg-orange-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-orange-500 transition-all border-b-4 border-orange-800 active:border-b-0 active:translate-y-0.5"
               >
                 <RotateCcw className="h-4 w-4" />
                 Restart Study
@@ -1036,7 +1036,7 @@ function SpeedDrillView({ study }: { study: OpeningStudy }) {
           <div className="flex gap-2">
             <button
               onClick={handleReset}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-yellow-600 py-2.5 text-sm font-medium text-white touch-target"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-sm bg-yellow-600 py-2.5 text-sm font-medium text-white touch-target border-b-4 border-yellow-800 active:border-b-0 active:translate-y-0.5 transition-all"
             >
               <RotateCcw className="h-4 w-4" />
               {isComplete ? 'Try Again' : 'Reset'}
@@ -1132,7 +1132,7 @@ function SpeedDrillView({ study }: { study: OpeningStudy }) {
           <div className="p-4 border-t border-zinc-700">
             <button
               onClick={handleReset}
-              className="w-full flex items-center justify-center gap-2 rounded-md bg-yellow-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-yellow-500 transition-colors"
+              className="w-full flex items-center justify-center gap-2 rounded-sm bg-yellow-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-yellow-500 transition-all border-b-4 border-yellow-800 active:border-b-0 active:translate-y-0.5"
             >
               <RotateCcw className="h-4 w-4" />
               {isComplete ? 'Try Again' : 'Reset'}
@@ -1291,14 +1291,14 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
                 <button
                   onClick={showHint}
                   disabled={hintLevel >= 2}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-zinc-700 py-2.5 text-sm font-medium text-white disabled:opacity-50 touch-target"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-sm bg-zinc-700 py-2.5 text-sm font-medium text-white disabled:opacity-50 touch-target border-b-4 border-zinc-900 active:border-b-0 active:translate-y-0.5 transition-all"
                 >
                   <Lightbulb className={`h-4 w-4 ${hintLevel > 0 ? 'text-yellow-400' : ''}`} />
                   <span className="sr-only sm:not-sr-only">Hint</span>
                 </button>
                 <button
                   onClick={skipMistake}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-zinc-700 py-2.5 text-sm font-medium text-white touch-target"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-sm bg-zinc-700 py-2.5 text-sm font-medium text-white touch-target border-b-4 border-zinc-900 active:border-b-0 active:translate-y-0.5 transition-all"
                 >
                   <SkipForward className="h-4 w-4" />
                   <span className="sr-only sm:not-sr-only">Skip</span>
@@ -1307,7 +1307,7 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
             ) : currentIndex < totalMistakes - 1 ? (
               <button
                 onClick={nextMistake}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-green-600 py-2.5 text-sm font-medium text-white touch-target"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-sm bg-green-600 py-2.5 text-sm font-medium text-white touch-target border-b-4 border-green-800 active:border-b-0 active:translate-y-0.5 transition-all"
               >
                 <span className="sr-only sm:not-sr-only">Next</span>
                 <ChevronRight className="h-4 w-4" />
@@ -1315,7 +1315,7 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
             ) : (
               <button
                 onClick={nextMistake}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-green-600 py-2.5 text-sm font-medium text-white touch-target"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-sm bg-green-600 py-2.5 text-sm font-medium text-white touch-target border-b-4 border-green-800 active:border-b-0 active:translate-y-0.5 transition-all"
               >
                 <Trophy className="h-4 w-4" />
                 <span className="sr-only sm:not-sr-only">Finish</span>
@@ -1424,14 +1424,14 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
                   <button
                     onClick={showHint}
                     disabled={hintLevel >= 2}
-                    className="flex-1 flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors disabled:opacity-50"
+                    className="flex-1 flex items-center justify-center gap-2 rounded-sm bg-zinc-700 px-3 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-all disabled:opacity-50 border-b-4 border-zinc-900 active:border-b-0 active:translate-y-0.5"
                   >
                     <Lightbulb className={`h-4 w-4 ${hintLevel > 0 ? 'text-yellow-400' : ''}`} />
                     Hint
                   </button>
                   <button
                     onClick={skipMistake}
-                    className="flex-1 flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-3 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
+                    className="flex-1 flex items-center justify-center gap-2 rounded-sm bg-zinc-700 px-3 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-all border-b-4 border-zinc-900 active:border-b-0 active:translate-y-0.5"
                   >
                     <SkipForward className="h-4 w-4" />
                     Skip
@@ -1440,7 +1440,7 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
               ) : currentIndex < totalMistakes - 1 ? (
                 <button
                   onClick={nextMistake}
-                  className="flex-1 flex items-center justify-center gap-2 rounded-md bg-green-600 px-3 py-2.5 text-sm font-medium text-white hover:bg-green-500 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 rounded-sm bg-green-600 px-3 py-2.5 text-sm font-medium text-white hover:bg-green-500 transition-all border-b-4 border-green-800 active:border-b-0 active:translate-y-0.5"
                 >
                   Next
                   <ChevronRight className="h-4 w-4" />
@@ -1448,7 +1448,7 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
               ) : (
                 <button
                   onClick={nextMistake}
-                  className="flex-1 flex items-center justify-center gap-2 rounded-md bg-green-600 px-3 py-2.5 text-sm font-medium text-white hover:bg-green-500 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 rounded-sm bg-green-600 px-3 py-2.5 text-sm font-medium text-white hover:bg-green-500 transition-all border-b-4 border-green-800 active:border-b-0 active:translate-y-0.5"
                 >
                   <Trophy className="h-4 w-4" />
                   Finish Review

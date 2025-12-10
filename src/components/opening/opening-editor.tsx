@@ -558,7 +558,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
               <h2 className="text-base md:text-lg font-semibold text-white">Opening Tree Graph</h2>
               <button
                 onClick={() => setShowGraphModal(false)}
-                className="p-2 rounded-md hover:bg-zinc-700 transition-colors touch-target"
+                className="p-2 rounded-sm hover:bg-zinc-700 transition-colors touch-target"
               >
                 <X className="h-5 w-5 text-zinc-400" />
               </button>
@@ -633,7 +633,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
     <>
       <button
         onClick={goToStart}
-        className={`${compact ? 'p-2.5' : 'p-2'} rounded-md hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white touch-target`}
+        className={`${compact ? 'p-2.5' : 'p-2'} rounded-sm hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white touch-target`}
         title="Go to start"
       >
         <ChevronsLeft className={`${compact ? 'h-4 w-4' : 'h-5 w-5'}`} />
@@ -641,7 +641,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
       <button
         onClick={goToPreviousMove}
         disabled={currentPath.length === 0}
-        className={`${compact ? 'p-2.5' : 'p-2'} rounded-md hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed touch-target`}
+        className={`${compact ? 'p-2.5' : 'p-2'} rounded-sm hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed touch-target`}
         title="Previous move"
       >
         <ChevronLeft className={`${compact ? 'h-4 w-4' : 'h-5 w-5'}`} />
@@ -649,7 +649,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
       <button
         onClick={goToNextMove}
         disabled={!currentNode?.children.length && (currentPath.length === 0 ? moves.length === 0 : true)}
-        className={`${compact ? 'p-2.5' : 'p-2'} rounded-md hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed touch-target`}
+        className={`${compact ? 'p-2.5' : 'p-2'} rounded-sm hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed touch-target`}
         title="Next move"
       >
         <ChevronRight className={`${compact ? 'h-4 w-4' : 'h-5 w-5'}`} />
@@ -676,7 +676,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
             }
           }
         }}
-        className={`${compact ? 'p-2.5' : 'p-2'} rounded-md hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white touch-target`}
+        className={`${compact ? 'p-2.5' : 'p-2'} rounded-sm hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white touch-target`}
         title="Go to end"
       >
         <ChevronsRight className={`${compact ? 'h-4 w-4' : 'h-5 w-5'}`} />
@@ -691,7 +691,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
       <div className={`${mobile ? 'p-2' : 'p-3'} border-b border-zinc-700 shrink-0`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="flex gap-1 bg-zinc-700 rounded-md p-0.5">
+            <div className="flex gap-1 bg-zinc-700 rounded-sm p-0.5">
               <button
                 onClick={() => setMoveViewMode('list')}
                 className={`p-1.5 rounded transition-colors ${moveViewMode === 'list'
@@ -842,13 +842,13 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
                   onFocus={() => setEditingComment(true)}
                   placeholder="Add commentary..."
                   rows={2}
-                  className="w-full rounded-md bg-zinc-700 border border-zinc-600 py-1.5 px-2 text-xs text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none resize-none"
+                  className="w-full rounded-sm bg-zinc-700 border border-zinc-600 py-1.5 px-2 text-xs text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none resize-none"
                 />
                 {editingComment && commentText !== (currentNode.comment || '') && (
                   <div className="flex gap-2 mt-2">
                     <button
                       onClick={saveComment}
-                      className="flex-1 rounded-md bg-blue-600 px-2 py-1.5 text-xs font-medium text-white hover:bg-blue-500 transition-colors touch-target"
+                      className="flex-1 rounded-sm bg-blue-600 px-2 py-1.5 text-xs font-medium text-white hover:bg-blue-500 transition-colors touch-target"
                     >
                       Save
                     </button>
@@ -857,7 +857,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
                         setCommentText(currentNode.comment || '')
                         setEditingComment(false)
                       }}
-                      className="flex-1 rounded-md bg-zinc-700 px-2 py-1.5 text-xs font-medium text-white hover:bg-zinc-600 transition-colors touch-target"
+                      className="flex-1 rounded-sm bg-zinc-700 px-2 py-1.5 text-xs font-medium text-white hover:bg-zinc-600 transition-colors touch-target"
                     >
                       Cancel
                     </button>
@@ -886,7 +886,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g., My Sicilian Repertoire"
-          className="w-full rounded-md bg-zinc-700 border border-zinc-600 py-2 px-3 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none"
+          className="w-full rounded-sm bg-zinc-700 border border-zinc-600 py-2 px-3 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none"
         />
       </div>
 
@@ -900,7 +900,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Notes about this opening..."
           rows={2}
-          className="w-full rounded-md bg-zinc-700 border border-zinc-600 py-2 px-3 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none resize-none"
+          className="w-full rounded-sm bg-zinc-700 border border-zinc-600 py-2 px-3 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none resize-none"
         />
       </div>
 
@@ -912,7 +912,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
         <div className="flex gap-2">
           <button
             onClick={() => setColor('white')}
-            className={`flex-1 py-2.5 rounded-md text-sm font-medium transition-colors touch-target ${color === 'white'
+            className={`flex-1 py-2.5 rounded-sm text-sm font-medium transition-colors touch-target ${color === 'white'
               ? 'bg-zinc-200 text-zinc-900'
               : 'bg-zinc-700 text-zinc-400 hover:text-white'
               }`}
@@ -921,7 +921,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
           </button>
           <button
             onClick={() => setColor('black')}
-            className={`flex-1 py-2.5 rounded-md text-sm font-medium transition-colors touch-target ${color === 'black'
+            className={`flex-1 py-2.5 rounded-sm text-sm font-medium transition-colors touch-target ${color === 'black'
               ? 'bg-zinc-600 text-white border border-zinc-500'
               : 'bg-zinc-700 text-zinc-400 hover:text-white'
               }`}
@@ -946,17 +946,17 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Opening name..."
-            className="flex-1 min-w-0 rounded-md bg-zinc-700 border border-zinc-600 py-1.5 px-2.5 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none"
+            className="flex-1 min-w-0 rounded-sm bg-zinc-700 border border-zinc-600 py-1.5 px-2.5 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none"
           />
           <button
             onClick={onCancel}
-            className="p-2 rounded-md bg-zinc-700 text-zinc-400 hover:text-white transition-colors touch-target"
+            className="p-2 rounded-sm bg-zinc-700 text-zinc-400 hover:text-white transition-colors touch-target"
           >
             <X className="h-4 w-4" />
           </button>
           <button
             onClick={handleSave}
-            className="p-2 rounded-md bg-blue-600 text-white hover:bg-blue-500 transition-colors touch-target"
+            className="p-2 rounded-sm bg-blue-600 text-white hover:bg-blue-500 transition-colors touch-target"
           >
             <Save className="h-4 w-4" />
           </button>
@@ -976,7 +976,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
           <button
             onClick={undo}
             disabled={historyIndex === 0}
-            className="p-2.5 rounded-md hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white disabled:opacity-30 touch-target"
+            className="p-2.5 rounded-sm hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white disabled:opacity-30 touch-target"
             title="Undo"
           >
             <Undo2 className="h-4 w-4" />
@@ -984,7 +984,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
           <button
             onClick={redo}
             disabled={historyIndex >= history.length - 1}
-            className="p-2.5 rounded-md hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white disabled:opacity-30 touch-target"
+            className="p-2.5 rounded-sm hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white disabled:opacity-30 touch-target"
             title="Redo"
           >
             <Redo2 className="h-4 w-4" />
@@ -1076,7 +1076,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
 
                 <button
                   onClick={() => setShowGraphModal(true)}
-                  className="p-2 rounded-md hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white flex items-center gap-1.5"
+                  className="p-2 rounded-sm hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white flex items-center gap-1.5"
                   title="Open tree graph"
                 >
                   <Network className="h-5 w-5" />
@@ -1139,13 +1139,13 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
                   <div className="p-4 flex gap-2 border-t border-zinc-700 mt-auto shrink-0">
                     <button
                       onClick={onCancel}
-                      className="flex-1 rounded-md bg-zinc-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
+                      className="flex-1 rounded-sm bg-zinc-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleSave}
-                      className="flex-1 flex items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-500 transition-colors"
+                      className="flex-1 flex items-center justify-center gap-2 rounded-sm bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-500 transition-colors"
                     >
                       <Save className="h-4 w-4" />
                       Save

@@ -170,7 +170,7 @@ function TreeNode({
           {variations.map(variation => (
             <div
               key={variation.id}
-              className="mt-1 bg-zinc-800/50 rounded-md py-1"
+              className="mt-1 bg-zinc-800/50 rounded-sm py-1"
             >
               <TreeNode
                 node={variation}

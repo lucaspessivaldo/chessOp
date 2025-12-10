@@ -38,7 +38,7 @@ export function AccordionItem({
   }, [isOpen])
 
   return (
-    <div className="rounded-lg bg-zinc-800 overflow-hidden">
+    <div className="rounded-sm bg-zinc-800 overflow-hidden">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-zinc-750 transition-colors"

@@ -87,29 +87,29 @@ export function OpeningSelector({ onSelect, onCreateNew }: OpeningSelectorProps)
             placeholder="Search openings..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-md bg-zinc-800 border border-zinc-700 py-2 pl-10 pr-4 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="w-full rounded-sm bg-zinc-800 border border-zinc-700 py-2 pl-10 pr-4 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           />
         </div>
 
         {/* Color filter */}
-        <div className="flex rounded-md bg-zinc-800 border border-zinc-700 p-1">
+        <div className="flex rounded-sm bg-zinc-800 border border-zinc-700 p-1">
           <button
             onClick={() => setColorFilter('all')}
-            className={`px-3 py-1 text-xs font-medium rounded transition-colors ${colorFilter === 'all' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'
+            className={`px-3 py-1 text-xs font-medium rounded-sm transition-colors ${colorFilter === 'all' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'
               }`}
           >
             All
           </button>
           <button
             onClick={() => setColorFilter('white')}
-            className={`px-3 py-1 text-xs font-medium rounded transition-colors ${colorFilter === 'white' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'
+            className={`px-3 py-1 text-xs font-medium rounded-sm transition-colors ${colorFilter === 'white' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'
               }`}
           >
             White
           </button>
           <button
             onClick={() => setColorFilter('black')}
-            className={`px-3 py-1 text-xs font-medium rounded transition-colors ${colorFilter === 'black' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'
+            className={`px-3 py-1 text-xs font-medium rounded-sm transition-colors ${colorFilter === 'black' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'
               }`}
           >
             Black
@@ -125,7 +125,7 @@ export function OpeningSelector({ onSelect, onCreateNew }: OpeningSelectorProps)
           {/* Create new button */}
           <button
             onClick={() => setShowCreateDialog(true)}
-            className="w-full text-left rounded-lg border-2 border-dashed border-zinc-700 hover:border-blue-500 p-4 transition-colors group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="w-full text-left rounded-sm border-2 border-dashed border-zinc-700 hover:border-blue-500 p-4 transition-colors group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           >
             <div className="flex items-center justify-center gap-2 text-zinc-400 group-hover:text-blue-400">
               <Plus className="h-5 w-5" />
@@ -144,7 +144,7 @@ export function OpeningSelector({ onSelect, onCreateNew }: OpeningSelectorProps)
             filteredStudies.map((study) => (
               <div
                 key={study.id}
-                className="flex items-center gap-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 p-4 transition-colors group"
+                className="flex items-center gap-2 rounded-sm bg-zinc-800 hover:bg-zinc-700 p-4 transition-colors group"
               >
                 <button
                   onClick={() => onSelect(study)}

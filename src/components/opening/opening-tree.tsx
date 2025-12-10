@@ -274,7 +274,7 @@ export function OpeningTree({
       {contextMenuPos && contextNode && (
         <div
           data-context-menu
-          className="fixed z-50 min-w-56 rounded-md border border-zinc-700 bg-zinc-800 p-1 text-zinc-100 shadow-lg"
+          className="fixed z-50 min-w-56 rounded-sm border border-zinc-700 bg-zinc-800 p-1 text-zinc-100 shadow-lg"
           style={{
             left: Math.min(contextMenuPos.x, window.innerWidth - 240),
             top: Math.min(contextMenuPos.y, window.innerHeight - 400)

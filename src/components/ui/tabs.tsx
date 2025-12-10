@@ -76,7 +76,7 @@ export function TabsTrigger({ value, children, className = '', disabled = false 
       aria-selected={isActive}
       disabled={disabled}
       onClick={() => onChange(value)}
-      className={`px-3 py-1.5 text-sm font-medium transition-colors ${isActive
+      className={`px-3 py-1.5 text-sm font-medium rounded-sm transition-colors ${isActive
         ? 'bg-zinc-700 text-white'
         : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/50'
         } ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}

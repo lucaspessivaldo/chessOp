@@ -50,7 +50,7 @@ export const MoveTreeNode = memo(function MoveTreeNode({ data, id }: MoveNodePro
       <>
         <div
           className={`
-            px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer
+            px-3 py-1.5 rounded-sm text-xs font-medium cursor-pointer
             bg-zinc-700 border border-zinc-500 text-zinc-300
             hover:bg-zinc-600 transition-colors
             ${isSelected ? 'ring-2 ring-blue-500' : ''}
@@ -76,7 +76,7 @@ export const MoveTreeNode = memo(function MoveTreeNode({ data, id }: MoveNodePro
       />
       <div
         className={`
-          relative px-2 py-1 rounded-md text-xs font-medium cursor-pointer
+          relative px-2 py-1 rounded-sm text-xs font-medium cursor-pointer
           ${getBgColor()} ${getBorderColor()} ${getTextColor()}
           hover:brightness-110 transition-all
           flex items-center gap-1 min-w-10 justify-center

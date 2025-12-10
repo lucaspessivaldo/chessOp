@@ -92,14 +92,14 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
 
   return (
     <div
-      className={`pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg backdrop-blur-sm animate-in slide-in-from-right-full duration-300 motion-reduce:animate-none ${bgColors[toast.type]}`}
+      className={`pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-sm border shadow-lg backdrop-blur-sm animate-in slide-in-from-right-full duration-300 motion-reduce:animate-none ${bgColors[toast.type]}`}
       role="alert"
     >
       {icons[toast.type]}
       <p className="text-sm text-white">{toast.message}</p>
       <button
         onClick={() => onRemove(toast.id)}
-        className="ml-2 p-1 rounded hover:bg-white/10 transition-colors"
+        className="ml-2 p-1 rounded-sm hover:bg-white/10 transition-colors"
         aria-label="Dismiss"
       >
         <X className="h-4 w-4 text-zinc-400" />

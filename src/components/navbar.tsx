@@ -15,7 +15,7 @@ export function Navbar() {
       <div className="mx-auto flex h-14 md:h-16 max-w-7xl items-center justify-between px-3 md:px-6">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-1.5 md:gap-2 group">
-          <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-blue-600 flex items-center justify-center group-hover:bg-blue-500 transition-colors">
+          <div className="w-7 h-7 md:w-8 md:h-8 rounded-sm bg-blue-600 flex items-center justify-center group-hover:bg-blue-500 transition-colors">
             <span className="text-white font-bold text-base md:text-lg">C</span>
           </div>
           <span className="text-lg md:text-xl font-bold text-zinc-50 tracking-tight">ChessOp</span>
@@ -29,7 +29,7 @@ export function Navbar() {
               <Link
                 key={path}
                 to={path}
-                className={`flex items-center justify-center gap-1.5 md:gap-2 rounded-full px-3 md:px-4 py-2 text-sm font-medium transition-all duration-300 touch-target ${isActive
+                className={`flex items-center justify-center gap-1.5 md:gap-2 rounded-sm px-3 md:px-4 py-2 text-sm font-medium transition-all duration-300 touch-target ${isActive
                   ? 'bg-blue-500/10 text-blue-300'
                   : 'text-zinc-400 hover:text-zinc-50 hover:bg-zinc-900'
                   }`}

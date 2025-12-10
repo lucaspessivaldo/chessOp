@@ -48,7 +48,7 @@ function HomePage() {
                   to="/openings"
                   className={cn(
                     buttonVariants({ size: "lg" }),
-                    "h-14 px-10 min-w-[200px] text-lg rounded-xl bg-blue-500 text-white hover:bg-blue-400 transition-all hover:scale-105"
+                    "h-14 px-10 min-w-[200px] text-lg rounded-sm bg-blue-500 text-white hover:bg-blue-400 transition-all hover:scale-105"
                   )}
                 >
                   Get started
@@ -76,7 +76,7 @@ function HomePage() {
               <div className="md:col-span-2 group relative overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-900/60 p-8 hover:border-blue-500/50 transition-colors duration-500">
                 <div className="absolute inset-0 bg-linear-to-br from-blue-500/12 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <div className="relative z-10">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-500/20 flex items-center justify-center mb-6 text-blue-300">
+                  <div className="w-12 h-12 rounded-sm bg-blue-500/20 flex items-center justify-center mb-6 text-blue-300">
                     <Brain className="w-6 h-6" />
                   </div>
                   <h3 className="text-2xl font-bold mb-3">Spaced Repetition System</h3>
@@ -95,7 +95,7 @@ function HomePage() {
               <div className="md:row-span-2 group relative overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-900/60 p-8 hover:border-teal-500/50 transition-colors duration-500">
                 <div className="absolute inset-0 bg-linear-to-br from-teal-500/12 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <div className="relative z-10 h-full flex flex-col">
-                  <div className="w-12 h-12 rounded-2xl bg-teal-500/20 flex items-center justify-center mb-6 text-teal-300">
+                  <div className="w-12 h-12 rounded-sm bg-teal-500/20 flex items-center justify-center mb-6 text-teal-300">
                     <Layout className="w-6 h-6" />
                   </div>
                   <h3 className="text-2xl font-bold mb-3">Variation Explorer</h3>
@@ -119,7 +119,7 @@ function HomePage() {
               <div className="group relative overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-900/60 p-8 hover:border-blue-500/50 transition-colors duration-500">
                 <div className="absolute inset-0 bg-linear-to-br from-blue-500/12 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <div className="relative z-10">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-500/20 flex items-center justify-center mb-6 text-blue-300">
+                  <div className="w-12 h-12 rounded-sm bg-blue-500/20 flex items-center justify-center mb-6 text-blue-300">
                     <Swords className="w-6 h-6" />
                   </div>
                   <h3 className="text-xl font-bold mb-2">Practice Mode</h3>
@@ -133,7 +133,7 @@ function HomePage() {
               <div className="group relative overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-900/60 p-8 hover:border-amber-500/50 transition-colors duration-500">
                 <div className="absolute inset-0 bg-linear-to-br from-amber-500/12 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <div className="relative z-10">
-                  <div className="w-12 h-12 rounded-2xl bg-amber-500/20 flex items-center justify-center mb-6 text-amber-300">
+                  <div className="w-12 h-12 rounded-sm bg-amber-500/20 flex items-center justify-center mb-6 text-amber-300">
                     <Trophy className="w-6 h-6" />
                   </div>
                   <h3 className="text-xl font-bold mb-2">Progress Tracking</h3>
@@ -164,7 +164,7 @@ function HomePage() {
                   to="/openings"
                   className={cn(
                     buttonVariants({ size: "lg" }),
-                    "h-14 px-10 text-lg rounded-full bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/20"
+                    "h-14 px-10 text-lg rounded-sm bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/20"
                   )}
                 >
                   Get Started Now
@@ -180,7 +180,7 @@ function HomePage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
               <div className="col-span-2 md:col-span-1">
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-sm bg-blue-600 flex items-center justify-center">
                     <Swords className="w-5 h-5 text-white" />
                   </div>
                   <span className="text-xl font-bold">ChessOp</span>

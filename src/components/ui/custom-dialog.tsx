@@ -86,7 +86,7 @@ export function ConfirmDialog({
       <div
         ref={dialogRef}
         onKeyDown={handleKeyDown}
-        className="relative w-full max-w-md rounded-lg bg-zinc-800 border border-zinc-700 shadow-xl animate-in zoom-in-95 fade-in duration-200 motion-reduce:animate-none"
+        className="relative w-full max-w-md rounded-sm bg-zinc-800 border border-zinc-700 shadow-xl animate-in zoom-in-95 fade-in duration-200 motion-reduce:animate-none"
       >
         {/* Close button */}
         <button
@@ -109,14 +109,14 @@ export function ConfirmDialog({
         <div className="flex justify-end gap-3 px-6 py-4 bg-zinc-900/50 rounded-b-lg">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-sm font-medium text-zinc-300 hover:text-white hover:bg-zinc-700 rounded-md transition-colors"
+            className="px-4 py-2 text-sm font-medium text-zinc-300 hover:text-white hover:bg-zinc-700 rounded-sm transition-colors"
           >
             {cancelLabel}
           </button>
           <button
             ref={confirmButtonRef}
             onClick={onConfirm}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${variant === 'danger'
+            className={`px-4 py-2 text-sm font-medium rounded-sm transition-colors ${variant === 'danger'
               ? 'bg-red-600 text-white hover:bg-red-500'
               : 'bg-blue-600 text-white hover:bg-blue-500'
               }`}
@@ -192,7 +192,7 @@ export function AlertDialog({
 
       {/* Dialog */}
       <div
-        className={`relative w-full max-w-sm rounded-lg bg-zinc-800 border-2 shadow-xl animate-in zoom-in-95 fade-in duration-200 motion-reduce:animate-none ${variantStyles[variant]}`}
+        className={`relative w-full max-w-sm rounded-sm bg-zinc-800 border-2 shadow-xl animate-in zoom-in-95 fade-in duration-200 motion-reduce:animate-none ${variantStyles[variant]}`}
       >
         <div className="p-6">
           <h2 id="alert-title" className="text-lg font-semibold text-white mb-2">
@@ -205,7 +205,7 @@ export function AlertDialog({
           <button
             ref={buttonRef}
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium bg-zinc-700 text-white hover:bg-zinc-600 rounded-md transition-colors"
+            className="px-4 py-2 text-sm font-medium bg-zinc-700 text-white hover:bg-zinc-600 rounded-sm transition-colors"
           >
             {buttonLabel}
           </button>
@@ -309,7 +309,7 @@ export function CreateStudyDialog({
       <div
         ref={dialogRef}
         onKeyDown={handleKeyDown}
-        className="relative w-full max-w-md rounded-lg bg-zinc-800 border border-zinc-700 shadow-xl animate-in zoom-in-95 fade-in duration-200 motion-reduce:animate-none"
+        className="relative w-full max-w-md rounded-sm bg-zinc-800 border border-zinc-700 shadow-xl animate-in zoom-in-95 fade-in duration-200 motion-reduce:animate-none"
       >
         {/* Close button */}
         <button
@@ -342,7 +342,7 @@ export function CreateStudyDialog({
                   if (error) setError('')
                 }}
                 placeholder="e.g., Italian Game"
-                className={`w-full rounded-md bg-zinc-900 border py-2 px-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${error ? 'border-red-500' : 'border-zinc-700 focus:border-blue-500'
+                className={`w-full rounded-sm bg-zinc-900 border py-2 px-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${error ? 'border-red-500' : 'border-zinc-700 focus:border-blue-500'
                   }`}
               />
               {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
@@ -359,7 +359,7 @@ export function CreateStudyDialog({
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Add notes about this opening..."
                 rows={2}
-                className="w-full rounded-md bg-zinc-900 border border-zinc-700 py-2 px-3 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 resize-none"
+                className="w-full rounded-sm bg-zinc-900 border border-zinc-700 py-2 px-3 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 resize-none"
               />
             </div>
 
@@ -372,7 +372,7 @@ export function CreateStudyDialog({
                 <button
                   type="button"
                   onClick={() => setColor('white')}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-md border transition-colors ${color === 'white'
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-sm border transition-colors ${color === 'white'
                     ? 'border-blue-500 bg-blue-500/10 text-white'
                     : 'border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-zinc-600 hover:text-zinc-300'
                     }`}
@@ -383,7 +383,7 @@ export function CreateStudyDialog({
                 <button
                   type="button"
                   onClick={() => setColor('black')}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-md border transition-colors ${color === 'black'
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-sm border transition-colors ${color === 'black'
                     ? 'border-blue-500 bg-blue-500/10 text-white'
                     : 'border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-zinc-600 hover:text-zinc-300'
                     }`}
@@ -400,13 +400,13 @@ export function CreateStudyDialog({
             <button
               type="button"
               onClick={onCancel}
-              className="px-4 py-2 text-sm font-medium text-zinc-300 hover:text-white hover:bg-zinc-700 rounded-md transition-colors"
+              className="px-4 py-2 text-sm font-medium text-zinc-300 hover:text-white hover:bg-zinc-700 rounded-sm transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 text-sm font-medium bg-blue-600 text-white hover:bg-blue-500 rounded-md transition-colors"
+              className="px-4 py-2 text-sm font-medium bg-blue-600 text-white hover:bg-blue-500 rounded-sm transition-colors"
             >
               Create
             </button>

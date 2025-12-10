@@ -39,7 +39,7 @@ export function PromotionDialog({ color, onSelect, onCancel }: PromotionDialogPr
             <button
               key={piece}
               onClick={() => onSelect(piece)}
-              className="flex h-16 w-16 items-center justify-center rounded-md bg-zinc-700 text-5xl transition-colors hover:bg-zinc-600"
+              className="flex h-16 w-16 items-center justify-center rounded-sm bg-zinc-700 text-5xl transition-colors hover:bg-zinc-600"
               title={name}
             >
               {pieceSymbols[color][piece]}

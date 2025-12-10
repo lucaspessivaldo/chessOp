@@ -74,7 +74,7 @@ export function VariationSelector({ moves, onStart, onCancel }: VariationSelecto
             <button
               key={index}
               onClick={() => toggleLine(index)}
-              className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center gap-2 ${isSelected
+              className={`w-full text-left px-3 py-2 rounded-sm text-sm transition-colors flex items-center gap-2 ${isSelected
                 ? 'bg-blue-600/20 text-blue-400 border border-blue-600/30'
                 : 'bg-zinc-700 text-zinc-400 hover:bg-zinc-600'
                 }`}
@@ -94,14 +94,14 @@ export function VariationSelector({ moves, onStart, onCancel }: VariationSelecto
       <div className="flex gap-2">
         <button
           onClick={onCancel}
-          className="flex-1 rounded-md bg-zinc-700 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
+          className="flex-1 rounded-sm bg-zinc-700 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
         >
           Cancel
         </button>
         <button
           onClick={handleStart}
           disabled={selectedIndices.size === 0}
-          className="flex-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 rounded-sm bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Start Practice ({selectedIndices.size} lines)
         </button>
