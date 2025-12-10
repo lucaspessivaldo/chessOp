@@ -43,7 +43,7 @@ function HomePage() {
 
               <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
                 <Link
-                  to="/puzzles"
+                  to="/openings"
                   className={cn(
                     buttonVariants({ size: "lg" }),
                     "h-14 px-10 min-w-[200px] text-lg rounded-xl bg-blue-500 text-white hover:bg-blue-400 transition-all hover:scale-105"
@@ -159,22 +159,13 @@ function HomePage() {
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link
-                  to="/puzzles"
+                  to="/openings"
                   className={cn(
                     buttonVariants({ size: "lg" }),
                     "h-14 px-10 text-lg rounded-full bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/20"
                   )}
                 >
                   Get Started Now
-                </Link>
-                <Link
-                  to="/openings"
-                  className={cn(
-                    buttonVariants({ variant: "ghost", size: "lg" }),
-                    "h-14 px-10 text-lg rounded-full text-zinc-300 hover:text-white hover:bg-zinc-900"
-                  )}
-                >
-                  Browse Library
                 </Link>
               </div>
             </div>
@@ -199,7 +190,6 @@ function HomePage() {
               <div>
                 <h4 className="font-bold mb-4">Product</h4>
                 <ul className="space-y-2 text-sm text-zinc-400">
-                  <li><Link to="/puzzles" className="hover:text-blue-400">Puzzles</Link></li>
                   <li><Link to="/openings" className="hover:text-blue-400">Openings</Link></li>
                   <li><Link to="/" className="hover:text-blue-400">Pricing</Link></li>
                 </ul>

@@ -1,5 +1,5 @@
 import { Link, useRouterState } from '@tanstack/react-router'
-import { Puzzle, Home, BookOpen } from 'lucide-react'
+import { Home, BookOpen } from 'lucide-react'
 
 export function Navbar() {
   const routerState = useRouterState()
@@ -7,7 +7,6 @@ export function Navbar() {
 
   const navItems = [
     { path: '/', label: 'Home', icon: Home },
-    { path: '/puzzles', label: 'Puzzles', icon: Puzzle },
     { path: '/openings', label: 'Openings', icon: BookOpen },
   ]
 

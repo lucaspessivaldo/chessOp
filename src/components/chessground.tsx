@@ -50,11 +50,12 @@ export const Chessground = forwardRef<ChessgroundRef, ChessgroundProps>(
         }
 
         // Strip shapes from initial config to prevent NaN errors
-        // Shapes will be applied in the config update effect
+        // Shapes will be applied after board dimensions are properly calculated
         const { drawable, ...restConfig } = config || {}
         const initialDrawable = drawable ? {
           ...drawable,
           autoShapes: [], // Don't render shapes on initial mount
+          shapes: [], // Also clear manual shapes
         } : undefined
 
         const mergedConfig: Config = {
@@ -70,7 +71,12 @@ export const Chessground = forwardRef<ChessgroundRef, ChessgroundProps>(
         }
 
         apiRef.current = ChessgroundApi(containerRef.current!, mergedConfig)
-        setIsReady(true)
+
+        // Defer setting ready state to allow chessground to fully initialize
+        // and compute board dimensions before shapes are applied
+        requestAnimationFrame(() => {
+          setIsReady(true)
+        })
       }
 
       initializeWhenReady()
@@ -86,9 +92,13 @@ export const Chessground = forwardRef<ChessgroundRef, ChessgroundProps>(
     // This includes applying shapes after the board is ready
     useEffect(() => {
       if (apiRef.current && config && isReady) {
-        apiRef.current.set(config)
+        // Only apply config if the board has valid dimensions
+        // This prevents NaN errors when shapes are calculated
+        if (checkDimensions()) {
+          apiRef.current.set(config)
+        }
       }
-    }, [config, isReady])
+    }, [config, isReady, checkDimensions])
 
     return (
       <div

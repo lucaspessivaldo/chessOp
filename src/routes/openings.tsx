@@ -17,7 +17,6 @@ import {
 import {
   ChevronRight,
   RotateCcw,
-  ArrowLeft,
   CheckCircle,
   XCircle,
   ChevronDown,
@@ -144,32 +143,19 @@ function StudyPageContent({ study, onBack, onStudyUpdate }: StudyPageContentProp
   }
 
   return (
-    <div className="min-h-screen bg-zinc-900 pt-14 md:pt-16">
-      {/* Header */}
-      <div className="border-b border-zinc-800 px-3 md:px-6 py-3 md:py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2 md:gap-4">
-            <button
-              onClick={onBack}
-              className="flex items-center gap-1 text-zinc-400 hover:text-white transition-colors touch-target"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">Back</span>
-            </button>
-            <div className="min-w-0">
-              <h1 className="text-base md:text-xl font-bold text-white truncate">{study.name}</h1>
-              <p className="text-xs md:text-sm text-zinc-400">
-                Playing as {study.color}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
+    <div className="min-h-screen bg-zinc-900">
       {/* Mode Tabs - Scrollable on mobile */}
-      <div className="border-b border-zinc-800 px-3 md:px-6">
+      <div className="fixed top-14 md:top-16 left-0 right-0 z-40 border-b border-zinc-800 bg-zinc-900 px-3 md:px-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex gap-0.5 md:gap-1 overflow-x-auto scroll-tabs -mx-3 px-3 md:mx-0 md:px-0">
+            <button
+              onClick={onBack}
+              className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2.5 md:py-3 text-xs md:text-sm font-medium border-b-2 border-transparent text-zinc-400 hover:text-white transition-colors whitespace-nowrap touch-target"
+            >
+              <ChevronRight className="h-4 w-4 rotate-180" />
+              <span className="hidden sm:inline">{study.name}</span>
+            </button>
+            <div className="w-px bg-zinc-800 my-2" />
             <button
               onClick={() => setMode('study')}
               className={`flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2.5 md:py-3 text-xs md:text-sm font-medium border-b-2 transition-colors whitespace-nowrap touch-target ${mode === 'study'
@@ -230,12 +216,14 @@ function StudyPageContent({ study, onBack, onStudyUpdate }: StudyPageContentProp
         </div>
       </div>
 
-      {/* Content based on mode */}
-      {mode === 'practice' && <PracticeView study={study} onMistakeMade={refreshMistakesCount} />}
-      {mode === 'study' && <StudyView study={study} />}
-      {mode === 'speed' && <SpeedDrillView study={study} />}
-      {mode === 'mistakes' && <MistakesReviewView study={study} onMistakeCompleted={refreshMistakesCount} />}
-      {mode === 'edit' && <EditView study={study} onSave={onStudyUpdate} />}
+      {/* Content based on mode - add padding for fixed navbar + tabs */}
+      <div className="pt-24 md:pt-28">
+        {mode === 'practice' && <PracticeView study={study} onMistakeMade={refreshMistakesCount} />}
+        {mode === 'study' && <StudyView study={study} />}
+        {mode === 'speed' && <SpeedDrillView study={study} />}
+        {mode === 'mistakes' && <MistakesReviewView study={study} onMistakeCompleted={refreshMistakesCount} />}
+        {mode === 'edit' && <EditView study={study} onSave={onStudyUpdate} />}
+      </div>
     </div>
   )
 }
