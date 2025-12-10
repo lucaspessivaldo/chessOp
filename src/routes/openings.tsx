@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useState, useRef } from 'react'
 import { Chessground, type ChessgroundRef } from '@/components/chessground'
 import { PromotionDialog } from '@/components/promotion-dialog'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { useOpeningPractice } from '@/hooks/use-opening-practice'
 import { useOpeningStudy } from '@/hooks/use-opening-study'
 import { useSpeedDrill, type SpeedDrillStats } from '@/hooks/use-speed-drill'
@@ -20,6 +20,7 @@ import {
   ChevronRight,
   RotateCcw,
   CheckCircle,
+  Circle,
   XCircle,
   ChevronDown,
   Edit,
@@ -359,34 +360,6 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
           </div>
         </div>
 
-        {/* Current Line Info */}
-        <button
-          onClick={() => setShowLineSelector(!showLineSelector)}
-          className="mx-3 px-3 py-2 bg-zinc-800 rounded-lg flex items-center justify-between"
-        >
-          <div className="text-left min-w-0">
-            <p className="text-xs text-zinc-400">Line {currentLineIndex + 1}</p>
-            <p className="text-sm text-white font-medium truncate">{getLineName(currentLine, currentLineIndex)}</p>
-          </div>
-          <ChevronDown className={`h-4 w-4 text-zinc-400 shrink-0 ml-2 transition-transform ${showLineSelector ? 'rotate-180' : ''}`} />
-        </button>
-
-        {/* Line Selector Dropdown */}
-        {showLineSelector && (
-          <div className="mx-3 mt-1 max-h-32 overflow-y-auto bg-zinc-800 rounded-lg border border-zinc-700">
-            {allLines.map((line, index) => (
-              <button
-                key={index}
-                onClick={() => { selectLine(index); setShowLineSelector(false) }}
-                className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 ${index === currentLineIndex ? 'bg-blue-600 text-white' : completedLines.has(index) ? 'text-green-400' : 'text-zinc-300'}`}
-              >
-                {completedLines.has(index) && <CheckCircle className="h-3 w-3" />}
-                Line {index + 1}: {getLineName(line, index)}
-              </button>
-            ))}
-          </div>
-        )}
-
         {/* Status */}
         {(showWrongMove || status === 'line-complete') && (
           <div className="px-3 py-2">
@@ -697,23 +670,38 @@ function StudyView({ study }: { study: OpeningStudy }) {
 
       {/* Lines Selector Modal */}
       <Dialog open={showLinesModal} onOpenChange={setShowLinesModal}>
-        <DialogContent>
-          <DialogHeader className="p-4 pb-2">
-            <DialogTitle>Select Line</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-1 overflow-y-auto min-h-0 p-4 pt-0 max-h-[60vh]">
-            {allLineNodes.map((lineNodes, index) => (
+        <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-md" showCloseButton={false}>
+          <div className="rounded-lg bg-zinc-800 p-4 border border-zinc-700 shadow-xl">
+            <h3 className="text-sm font-medium text-white mb-3">Select Line</h3>
+
+            <div className="space-y-1 overflow-y-auto min-h-0 max-h-[60vh] mb-4">
+              {allLineNodes.map((lineNodes, index) => (
+                <button
+                  key={index}
+                  onClick={() => { selectLine(index); setShowLinesModal(false) }}
+                  className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center gap-2 ${index === currentLineIndex
+                    ? 'bg-blue-600/20 text-blue-400 border border-blue-600/30'
+                    : 'bg-zinc-700 text-zinc-400 hover:bg-zinc-600'
+                    }`}
+                >
+                  {index === currentLineIndex ? (
+                    <CheckCircle className="h-4 w-4 shrink-0" />
+                  ) : (
+                    <Circle className="h-4 w-4 shrink-0" />
+                  )}
+                  <span className="truncate">Line {index + 1}: {getLineName(lineNodes, index, 6)}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="flex justify-end">
               <button
-                key={index}
-                onClick={() => { selectLine(index); setShowLinesModal(false) }}
-                className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${index === currentLineIndex
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
-                  }`}
+                onClick={() => setShowLinesModal(false)}
+                className="w-full rounded-md bg-zinc-700 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
               >
-                Line {index + 1}: {getLineName(lineNodes, index)}
+                Cancel
               </button>
-            ))}
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -754,33 +742,6 @@ function StudyView({ study }: { study: OpeningStudy }) {
             />
           </div>
         </div>
-
-        {/* Current Line Selector */}
-        <button
-          onClick={() => setShowLineSelector(!showLineSelector)}
-          className="mx-3 px-3 py-2 bg-zinc-800 rounded-lg flex items-center justify-between"
-        >
-          <div className="text-left min-w-0">
-            <p className="text-xs text-zinc-400">Line {currentLineIndex + 1}</p>
-            <p className="text-sm text-white font-medium truncate">{getLineName(currentLine, currentLineIndex)}</p>
-          </div>
-          <ChevronDown className={`h-4 w-4 text-zinc-400 shrink-0 ml-2 transition-transform ${showLineSelector ? 'rotate-180' : ''}`} />
-        </button>
-
-        {/* Line Selector Dropdown */}
-        {showLineSelector && (
-          <div className="mx-3 mt-1 max-h-32 overflow-y-auto bg-zinc-800 rounded-lg border border-zinc-700">
-            {allLineNodes.map((lineNodes, index) => (
-              <button
-                key={index}
-                onClick={() => { selectLine(index); setShowLineSelector(false) }}
-                className={`w-full text-left px-3 py-2 text-sm ${index === currentLineIndex ? 'bg-blue-600 text-white' : 'text-zinc-300'}`}
-              >
-                Line {index + 1}: {getLineName(lineNodes, index)}
-              </button>
-            ))}
-          </div>
-        )}
 
         {/* Comment / Status */}
         {isComplete ? (
