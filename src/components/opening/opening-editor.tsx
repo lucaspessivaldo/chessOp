@@ -629,7 +629,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
   )
 
   // Navigation buttons component (shared between mobile and desktop)
-  const NavigationButtons = ({ compact = false }: { compact?: boolean }) => (
+  const renderNavigationButtons = (compact = false) => (
     <>
       <button
         onClick={goToStart}
@@ -685,7 +685,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
   )
 
   // Moves content component (shared)
-  const MovesContent = ({ mobile = false }: { mobile?: boolean }) => (
+  const renderMovesContent = (mobile = false) => (
     <>
       {/* Header */}
       <div className={`${mobile ? 'p-2' : 'p-3'} border-b border-zinc-700 shrink-0`}>
@@ -874,7 +874,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
   )
 
   // Settings content component (shared)
-  const SettingsContent = ({ mobile = false }: { mobile?: boolean }) => (
+  const renderSettingsContent = (mobile = false) => (
     <>
       {/* Opening Name */}
       <div className={`${mobile ? 'p-3' : 'p-4'} border-b border-zinc-700`}>
@@ -971,7 +971,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
 
         {/* Navigation Bar */}
         <div className="flex items-center justify-center gap-1 px-3 py-1.5 bg-zinc-800 border-y border-zinc-700">
-          <NavigationButtons compact />
+          {renderNavigationButtons(true)}
           <div className="w-px h-5 bg-zinc-600 mx-2" />
           <button
             onClick={undo}
@@ -1031,7 +1031,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
           <div className="flex-1 overflow-y-auto min-h-0">
             {mobileTab === 'moves' && (
               <div className="flex flex-col h-full">
-                <MovesContent mobile />
+                {renderMovesContent(true)}
               </div>
             )}
             {mobileTab === 'explorer' && (
@@ -1051,7 +1051,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
               />
             )}
             {mobileTab === 'settings' && (
-              <SettingsContent mobile />
+              renderSettingsContent(true)
             )}
           </div>
         </div>
@@ -1070,7 +1070,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
 
               {/* Navigation Bar */}
               <div className="flex items-center gap-2 bg-zinc-800 rounded-lg p-2">
-                <NavigationButtons />
+                {renderNavigationButtons()}
 
                 <div className="flex-1" />
 
@@ -1108,7 +1108,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
 
                   {/* Moves Tab */}
                   <TabsContent value="moves" className="mt-0 flex-1 overflow-hidden flex flex-col">
-                    <MovesContent />
+                    {renderMovesContent()}
                   </TabsContent>
 
                   {/* Explorer Tab */}
@@ -1132,7 +1132,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
 
                   {/* Settings Tab */}
                   <TabsContent value="settings" className="mt-0 flex-1 overflow-y-auto">
-                    <SettingsContent />
+                    {renderSettingsContent()}
                   </TabsContent>
 
                   {/* Action Buttons - shown on all tabs */}
