@@ -143,9 +143,9 @@ function StudyPageContent({ study, onBack, onStudyUpdate }: StudyPageContentProp
   }
 
   return (
-    <div className="min-h-screen bg-zinc-900">
-      {/* Mode Tabs - Scrollable on mobile */}
-      <div className="fixed top-14 md:top-16 left-0 right-0 z-40 border-b border-zinc-800 bg-zinc-900 px-3 md:px-6">
+    <div className="min-h-full bg-zinc-900 flex flex-col">
+      {/* Mode Tabs - Sticky within scroll container */}
+      <div className="sticky top-0 z-40 border-b border-zinc-800 bg-zinc-900 px-3 md:px-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex gap-0.5 md:gap-1 overflow-x-auto scroll-tabs -mx-3 px-3 md:mx-0 md:px-0">
             <button
@@ -184,7 +184,7 @@ function StudyPageContent({ study, onBack, onStudyUpdate }: StudyPageContentProp
                 }`}
             >
               <Zap className="h-4 w-4" />
-              Speed Drill
+              Speed
             </button>
             <button
               onClick={() => setMode('mistakes')}
@@ -216,8 +216,8 @@ function StudyPageContent({ study, onBack, onStudyUpdate }: StudyPageContentProp
         </div>
       </div>
 
-      {/* Content based on mode - add padding for fixed navbar + tabs */}
-      <div className="pt-24 md:pt-28">
+      {/* Content based on mode */}
+      <div className="flex-1">
         {mode === 'practice' && <PracticeView study={study} onMistakeMade={refreshMistakesCount} />}
         {mode === 'study' && <StudyView study={study} />}
         {mode === 'speed' && <SpeedDrillView study={study} />}
@@ -311,7 +311,7 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
       )}
 
       {/* Mobile Layout */}
-      <div className="lg:hidden flex flex-col min-h-[calc(100vh-8rem)] safe-bottom">
+      <div className="lg:hidden flex flex-col min-h-full">
         {/* Options Bar */}
         <div className="flex items-center justify-between px-3 py-2 bg-zinc-800 border-b border-zinc-700">
           <div className="flex items-center gap-2">
@@ -349,7 +349,7 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
         </div>
 
         {/* Chessboard */}
-        <div className="flex-1 flex items-center justify-center p-2">
+        <div className="flex items-start justify-center p-2">
           <div className={`chess-board-container rounded-sm transition-all duration-200 ${showWrongMove ? 'ring-4 ring-red-500 animate-shake' : ''}`}>
             <Chessground
               key={boardKey}
@@ -410,43 +410,44 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
           </div>
         )}
 
-        {/* Bottom Controls */}
-        <div className="px-3 py-3 bg-zinc-800 border-t border-zinc-700 space-y-2">
+        {/* Sticky Footer Controls */}
+        <div className="sticky bottom-0 lg:hidden px-3 pt-3 pb-4 bg-zinc-800 border-t border-zinc-700 mt-auto safe-bottom">
           <div className="flex gap-2">
             <button
               onClick={resetLine}
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-zinc-700 py-3 text-sm font-medium text-white touch-target"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-zinc-700 py-2.5 text-sm font-medium text-white touch-target"
             >
               <RotateCcw className="h-4 w-4" />
-              Restart
+              <span className="sr-only sm:not-sr-only">Restart</span>
             </button>
             <button
               onClick={increaseHint}
               disabled={hintLevel >= 3 || status !== 'playing'}
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-zinc-700 py-3 text-sm font-medium text-white disabled:opacity-50 touch-target"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-zinc-700 py-2.5 text-sm font-medium text-white disabled:opacity-50 touch-target"
             >
               <Lightbulb className={`h-4 w-4 ${hintLevel > 0 ? 'text-yellow-400' : ''}`} />
-              Hint {hintLevel > 0 && `(${hintLevel})`}
+              <span className="sr-only sm:not-sr-only">Hint</span>
+              {hintLevel > 0 && <span className="text-xs">({hintLevel})</span>}
             </button>
+            {status === 'line-complete' && currentLineIndex < allLines.length - 1 && (
+              <button
+                onClick={nextLine}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-green-600 py-2.5 text-sm font-medium text-white touch-target"
+              >
+                <span className="sr-only sm:not-sr-only">Next</span>
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            )}
+            {progressInfo.completedLines === progressInfo.totalLines && (
+              <button
+                onClick={resetProgress}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-orange-600 py-2.5 text-sm font-medium text-white touch-target"
+              >
+                <RotateCcw className="h-4 w-4" />
+                <span className="sr-only sm:not-sr-only">Reset</span>
+              </button>
+            )}
           </div>
-          {status === 'line-complete' && currentLineIndex < allLines.length - 1 && (
-            <button
-              onClick={nextLine}
-              className="w-full flex items-center justify-center gap-2 rounded-lg bg-green-600 py-3 text-sm font-medium text-white touch-target"
-            >
-              Next Line
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          )}
-          {progressInfo.completedLines === progressInfo.totalLines && (
-            <button
-              onClick={resetProgress}
-              className="w-full flex items-center justify-center gap-2 rounded-lg bg-orange-600 py-3 text-sm font-medium text-white touch-target"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Reset Practice
-            </button>
-          )}
         </div>
       </div>
 
@@ -695,7 +696,7 @@ function StudyView({ study }: { study: OpeningStudy }) {
       )}
 
       {/* Mobile Layout */}
-      <div className="lg:hidden flex flex-col min-h-[calc(100vh-8rem)] safe-bottom">
+      <div className="lg:hidden flex flex-col min-h-full">
         {/* Progress Bar */}
         <div className="px-3 py-2 bg-zinc-800/50 border-b border-zinc-700">
           <div className="flex items-center justify-between text-xs text-zinc-400 mb-1">
@@ -711,7 +712,7 @@ function StudyView({ study }: { study: OpeningStudy }) {
         </div>
 
         {/* Chessboard */}
-        <div className="flex-1 flex items-center justify-center p-2">
+        <div className="flex items-start justify-center p-2">
           <div className="chess-board-container rounded-sm">
             <Chessground
               ref={chessgroundRef}
@@ -765,33 +766,35 @@ function StudyView({ study }: { study: OpeningStudy }) {
           </div>
         ) : null}
 
-        {/* Bottom Controls */}
-        <div className="px-3 py-3 bg-zinc-800 border-t border-zinc-700 space-y-2">
-          <button
-            onClick={goToStart}
-            className="w-full flex items-center justify-center gap-2 rounded-lg bg-zinc-700 py-3 text-sm font-medium text-white touch-target"
-          >
-            <RotateCcw className="h-4 w-4" />
-            Restart Line
-          </button>
-          {isComplete && currentLineIndex < allLines.length - 1 && (
+        {/* Sticky Footer Controls */}
+        <div className="sticky bottom-0 lg:hidden px-3 pt-3 pb-4 bg-zinc-800 border-t border-zinc-700 mt-auto safe-bottom">
+          <div className="flex gap-2">
             <button
-              onClick={nextLine}
-              className="w-full flex items-center justify-center gap-2 rounded-lg bg-green-600 py-3 text-sm font-medium text-white touch-target"
-            >
-              Next Line
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          )}
-          {isStudyComplete && (
-            <button
-              onClick={restartStudy}
-              className="w-full flex items-center justify-center gap-2 rounded-lg bg-orange-600 py-3 text-sm font-medium text-white touch-target"
+              onClick={goToStart}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-zinc-700 py-2.5 text-sm font-medium text-white touch-target"
             >
               <RotateCcw className="h-4 w-4" />
-              Restart Study
+              <span className="sr-only sm:not-sr-only">Restart</span>
             </button>
-          )}
+            {isComplete && currentLineIndex < allLines.length - 1 && (
+              <button
+                onClick={nextLine}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-green-600 py-2.5 text-sm font-medium text-white touch-target"
+              >
+                <span className="sr-only sm:not-sr-only">Next</span>
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            )}
+            {isStudyComplete && (
+              <button
+                onClick={restartStudy}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-orange-600 py-2.5 text-sm font-medium text-white touch-target"
+              >
+                <RotateCcw className="h-4 w-4" />
+                <span className="sr-only sm:not-sr-only">Reset</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -978,7 +981,7 @@ function SpeedDrillView({ study }: { study: OpeningStudy }) {
       )}
 
       {/* Mobile Layout */}
-      <div className="lg:hidden flex flex-col min-h-[calc(100vh-8rem)] safe-bottom">
+      <div className="lg:hidden flex flex-col min-h-full">
         {/* Timer & Progress */}
         <div className="px-3 py-3 bg-zinc-800 border-b border-zinc-700">
           <div className="flex items-center justify-between mb-2">
@@ -997,7 +1000,7 @@ function SpeedDrillView({ study }: { study: OpeningStudy }) {
         </div>
 
         {/* Chessboard */}
-        <div className="flex-1 flex items-center justify-center p-2">
+        <div className="flex items-start justify-center p-2">
           <div className="chess-board-container rounded-sm" key={boardKey}>
             <Chessground ref={chessgroundRef} config={config} onMove={makeMove} />
           </div>
@@ -1034,15 +1037,17 @@ function SpeedDrillView({ study }: { study: OpeningStudy }) {
           </div>
         )}
 
-        {/* Controls */}
-        <div className="px-3 py-3 bg-zinc-800 border-t border-zinc-700">
-          <button
-            onClick={handleReset}
-            className="w-full flex items-center justify-center gap-2 rounded-lg bg-yellow-600 py-3 text-sm font-medium text-white touch-target"
-          >
-            <RotateCcw className="h-4 w-4" />
-            {isComplete ? 'Try Again' : 'Reset'}
-          </button>
+        {/* Sticky Footer Controls */}
+        <div className="sticky bottom-0 lg:hidden px-3 pt-3 pb-4 bg-zinc-800 border-t border-zinc-700 mt-auto safe-bottom">
+          <div className="flex gap-2">
+            <button
+              onClick={handleReset}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-yellow-600 py-2.5 text-sm font-medium text-white touch-target"
+            >
+              <RotateCcw className="h-4 w-4" />
+              {isComplete ? 'Try Again' : 'Reset'}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1217,7 +1222,7 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
       )}
 
       {/* Mobile Layout */}
-      <div className="lg:hidden flex flex-col min-h-[calc(100vh-8rem)] safe-bottom">
+      <div className="lg:hidden flex flex-col min-h-full">
         {/* Info & Progress */}
         <div className="px-3 py-2 bg-orange-500/10 border-b border-orange-500/30">
           <div className="flex items-center justify-between mb-1">
@@ -1233,7 +1238,7 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
         </div>
 
         {/* Chessboard */}
-        <div className="flex-1 flex items-center justify-center p-2">
+        <div className="flex items-start justify-center p-2">
           <div className="chess-board-container rounded-sm" key={boardKey}>
             <Chessground ref={chessgroundRef} config={config} onMove={makeMove} />
           </div>
@@ -1284,42 +1289,42 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
           </div>
         </div>
 
-        {/* Controls */}
-        <div className="px-3 py-3 bg-zinc-800 border-t border-zinc-700 space-y-2">
+        {/* Sticky Footer Controls */}
+        <div className="sticky bottom-0 lg:hidden px-3 pt-3 pb-4 bg-zinc-800 border-t border-zinc-700 mt-auto safe-bottom">
           <div className="flex gap-2">
             {!isCorrect ? (
               <>
                 <button
                   onClick={showHint}
                   disabled={hintLevel >= 2}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-zinc-700 py-3 text-sm font-medium text-white disabled:opacity-50 touch-target"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-zinc-700 py-2.5 text-sm font-medium text-white disabled:opacity-50 touch-target"
                 >
                   <Lightbulb className={`h-4 w-4 ${hintLevel > 0 ? 'text-yellow-400' : ''}`} />
-                  Hint
+                  <span className="sr-only sm:not-sr-only">Hint</span>
                 </button>
                 <button
                   onClick={skipMistake}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-zinc-700 py-3 text-sm font-medium text-white touch-target"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-zinc-700 py-2.5 text-sm font-medium text-white touch-target"
                 >
                   <SkipForward className="h-4 w-4" />
-                  Skip
+                  <span className="sr-only sm:not-sr-only">Skip</span>
                 </button>
               </>
             ) : currentIndex < totalMistakes - 1 ? (
               <button
                 onClick={nextMistake}
-                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-green-600 py-3 text-sm font-medium text-white touch-target"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-green-600 py-2.5 text-sm font-medium text-white touch-target"
               >
-                Next
+                <span className="sr-only sm:not-sr-only">Next</span>
                 <ChevronRight className="h-4 w-4" />
               </button>
             ) : (
               <button
                 onClick={nextMistake}
-                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-green-600 py-3 text-sm font-medium text-white touch-target"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-green-600 py-2.5 text-sm font-medium text-white touch-target"
               >
                 <Trophy className="h-4 w-4" />
-                Finish
+                <span className="sr-only sm:not-sr-only">Finish</span>
               </button>
             )}
           </div>
@@ -1488,7 +1493,7 @@ function EditView({ study, onSave }: EditViewProps) {
   }
 
   return (
-    <div className="-mt-4">
+    <div>
       <OpeningEditor
         initialStudy={study}
         onSave={handleSave}
