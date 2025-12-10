@@ -313,33 +313,31 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
       {/* Mobile Layout */}
       <div className="lg:hidden flex flex-col min-h-full">
         {/* Options Bar */}
-        <div className="flex items-center justify-between px-3 py-2 bg-zinc-800 border-b border-zinc-700">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-zinc-400">
-              {progressInfo.completedLines}/{progressInfo.totalLines} lines
-            </span>
-            {skippedLines.size > 0 && (
-              <span className="text-xs text-yellow-400">({skippedLines.size} skipped)</span>
-            )}
+        <div className="px-3 py-3 bg-zinc-800 border-b border-zinc-700">
+          <div className="flex items-center justify-between mb-2 h-8">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-zinc-400">
+                {progressInfo.completedLines}/{progressInfo.totalLines} lines
+              </span>
+              {skippedLines.size > 0 && (
+                <span className="text-xs text-yellow-400">({skippedLines.size} skipped)</span>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowVariationSelector(true)}
+                className="px-2 py-1.5 rounded-md text-xs bg-zinc-700 text-zinc-300 touch-target"
+              >
+                Lines
+              </button>
+              <button
+                onClick={() => setRandomOrder(!randomOrder)}
+                className={`p-1.5 rounded-md transition-colors touch-target ${randomOrder ? 'bg-blue-600 text-white' : 'bg-zinc-700 text-zinc-400'}`}
+              >
+                <Shuffle className="h-4 w-4" />
+              </button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setShowVariationSelector(true)}
-              className="px-2 py-1.5 rounded-md text-xs bg-zinc-700 text-zinc-300 touch-target"
-            >
-              Lines
-            </button>
-            <button
-              onClick={() => setRandomOrder(!randomOrder)}
-              className={`p-1.5 rounded-md transition-colors touch-target ${randomOrder ? 'bg-blue-600 text-white' : 'bg-zinc-700 text-zinc-400'}`}
-            >
-              <Shuffle className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-
-        {/* Progress Bar */}
-        <div className="px-3 py-2 bg-zinc-800/50">
           <div className="w-full bg-zinc-700 rounded-full h-1.5 overflow-hidden">
             <div
               className="bg-green-500 h-1.5 rounded-full transition-all duration-300"
@@ -698,8 +696,8 @@ function StudyView({ study }: { study: OpeningStudy }) {
       {/* Mobile Layout */}
       <div className="lg:hidden flex flex-col min-h-full">
         {/* Progress Bar */}
-        <div className="px-3 py-2 bg-zinc-800/50 border-b border-zinc-700">
-          <div className="flex items-center justify-between text-xs text-zinc-400 mb-1">
+        <div className="px-3 py-3 bg-zinc-800 border-b border-zinc-700">
+          <div className="flex items-center justify-between text-xs text-zinc-400 mb-2 h-8">
             <span>Move {moveInfo.current}/{moveInfo.total}</span>
             <span>Line {currentLineIndex + (isComplete ? 1 : 0)}/{allLines.length}</span>
           </div>
@@ -984,7 +982,7 @@ function SpeedDrillView({ study }: { study: OpeningStudy }) {
       <div className="lg:hidden flex flex-col min-h-full">
         {/* Timer & Progress */}
         <div className="px-3 py-3 bg-zinc-800 border-b border-zinc-700">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-2 h-8">
             <div className="flex items-center gap-2">
               <Clock className="h-5 w-5 text-yellow-400" />
               <span className="text-2xl font-mono font-bold text-white">{formatTime(elapsedMs)}</span>
@@ -1224,8 +1222,8 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
       {/* Mobile Layout */}
       <div className="lg:hidden flex flex-col min-h-full">
         {/* Info & Progress */}
-        <div className="px-3 py-2 bg-orange-500/10 border-b border-orange-500/30">
-          <div className="flex items-center justify-between mb-1">
+        <div className="px-3 py-3 bg-orange-500/10 border-b border-orange-500/30">
+          <div className="flex items-center justify-between mb-2 h-8">
             <span className="text-xs font-medium text-orange-400">Mistakes Review</span>
             <span className="text-xs text-zinc-400">{currentIndex + 1}/{totalMistakes}</span>
           </div>
