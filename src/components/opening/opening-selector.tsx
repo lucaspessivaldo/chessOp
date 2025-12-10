@@ -3,7 +3,7 @@ import type { OpeningStudy } from '@/types/opening'
 import { loadOpeningStudies, deleteOpeningStudy } from '@/lib/opening-utils'
 import { Search, Plus, Trash2 } from 'lucide-react'
 import { OpeningSelectorSkeleton } from '@/components/ui/skeleton'
-import { ConfirmDialog, CreateStudyDialog } from '@/components/ui/dialog'
+import { ConfirmDialog, CreateStudyDialog } from '@/components/ui/custom-dialog'
 
 interface OpeningSelectorProps {
   onSelect: (study: OpeningStudy) => void

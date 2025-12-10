@@ -13,7 +13,7 @@ import { OpeningTree } from './opening-tree'
 import { OpeningStatsPanel } from './opening-stats'
 import { useOpeningStats } from '@/hooks/use-opening-stats'
 import { useToast } from '@/components/ui/toast'
-import { ConfirmDialog, AlertDialog } from '@/components/ui/dialog'
+import { ConfirmDialog, AlertDialog } from '@/components/ui/custom-dialog'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import {
   generateNodeId,

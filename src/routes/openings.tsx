@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useState, useRef } from 'react'
 import { Chessground, type ChessgroundRef } from '@/components/chessground'
 import { PromotionDialog } from '@/components/promotion-dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useOpeningPractice } from '@/hooks/use-opening-practice'
 import { useOpeningStudy } from '@/hooks/use-opening-study'
 import { useSpeedDrill, type SpeedDrillStats } from '@/hooks/use-speed-drill'
@@ -300,17 +301,15 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
       )}
 
       {/* Variation Selector Modal */}
-      {showVariationSelector && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="w-full max-w-md">
-            <VariationSelector
-              moves={study.moves}
-              onStart={handleStartWithSelection}
-              onCancel={() => setShowVariationSelector(false)}
-            />
-          </div>
-        </div>
-      )}
+      <Dialog open={showVariationSelector} onOpenChange={setShowVariationSelector}>
+        <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-md" showCloseButton={false}>
+          <VariationSelector
+            moves={study.moves}
+            onStart={handleStartWithSelection}
+            onCancel={() => setShowVariationSelector(false)}
+          />
+        </DialogContent>
+      </Dialog>
 
       {/* Mobile Layout */}
       <div className="lg:hidden flex flex-col min-h-full">
@@ -661,6 +660,7 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
 function StudyView({ study }: { study: OpeningStudy }) {
   const chessgroundRef = useRef<ChessgroundRef>(null)
   const [showLineSelector, setShowLineSelector] = useState(false)
+  const [showLinesModal, setShowLinesModal] = useState(false)
 
   const {
     isComplete,
@@ -695,13 +695,46 @@ function StudyView({ study }: { study: OpeningStudy }) {
         />
       )}
 
+      {/* Lines Selector Modal */}
+      <Dialog open={showLinesModal} onOpenChange={setShowLinesModal}>
+        <DialogContent>
+          <DialogHeader className="p-4 pb-2">
+            <DialogTitle>Select Line</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1 overflow-y-auto min-h-0 p-4 pt-0 max-h-[60vh]">
+            {allLineNodes.map((lineNodes, index) => (
+              <button
+                key={index}
+                onClick={() => { selectLine(index); setShowLinesModal(false) }}
+                className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${index === currentLineIndex
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
+                  }`}
+              >
+                Line {index + 1}: {getLineName(lineNodes, index)}
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Mobile Layout */}
       <div className="lg:hidden flex flex-col min-h-full">
         {/* Progress Bar */}
         <div className="px-3 py-3 bg-zinc-800 border-b border-zinc-700">
-          <div className="flex items-center justify-between text-xs text-zinc-400 mb-2 h-8">
-            <span>Move {moveInfo.current}/{moveInfo.total}</span>
-            <span>Line {currentLineIndex + (isComplete ? 1 : 0)}/{allLines.length}</span>
+          <div className="flex items-center justify-between mb-2 h-8">
+            <div className="flex items-center gap-2 text-xs text-zinc-400">
+              <span>Move {moveInfo.current}/{moveInfo.total}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-zinc-400">Line {currentLineIndex + (isComplete ? 1 : 0)}/{allLines.length}</span>
+              <button
+                onClick={() => setShowLinesModal(true)}
+                className="px-2 py-1.5 rounded-md text-xs bg-zinc-700 text-zinc-300 touch-target"
+              >
+                Lines
+              </button>
+            </div>
           </div>
           <div className="w-full bg-zinc-700 rounded-full h-1.5 overflow-hidden">
             <div
