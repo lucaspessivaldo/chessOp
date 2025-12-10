@@ -349,7 +349,7 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
         </div>
 
         {/* Chessboard */}
-        <div className="flex items-start justify-center p-2">
+        <div className="flex items-start justify-center">
           <div className={`chess-board-container rounded-sm transition-all duration-200 ${showWrongMove ? 'ring-4 ring-red-500 animate-shake' : ''}`}>
             <Chessground
               key={boardKey}
@@ -712,7 +712,7 @@ function StudyView({ study }: { study: OpeningStudy }) {
         </div>
 
         {/* Chessboard */}
-        <div className="flex items-start justify-center p-2">
+        <div className="flex items-start justify-center">
           <div className="chess-board-container rounded-sm">
             <Chessground
               ref={chessgroundRef}
@@ -1000,7 +1000,7 @@ function SpeedDrillView({ study }: { study: OpeningStudy }) {
         </div>
 
         {/* Chessboard */}
-        <div className="flex items-start justify-center p-2">
+        <div className="flex items-start justify-center">
           <div className="chess-board-container rounded-sm" key={boardKey}>
             <Chessground ref={chessgroundRef} config={config} onMove={makeMove} />
           </div>
@@ -1238,7 +1238,7 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
         </div>
 
         {/* Chessboard */}
-        <div className="flex items-start justify-center p-2">
+        <div className="flex items-start justify-center">
           <div className="chess-board-container rounded-sm" key={boardKey}>
             <Chessground ref={chessgroundRef} config={config} onMove={makeMove} />
           </div>
