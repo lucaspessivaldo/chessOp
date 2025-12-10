@@ -2,6 +2,7 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { Brain, Layout, Swords, Trophy } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { Navbar } from '@/components/navbar'
 
 export const Route = createFileRoute('/')({
   component: HomePage,
@@ -10,6 +11,7 @@ export const Route = createFileRoute('/')({
 function HomePage() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-50 selection:bg-blue-500/30">
+      <Navbar />
       {/* Background Gradients */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-900/20 blur-[120px]" />

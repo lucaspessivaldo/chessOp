@@ -8,6 +8,7 @@ import { useSpeedDrill, type SpeedDrillStats } from '@/hooks/use-speed-drill'
 import { useMistakesReview, getMistakesDueForReview } from '@/hooks/use-mistakes-review'
 import type { OpeningStudy } from '@/types/opening'
 import { getLineName } from '@/lib/opening-utils'
+import { Navbar } from '@/components/navbar'
 import {
   CompactMoveList,
   OpeningSelector,
@@ -86,6 +87,7 @@ function OpeningsPage() {
   if (view === 'selector') {
     return (
       <div className="min-h-screen bg-zinc-900 pt-14 md:pt-16 px-3 py-4 md:p-6">
+        <Navbar />
         <div className="max-w-4xl mx-auto">
           <h1 className="text-2xl md:text-3xl font-bold text-white mb-1 md:mb-2">Opening Studies</h1>
           <p className="text-sm md:text-base text-zinc-400 mb-4 md:mb-8">
