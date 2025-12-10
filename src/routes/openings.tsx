@@ -411,7 +411,7 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
         )}
 
         {/* Sticky Footer Controls */}
-        <div className="sticky bottom-0 lg:hidden px-3 pt-3 pb-4 bg-zinc-800 border-t border-zinc-700 mt-auto safe-bottom">
+        <div className="sticky bottom-0 lg:hidden px-3 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-zinc-800 border-t border-zinc-700 mt-auto">
           <div className="flex gap-2">
             <button
               onClick={resetLine}
@@ -767,7 +767,7 @@ function StudyView({ study }: { study: OpeningStudy }) {
         ) : null}
 
         {/* Sticky Footer Controls */}
-        <div className="sticky bottom-0 lg:hidden px-3 pt-3 pb-4 bg-zinc-800 border-t border-zinc-700 mt-auto safe-bottom">
+        <div className="sticky bottom-0 lg:hidden px-3 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-zinc-800 border-t border-zinc-700 mt-auto">
           <div className="flex gap-2">
             <button
               onClick={goToStart}
@@ -1038,7 +1038,7 @@ function SpeedDrillView({ study }: { study: OpeningStudy }) {
         )}
 
         {/* Sticky Footer Controls */}
-        <div className="sticky bottom-0 lg:hidden px-3 pt-3 pb-4 bg-zinc-800 border-t border-zinc-700 mt-auto safe-bottom">
+        <div className="sticky bottom-0 lg:hidden px-3 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-zinc-800 border-t border-zinc-700 mt-auto">
           <div className="flex gap-2">
             <button
               onClick={handleReset}
@@ -1290,7 +1290,7 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
         </div>
 
         {/* Sticky Footer Controls */}
-        <div className="sticky bottom-0 lg:hidden px-3 pt-3 pb-4 bg-zinc-800 border-t border-zinc-700 mt-auto safe-bottom">
+        <div className="sticky bottom-0 lg:hidden px-3 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-zinc-800 border-t border-zinc-700 mt-auto">
           <div className="flex gap-2">
             {!isCorrect ? (
               <>
