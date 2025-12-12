@@ -1,5 +1,5 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { useState, useRef } from 'react'
+import { createFileRoute, useNavigate, useSearch } from '@tanstack/react-router'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Chessground, type ChessgroundRef } from '@/components/chessground'
 import { PromotionDialog } from '@/components/promotion-dialog'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
@@ -8,7 +8,7 @@ import { useOpeningStudy } from '@/hooks/use-opening-study'
 import { useSpeedDrill, type SpeedDrillStats } from '@/hooks/use-speed-drill'
 import { useMistakesReview, getMistakesDueForReview } from '@/hooks/use-mistakes-review'
 import type { OpeningStudy } from '@/types/opening'
-import { getLineName } from '@/lib/opening-utils'
+import { getLineName, loadOpeningStudyById } from '@/lib/opening-utils'
 import { Navbar } from '@/components/navbar'
 import {
   CompactMoveList,
@@ -37,8 +37,26 @@ import {
   OctagonAlert,
 } from 'lucide-react'
 
+// Search params schema for URL-based navigation
+type OpeningsSearch = {
+  studyId?: string
+  mode?: 'study' | 'practice' | 'speed' | 'mistakes' | 'edit'
+  new?: boolean
+  newName?: string
+  newDesc?: string
+  newColor?: 'white' | 'black'
+}
+
 export const Route = createFileRoute('/openings')({
   component: OpeningsPage,
+  validateSearch: (search: Record<string, unknown>): OpeningsSearch => ({
+    studyId: search.studyId as string | undefined,
+    mode: search.mode as OpeningsSearch['mode'],
+    new: search.new === true || search.new === 'true',
+    newName: search.newName as string | undefined,
+    newDesc: search.newDesc as string | undefined,
+    newColor: search.newColor as 'white' | 'black' | undefined,
+  }),
 })
 
 type PageView = 'selector' | 'study' | 'editor'
@@ -50,40 +68,86 @@ interface NewStudyData {
 }
 
 function OpeningsPage() {
-  const [view, setView] = useState<PageView>('selector')
-  const [selectedStudy, setSelectedStudy] = useState<OpeningStudy | null>(null)
-  const [newStudyData, setNewStudyData] = useState<NewStudyData | null>(null)
+  const navigate = useNavigate({ from: '/openings' })
+  const search = useSearch({ from: '/openings' })
 
-  const handleSelectStudy = (study: OpeningStudy) => {
-    setSelectedStudy(study)
-    setView('study')
-  }
-
-  const handleCreateNew = (data: NewStudyData) => {
-    setNewStudyData(data)
-    setView('editor')
-  }
-
-  const handleSaveEditor = (study: OpeningStudy) => {
-    setSelectedStudy(study)
-    setNewStudyData(null)
-    setView('study')
-  }
-
-  const handleCancelEditor = () => {
-    setNewStudyData(null)
-    if (selectedStudy) {
-      setView('study')
-    } else {
-      setView('selector')
+  // Load study from ID in search params
+  const [selectedStudy, setSelectedStudy] = useState<OpeningStudy | null>(() => {
+    if (search.studyId) {
+      return loadOpeningStudyById(search.studyId)
     }
+    return null
+  })
+
+  // Sync study when URL changes
+  useEffect(() => {
+    if (search.studyId) {
+      const study = loadOpeningStudyById(search.studyId)
+      setSelectedStudy(study)
+    } else {
+      setSelectedStudy(null)
+    }
+  }, [search.studyId])
+
+  // Derive new study data from URL params
+  const newStudyData: NewStudyData | null = search.new
+    ? {
+      name: search.newName || 'New Opening',
+      description: search.newDesc || '',
+      color: search.newColor || 'white',
+    }
+    : null
+
+  // Determine current view from URL
+  const getView = (): PageView => {
+    if (search.new) return 'editor'
+    if (search.studyId && search.mode) return 'study'
+    return 'selector'
   }
 
-  const handleBackToSelector = () => {
-    setSelectedStudy(null)
-    setNewStudyData(null)
-    setView('selector')
-  }
+  const view = getView()
+
+  const handleSelectStudy = useCallback((study: OpeningStudy) => {
+    navigate({
+      search: () => ({ studyId: study.id, mode: 'study' as const }),
+    })
+  }, [navigate])
+
+  const handleCreateNew = useCallback((data: NewStudyData) => {
+    navigate({
+      search: () => ({
+        new: true,
+        newName: data.name,
+        newDesc: data.description,
+        newColor: data.color,
+      }),
+    })
+  }, [navigate])
+
+  const handleSaveEditor = useCallback((study: OpeningStudy) => {
+    setSelectedStudy(study)
+    navigate({
+      search: () => ({ studyId: study.id, mode: 'study' as const }),
+    })
+  }, [navigate])
+
+  const handleCancelEditor = useCallback(() => {
+    if (selectedStudy) {
+      navigate({
+        search: () => ({ studyId: selectedStudy.id, mode: 'study' as const }),
+      })
+    } else {
+      navigate({
+        search: () => ({}),
+      })
+    }
+  }, [navigate, selectedStudy])
+
+  const handleBackToSelector = useCallback(() => {
+    navigate({
+      search: () => ({}),
+    })
+  }, [navigate])
 
   // Render based on current view
   if (view === 'selector') {
@@ -126,20 +190,35 @@ function OpeningsPage() {
   // Study view
   if (!selectedStudy) return null
 
-  return <StudyPageContent study={selectedStudy} onBack={handleBackToSelector} onStudyUpdate={handleSaveEditor} />
+  return (
+    <StudyPageContent
+      study={selectedStudy}
+      mode={search.mode || 'study'}
+      onBack={handleBackToSelector}
+      onStudyUpdate={handleSaveEditor}
+    />
+  )
 }
 
 type StudyMode = 'practice' | 'study' | 'speed' | 'mistakes' | 'edit'
 
 interface StudyPageContentProps {
   study: OpeningStudy
+  mode: StudyMode
   onBack: () => void
   onStudyUpdate: (study: OpeningStudy) => void
 }
 
-function StudyPageContent({ study, onBack, onStudyUpdate }: StudyPageContentProps) {
-  const [mode, setMode] = useState<StudyMode>('study')
+function StudyPageContent({ study, mode, onBack, onStudyUpdate }: StudyPageContentProps) {
+  const navigate = useNavigate({ from: '/openings' })
   const [mistakesCount, setMistakesCount] = useState(() => getMistakesDueForReview(study.id).length)
+
+  // Navigate to a mode
+  const setMode = useCallback((newMode: StudyMode) => {
+    navigate({
+      search: () => ({ studyId: study.id, mode: newMode }),
+    })
+  }, [navigate, study.id])
 
   // Refresh mistakes count when switching to mistakes tab or periodically
   const refreshMistakesCount = () => {

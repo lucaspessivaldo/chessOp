@@ -470,6 +470,14 @@ export function deleteOpeningStudy(id: string): void {
 }
 
 /**
+ * Load a single opening study by ID
+ */
+export function loadOpeningStudyById(id: string): OpeningStudy | null {
+  const studies = loadOpeningStudies()
+  return studies.find(s => s.id === id) || null
+}
+
+/**
  * Get FEN at a specific position in the tree
  * If path is empty, returns the root FEN
  */
