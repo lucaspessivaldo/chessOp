@@ -10,7 +10,7 @@ export const Route = createFileRoute('/')({
 
 function HomePage() {
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-50 selection:bg-blue-500/30">
+    <div className="min-h-screen bg-slate-900 text-zinc-50 selection:bg-blue-500/30">
       <Navbar />
       {/* Background Gradients */}
       <div className="fixed inset-0 z-0 pointer-events-none">
@@ -21,8 +21,9 @@ function HomePage() {
 
       <div className="relative z-10">
         {/* Hero Section */}
-        <section className="relative flex items-center pt-24 pb-28 md:pt-32 md:pb-32 min-h-[calc(100vh-64px)] overflow-hidden">
-          <div className="container mx-auto px-4 md:px-6">
+        <section className="relative flex items-center justify-center w-full pt-24 pb-28 md:pt-32 md:pb-32 min-h-screen overflow-hidden" style={{ backgroundImage: 'url(/hero-img.jpg)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
+          <div className="absolute inset-0 bg-black/70"></div>
+          <div className="container mx-auto px-4 md:px-6 relative z-10">
             <div className="flex flex-col items-center text-center max-w-4xl mx-auto">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-900/60 border border-zinc-800 text-sm text-zinc-400 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
                 <span className="relative flex h-2 w-2">
@@ -33,13 +34,13 @@ function HomePage() {
               </div>
 
               <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-8 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-100">
-                Improve Your <br />
+                Improve your <br />
                 <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-300 via-cyan-300 to-sky-400">
                   Chess Opening Repertoire
                 </span>
               </h1>
 
-              <p className="text-xl md:text-2xl text-zinc-400 max-w-2xl mb-12 leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
+              <p className="text-xl md:text-2xl text-zinc-400 max-w-2xl mb-8 leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
                 Understand the plans, master the patterns, and punish every mistake with our spaced-repetition.
               </p>
 
