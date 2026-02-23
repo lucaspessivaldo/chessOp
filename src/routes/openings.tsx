@@ -152,11 +152,11 @@ function OpeningsPage() {
   // Render based on current view
   if (view === 'selector') {
     return (
-      <div className="min-h-screen bg-zinc-900 pt-14 md:pt-16 px-3 py-4 md:p-6">
+      <div className="min-h-screen bg-surface-0 pt-14 md:pt-16 px-3 py-4 md:p-6">
         <Navbar />
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-2xl md:text-3xl font-bold text-white mb-1 md:mb-2">Opening Studies</h1>
-          <p className="text-sm md:text-base text-zinc-400 mb-4 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold text-text-primary mb-1 md:mb-2">Opening Studies</h1>
+          <p className="text-sm md:text-base text-text-secondary mb-4 md:mb-8">
             Select an opening to study or practice, or create your own repertoire.
           </p>
           <OpeningSelector onSelect={handleSelectStudy} onCreateNew={handleCreateNew} />
@@ -226,24 +226,24 @@ function StudyPageContent({ study, mode, onBack, onStudyUpdate }: StudyPageConte
   }
 
   return (
-    <div className="min-h-full bg-zinc-900 flex flex-col">
+    <div className="min-h-full bg-surface-0 flex flex-col">
       {/* Mode Tabs - Sticky within scroll container */}
-      <div className="sticky top-0 z-40 border-b border-zinc-800 bg-zinc-900 px-3 md:px-6">
+      <div className="sticky top-0 z-40 border-b border-border-subtle bg-surface-0/90 backdrop-blur-md px-3 md:px-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex gap-0.5 md:gap-1 overflow-x-auto scroll-tabs -mx-3 px-3 md:mx-0 md:px-0">
             <button
               onClick={onBack}
-              className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 text-xs md:text-sm font-medium rounded-sm bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700 border-b-2 border-zinc-950 active:border-b-0 active:translate-y-px transition-all whitespace-nowrap touch-target my-1"
+              className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 text-xs md:text-sm font-medium rounded-lg bg-surface-1 text-text-secondary hover:text-text-primary hover:bg-surface-2 transition-all whitespace-nowrap touch-target my-1"
             >
               <ChevronRight className="h-4 w-4 rotate-180" />
               <span className="hidden sm:inline">{study.name}</span>
             </button>
-            <div className="w-px bg-zinc-800 my-2" />
+            <div className="w-px bg-border-subtle my-2" />
             <button
               onClick={() => setMode('study')}
               className={`flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2.5 md:py-3 text-xs md:text-sm font-medium border-b-2 transition-colors whitespace-nowrap touch-target ${mode === 'study'
-                ? 'border-blue-500 text-blue-400'
-                : 'border-transparent text-zinc-400 hover:text-white'
+                ? 'border-accent-blue text-accent-blue'
+                : 'border-transparent text-text-secondary hover:text-text-primary'
                 }`}
             >
               <BookOpen className="h-4 w-4" />
@@ -252,8 +252,8 @@ function StudyPageContent({ study, mode, onBack, onStudyUpdate }: StudyPageConte
             <button
               onClick={() => setMode('practice')}
               className={`flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2.5 md:py-3 text-xs md:text-sm font-medium border-b-2 transition-colors whitespace-nowrap touch-target ${mode === 'practice'
-                ? 'border-blue-500 text-blue-400'
-                : 'border-transparent text-zinc-400 hover:text-white'
+                ? 'border-accent-success text-accent-success'
+                : 'border-transparent text-text-secondary hover:text-text-primary'
                 }`}
             >
               <Play className="h-4 w-4" />
@@ -262,8 +262,8 @@ function StudyPageContent({ study, mode, onBack, onStudyUpdate }: StudyPageConte
             <button
               onClick={() => setMode('speed')}
               className={`flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2.5 md:py-3 text-xs md:text-sm font-medium border-b-2 transition-colors whitespace-nowrap touch-target ${mode === 'speed'
-                ? 'border-blue-500 text-blue-400'
-                : 'border-transparent text-zinc-400 hover:text-white'
+                ? 'border-accent-warning text-accent-warning'
+                : 'border-transparent text-text-secondary hover:text-text-primary'
                 }`}
             >
               <Zap className="h-4 w-4" />
@@ -272,15 +272,15 @@ function StudyPageContent({ study, mode, onBack, onStudyUpdate }: StudyPageConte
             <button
               onClick={() => setMode('mistakes')}
               className={`flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2.5 md:py-3 text-xs md:text-sm font-medium border-b-2 transition-colors whitespace-nowrap touch-target ${mode === 'mistakes'
-                ? 'border-blue-500 text-blue-400'
-                : 'border-transparent text-zinc-400 hover:text-white'
+                ? 'border-accent-danger text-accent-danger'
+                : 'border-transparent text-text-secondary hover:text-text-primary'
                 }`}
             >
               <AlertTriangle className="h-4 w-4" />
               <span className="hidden sm:inline">Mistakes</span>
               <span className="sm:hidden">Fix</span>
               {mistakesCount > 0 && (
-                <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                <span className="bg-accent-danger text-white text-xs px-1.5 py-0.5 rounded-full">
                   {mistakesCount}
                 </span>
               )}
@@ -288,8 +288,8 @@ function StudyPageContent({ study, mode, onBack, onStudyUpdate }: StudyPageConte
             <button
               onClick={() => setMode('edit')}
               className={`flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2.5 md:py-3 text-xs md:text-sm font-medium border-b-2 transition-colors whitespace-nowrap touch-target ${mode === 'edit'
-                ? 'border-blue-500 text-blue-400'
-                : 'border-transparent text-zinc-400 hover:text-white'
+                ? 'border-accent-blue text-accent-blue'
+                : 'border-transparent text-text-secondary hover:text-text-primary'
                 }`}
             >
               <Edit className="h-4 w-4" />
@@ -394,34 +394,34 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
       {/* Mobile Layout */}
       <div className="lg:hidden flex flex-col min-h-full">
         {/* Options Bar */}
-        <div className="px-3 py-3 bg-zinc-800 border-b border-zinc-700">
+        <div className="px-3 py-3 bg-surface-1 border-b border-border-subtle">
           <div className="flex items-center justify-between mb-2 h-8">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-zinc-400">
+              <span className="text-xs text-text-secondary">
                 {progressInfo.completedLines}/{progressInfo.totalLines} lines
               </span>
               {skippedLines.size > 0 && (
-                <span className="text-xs text-yellow-400">({skippedLines.size} skipped)</span>
+                <span className="text-xs text-accent-warning">({skippedLines.size} skipped)</span>
               )}
             </div>
             <div className="flex gap-2">
               <button
                 onClick={() => setShowVariationSelector(true)}
-                className="px-2 py-1.5 rounded-sm text-xs bg-zinc-700 text-zinc-300 touch-target border-b-2 border-zinc-900 active:border-b-0 active:translate-y-px transition-all"
+                className="px-2 py-1.5 rounded-lg text-xs bg-surface-2 text-text-secondary touch-target border-b-2 border-surface-0 active:border-b-0 active:translate-y-px transition-all"
               >
                 Lines
               </button>
               <button
                 onClick={() => setRandomOrder(!randomOrder)}
-                className={`p-1.5 rounded-sm transition-all touch-target border-b-2 active:border-b-0 active:translate-y-px ${randomOrder ? 'bg-blue-600 text-white border-blue-800' : 'bg-zinc-700 text-zinc-400 border-zinc-900'}`}
+                className={`p-1.5 rounded-lg transition-all touch-target border-b-2 active:border-b-0 active:translate-y-px ${randomOrder ? 'bg-accent-blue text-white border-accent-blue/60' : 'bg-surface-2 text-text-muted border-surface-0'}`}
               >
                 <Shuffle className="h-4 w-4" />
               </button>
             </div>
           </div>
-          <div className="w-full bg-zinc-700 rounded-full h-1.5 overflow-hidden">
+          <div className="w-full bg-surface-2 rounded-full h-1.5 overflow-hidden">
             <div
-              className="bg-green-500 h-1.5 rounded-full transition-all duration-300"
+              className="bg-accent-success h-1.5 rounded-full transition-all duration-300"
               style={{ width: `${(progressInfo.completedLines / progressInfo.totalLines) * 100}%` }}
             />
           </div>
@@ -429,7 +429,7 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
 
         {/* Chessboard */}
         <div className="flex items-start justify-center">
-          <div className={`chess-board-container rounded-sm transition-all duration-200 ${showWrongMove ? 'ring-4 ring-red-500 animate-shake' : ''}`}>
+          <div className={`chess-board-container board-wrapper transition-all duration-200 ${showWrongMove ? 'ring-4 ring-accent-danger animate-shake' : ''}`}>
             <Chessground
               key={boardKey}
               ref={chessgroundRef}
@@ -441,18 +441,18 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
 
         {/* Status */}
         {(showWrongMove || status === 'line-complete') && (
-          <div className="px-3 py-2">
+          <div className="px-3 py-2 animate-slide-up">
             {showWrongMove && (
-              <div className="rounded-lg bg-red-500/20 px-4 py-2 text-center">
-                <p className="text-red-400 font-medium text-sm flex items-center justify-center gap-2">
+              <div className="rounded-xl bg-accent-danger/15 px-4 py-2 text-center border border-accent-danger/20">
+                <p className="text-accent-danger font-medium text-sm flex items-center justify-center gap-2">
                   <XCircle className="h-4 w-4" />
                   Wrong move! Try again.
                 </p>
               </div>
             )}
             {status === 'line-complete' && !showWrongMove && (
-              <div className="rounded-lg bg-green-500/20 px-4 py-2 text-center">
-                <p className="text-green-400 font-medium text-sm flex items-center justify-center gap-2">
+              <div className="rounded-xl bg-accent-success/15 px-4 py-2 text-center border border-accent-success/20">
+                <p className="text-accent-success font-medium text-sm flex items-center justify-center gap-2">
                   <CheckCircle className="h-4 w-4" />
                   Line completed!
                 </p>
@@ -462,11 +462,11 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
         )}
 
         {/* Sticky Footer Controls */}
-        <div className="sticky bottom-0 lg:hidden px-3 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-zinc-800 border-t border-zinc-700 mt-auto">
+        <div className="sticky bottom-0 lg:hidden px-3 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-surface-1 border-t border-border-subtle mt-auto">
           <div className="flex gap-2">
             <button
               onClick={resetLine}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-sm bg-zinc-700 py-2.5 text-sm font-medium text-white touch-target border-b-4 border-zinc-900 active:border-b-0 active:translate-y-0.5 transition-all"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-surface-2 py-2.5 text-sm font-medium text-text-primary touch-target border-b-4 border-surface-0 active:border-b-0 active:translate-y-0.5 transition-all"
             >
               <RotateCcw className="h-4 w-4" />
               <span className="sr-only sm:not-sr-only">Restart</span>
@@ -474,16 +474,16 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
             <button
               onClick={increaseHint}
               disabled={hintLevel >= 3 || status !== 'playing'}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-sm bg-zinc-700 py-2.5 text-sm font-medium text-white disabled:opacity-50 touch-target border-b-4 border-zinc-900 active:border-b-0 active:translate-y-0.5 transition-all"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-surface-2 py-2.5 text-sm font-medium text-text-primary disabled:opacity-50 touch-target border-b-4 border-surface-0 active:border-b-0 active:translate-y-0.5 transition-all"
             >
-              <Lightbulb className={`h-4 w-4 ${hintLevel > 0 ? 'text-yellow-400' : ''}`} />
+              <Lightbulb className={`h-4 w-4 ${hintLevel > 0 ? 'text-accent-warning' : ''}`} />
               <span className="sr-only sm:not-sr-only">Hint</span>
               {hintLevel > 0 && <span className="text-xs">({hintLevel})</span>}
             </button>
             {status === 'line-complete' && currentLineIndex < allLines.length - 1 && (
               <button
                 onClick={nextLine}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-sm bg-green-600 py-2.5 text-sm font-medium text-white touch-target border-b-4 border-green-800 active:border-b-0 active:translate-y-0.5 transition-all"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent-success py-2.5 text-sm font-medium text-white touch-target border-b-4 border-accent-success/60 active:border-b-0 active:translate-y-0.5 transition-all"
               >
                 <span className="sr-only sm:not-sr-only">Next</span>
                 <ChevronRight className="h-4 w-4" />
@@ -492,7 +492,7 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
             {progressInfo.completedLines === progressInfo.totalLines && (
               <button
                 onClick={resetProgress}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-sm bg-orange-600 py-2.5 text-sm font-medium text-white touch-target border-b-4 border-orange-800 active:border-b-0 active:translate-y-0.5 transition-all"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent-warning py-2.5 text-sm font-medium text-white touch-target border-b-4 border-accent-warning/60 active:border-b-0 active:translate-y-0.5 transition-all"
               >
                 <RotateCcw className="h-4 w-4" />
                 <span className="sr-only sm:not-sr-only">Reset</span>
@@ -503,9 +503,9 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
       </div>
 
       {/* Desktop Layout */}
-      <div className="hidden lg:flex justify-center gap-8 p-6">
+      <div className="hidden lg:flex justify-center gap-6 p-6">
         {/* Chessboard */}
-        <div className={`h-[600px] w-[600px] shrink-0 rounded-sm transition-all duration-200 ${showWrongMove ? 'ring-4 ring-red-500 animate-shake' : ''}`}>
+        <div className={`h-[600px] w-[600px] shrink-0 board-wrapper transition-all duration-200 ${showWrongMove ? 'ring-4 ring-accent-danger animate-shake' : ''}`}>
           <Chessground
             key={boardKey}
             ref={chessgroundRef}
@@ -515,23 +515,23 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
         </div>
 
         {/* Sidebar */}
-        <div className="w-[350px] rounded-lg bg-zinc-800 overflow-hidden flex flex-col">
+        <div className="w-[350px] rounded-xl bg-surface-1 border border-border-subtle overflow-hidden flex flex-col">
           {/* Practice Options */}
-          <div className="p-4 border-b border-zinc-700">
+          <div className="p-4 border-b border-border-subtle">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-medium text-zinc-400">Options</span>
+              <span className="text-sm font-medium text-text-secondary">Options</span>
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowVariationSelector(true)}
-                  className="px-3 py-1.5 rounded-sm text-sm bg-zinc-700 text-zinc-300 hover:bg-zinc-600 transition-all border-b-2 border-zinc-900 active:border-b-0 active:translate-y-px"
+                  className="px-3 py-1.5 rounded-lg text-sm bg-surface-2 text-text-secondary hover:bg-surface-3 transition-all border-b-2 border-surface-0 active:border-b-0 active:translate-y-px"
                 >
                   Select Lines
                 </button>
                 <button
                   onClick={() => setRandomOrder(!randomOrder)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-sm text-sm transition-all border-b-2 active:border-b-0 active:translate-y-px ${randomOrder
-                    ? 'bg-blue-600 text-white border-blue-800'
-                    : 'bg-zinc-700 text-zinc-400 hover:text-white border-zinc-900'
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-all border-b-2 active:border-b-0 active:translate-y-px ${randomOrder
+                    ? 'bg-accent-blue text-white border-accent-blue/60'
+                    : 'bg-surface-2 text-text-muted hover:text-text-primary border-surface-0'
                     }`}
                 >
                   <Shuffle className="h-4 w-4" />
@@ -539,27 +539,27 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
               </div>
             </div>
             {selectedLineIndices && selectedLineIndices.length < allLines.length && (
-              <p className="text-xs text-blue-400 mt-2">
+              <p className="text-xs text-accent-blue mt-2">
                 Practicing {selectedLineIndices.length} of {allLines.length + (allLines.length - selectedLineIndices.length)} lines
               </p>
             )}
           </div>
 
           {/* Progress Overview */}
-          <div className="p-4 border-b border-zinc-700">
+          <div className="p-4 border-b border-border-subtle">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-zinc-400">Progress</span>
+              <span className="text-sm font-medium text-text-secondary">Progress</span>
               <div className="flex items-center gap-3">
-                <span className="text-sm text-white">
+                <span className="text-sm text-text-primary">
                   {progressInfo.completedLines} / {progressInfo.totalLines} lines
                   {skippedLines.size > 0 && (
-                    <span className="text-yellow-400 ml-1">({skippedLines.size} skipped)</span>
+                    <span className="text-accent-warning ml-1">({skippedLines.size} skipped)</span>
                   )}
                 </span>
                 {(progressInfo.completedLines > 0 || skippedLines.size > 0) && (
                   <button
                     onClick={resetProgress}
-                    className="flex items-center gap-1 px-2 py-1 text-xs rounded-sm bg-zinc-700 text-zinc-400 hover:bg-zinc-600 hover:text-white transition-all border-b-2 border-zinc-900 active:border-b-0 active:translate-y-px"
+                    className="flex items-center gap-1 px-2 py-1 text-xs rounded-lg bg-surface-2 text-text-muted hover:bg-surface-3 hover:text-text-primary transition-all border-b-2 border-surface-0 active:border-b-0 active:translate-y-px"
                     title="Reset all progress"
                   >
                     <RotateCcw className="h-3 w-3" />
@@ -568,42 +568,42 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
                 )}
               </div>
             </div>
-            <div className="w-full bg-zinc-700 rounded-full h-2 overflow-hidden">
+            <div className="w-full bg-surface-2 rounded-full h-2 overflow-hidden">
               <div
-                className="bg-green-500 h-2 rounded-full transition-all duration-300 progress-bar-striped"
+                className="bg-accent-success h-2 rounded-full transition-all duration-300 progress-bar-striped"
                 style={{ width: `${(progressInfo.completedLines / progressInfo.totalLines) * 100}%` }}
               />
             </div>
           </div>
 
           {/* Current Line Selector */}
-          <div className="p-4 border-b border-zinc-700">
+          <div className="p-4 border-b border-border-subtle">
             <button
               onClick={() => setShowLineSelector(!showLineSelector)}
               className="w-full flex items-center justify-between text-left"
             >
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-zinc-400">Current Line</span>
+                  <span className="text-sm text-text-secondary">Current Line</span>
                   {hasPracticeStartMarker && (
-                    <span className={`text-xs px-1.5 py-0.5 rounded ${isCurrentLineSetup
-                      ? 'bg-amber-600/30 text-amber-400'
-                      : 'bg-green-600/30 text-green-400'
+                    <span className={`text-xs px-1.5 py-0.5 rounded-md ${isCurrentLineSetup
+                      ? 'bg-accent-warning/20 text-accent-warning'
+                      : 'bg-accent-success/20 text-accent-success'
                       }`}>
                       {isCurrentLineSetup ? 'Setup' : 'Variation'}
                     </span>
                   )}
                 </div>
-                <p className="text-white font-medium">
+                <p className="text-text-primary font-medium">
                   Line {currentLineIndex + 1}: {getLineName(currentLine, currentLineIndex)}
                 </p>
               </div>
-              <ChevronDown className={`h-5 w-5 text-zinc-400 transition-transform ${showLineSelector ? 'rotate-180' : ''
+              <ChevronDown className={`h-5 w-5 text-text-muted transition-transform ${showLineSelector ? 'rotate-180' : ''
                 }`} />
             </button>
 
             {showLineSelector && (
-              <div className="mt-3 space-y-1 max-h-[200px] overflow-y-auto">
+              <div className="mt-3 space-y-1 max-h-[200px] overflow-y-auto sidebar-scroll">
                 {allLines.map((line, index) => (
                   <button
                     key={index}
@@ -611,13 +611,13 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
                       selectLine(index)
                       setShowLineSelector(false)
                     }}
-                    className={`w-full text-left px-3 py-2 rounded-sm text-sm transition-colors ${index === currentLineIndex
-                      ? 'bg-blue-600 text-white'
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${index === currentLineIndex
+                      ? 'bg-accent-blue text-white'
                       : completedLines.has(index)
-                        ? 'bg-green-600/20 text-green-400'
+                        ? 'bg-accent-success/15 text-accent-success'
                         : skippedLines.has(index)
-                          ? 'bg-yellow-600/20 text-yellow-400'
-                          : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
+                          ? 'bg-accent-warning/15 text-accent-warning'
+                          : 'bg-surface-2 text-text-secondary hover:bg-surface-3'
                       }`}
                   >
                     <span className="flex items-center gap-2">
@@ -636,20 +636,20 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
 
           {/* Status - only show for wrong moves and line complete */}
           {(showWrongMove || status === 'line-complete') && (
-            <div className="p-4 border-t border-zinc-700">
+            <div className="p-4 border-t border-border-subtle animate-slide-up">
               {showWrongMove && (
-                <div className="rounded-md p-4 text-center bg-red-500/20">
-                  <XCircle className="mx-auto mb-2 h-8 w-8 text-red-500" />
-                  <p className="text-red-400 font-medium">Wrong move! Try again.</p>
+                <div className="rounded-xl p-4 text-center bg-accent-danger/15 border border-accent-danger/20">
+                  <XCircle className="mx-auto mb-2 h-8 w-8 text-accent-danger" />
+                  <p className="text-accent-danger font-medium">Wrong move! Try again.</p>
                 </div>
               )}
 
               {status === 'line-complete' && !showWrongMove && (
-                <div className="rounded-md bg-green-500/20 p-4 text-center">
-                  <CheckCircle className="mx-auto mb-2 h-8 w-8 text-green-500" />
-                  <p className="text-green-400 font-medium">Line completed!</p>
+                <div className="rounded-xl bg-accent-success/15 p-4 text-center border border-accent-success/20">
+                  <CheckCircle className="mx-auto mb-2 h-8 w-8 text-accent-success" />
+                  <p className="text-accent-success font-medium">Line completed!</p>
                   {wrongAttempts > 0 && (
-                    <p className="text-xs text-zinc-400 mt-1">
+                    <p className="text-xs text-text-muted mt-1">
                       With {wrongAttempts} wrong {wrongAttempts === 1 ? 'attempt' : 'attempts'}
                     </p>
                   )}
@@ -659,12 +659,12 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
           )}
 
           {/* Controls */}
-          <div className="p-4 border-t border-zinc-700 space-y-3">
+          <div className="p-4 border-t border-border-subtle space-y-3">
             {/* Main controls row */}
             <div className="flex gap-2">
               <button
                 onClick={resetLine}
-                className="flex-1 flex items-center justify-center gap-2 rounded-sm bg-zinc-700 px-3 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-all border-b-4 border-zinc-900 active:border-b-0 active:translate-y-0.5"
+                className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-surface-2 px-3 py-2.5 text-sm font-medium text-text-primary hover:bg-surface-3 transition-all border-b-4 border-surface-0 active:border-b-0 active:translate-y-0.5"
               >
                 <RotateCcw className="h-4 w-4" />
                 Restart
@@ -672,10 +672,10 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
               <button
                 onClick={increaseHint}
                 disabled={hintLevel >= 3 || status !== 'playing'}
-                className="flex-1 flex items-center justify-center gap-2 rounded-sm bg-zinc-700 px-3 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed border-b-4 border-zinc-900 active:border-b-0 active:translate-y-0.5"
+                className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-surface-2 px-3 py-2.5 text-sm font-medium text-text-primary hover:bg-surface-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed border-b-4 border-surface-0 active:border-b-0 active:translate-y-0.5"
                 title={`Hint level: ${hintLevel}/3`}
               >
-                <Lightbulb className={`h-4 w-4 ${hintLevel > 0 ? 'text-yellow-400' : ''}`} />
+                <Lightbulb className={`h-4 w-4 ${hintLevel > 0 ? 'text-accent-warning' : ''}`} />
                 Hint {hintLevel > 0 && `(${hintLevel})`}
               </button>
             </div>
@@ -684,7 +684,7 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
             {status === 'line-complete' && currentLineIndex < allLines.length - 1 && (
               <button
                 onClick={nextLine}
-                className="w-full flex items-center justify-center gap-2 rounded-sm bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-500 transition-all border-b-4 border-green-800 active:border-b-0 active:translate-y-0.5"
+                className="w-full flex items-center justify-center gap-2 rounded-lg bg-accent-success px-4 py-2.5 text-sm font-medium text-white hover:brightness-110 transition-all border-b-4 border-accent-success/60 active:border-b-0 active:translate-y-0.5"
               >
                 Next Line
                 <ChevronRight className="h-4 w-4" />
@@ -695,7 +695,7 @@ function PracticeView({ study, onMistakeMade }: PracticeViewProps) {
             {progressInfo.completedLines === progressInfo.totalLines && (
               <button
                 onClick={resetProgress}
-                className="w-full flex items-center justify-center gap-2 rounded-sm bg-orange-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-orange-500 transition-all border-b-4 border-orange-800 active:border-b-0 active:translate-y-0.5"
+                className="w-full flex items-center justify-center gap-2 rounded-lg bg-accent-warning px-4 py-2.5 text-sm font-medium text-white hover:brightness-110 transition-all border-b-4 border-accent-warning/60 active:border-b-0 active:translate-y-0.5"
               >
                 <RotateCcw className="h-4 w-4" />
                 Reset Practice
@@ -750,17 +750,17 @@ function StudyView({ study }: { study: OpeningStudy }) {
       {/* Lines Selector Modal */}
       <Dialog open={showLinesModal} onOpenChange={setShowLinesModal}>
         <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-md" showCloseButton={false}>
-          <div className="rounded-lg bg-zinc-800 p-4 border border-zinc-700 shadow-xl">
-            <h3 className="text-sm font-medium text-white mb-3">Select Line</h3>
+          <div className="rounded-xl bg-surface-1 p-4 border border-border-subtle shadow-2xl">
+            <h3 className="text-sm font-medium text-text-primary mb-3">Select Line</h3>
 
-            <div className="space-y-1 overflow-y-auto min-h-0 max-h-[60vh] mb-4">
+            <div className="space-y-1 overflow-y-auto min-h-0 max-h-[60vh] mb-4 sidebar-scroll">
               {allLineNodes.map((lineNodes, index) => (
                 <button
                   key={index}
                   onClick={() => { selectLine(index); setShowLinesModal(false) }}
-                  className={`w-full text-left px-3 py-2 rounded-sm text-sm transition-colors flex items-center gap-2 ${index === currentLineIndex
-                    ? 'bg-blue-600/20 text-blue-400 border border-blue-600/30'
-                    : 'bg-zinc-700 text-zinc-400 hover:bg-zinc-600'
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 ${index === currentLineIndex
+                    ? 'bg-accent-blue/15 text-accent-blue border border-accent-blue/20'
+                    : 'bg-surface-2 text-text-secondary hover:bg-surface-3'
                     }`}
                 >
                   {index === currentLineIndex ? (
@@ -776,7 +776,7 @@ function StudyView({ study }: { study: OpeningStudy }) {
             <div className="flex justify-end">
               <button
                 onClick={() => setShowLinesModal(false)}
-                className="w-full rounded-sm bg-zinc-700 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
+                className="w-full rounded-lg bg-surface-2 px-4 py-2 text-sm font-medium text-text-primary hover:bg-surface-3 transition-colors"
               >
                 Cancel
               </button>
@@ -788,24 +788,24 @@ function StudyView({ study }: { study: OpeningStudy }) {
       {/* Mobile Layout */}
       <div className="lg:hidden flex flex-col min-h-full">
         {/* Progress Bar */}
-        <div className="px-3 py-3 bg-zinc-800 border-b border-zinc-700">
+        <div className="px-3 py-3 bg-surface-1 border-b border-border-subtle">
           <div className="flex items-center justify-between mb-2 h-8">
-            <div className="flex items-center gap-2 text-xs text-zinc-400">
+            <div className="flex items-center gap-2 text-xs text-text-secondary">
               <span>Move {moveInfo.current}/{moveInfo.total}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-zinc-400">Line {currentLineIndex + (isComplete ? 1 : 0)}/{allLines.length}</span>
+              <span className="text-xs text-text-secondary">Line {currentLineIndex + (isComplete ? 1 : 0)}/{allLines.length}</span>
               <button
                 onClick={() => setShowLinesModal(true)}
-                className="px-2 py-1.5 rounded-sm text-xs bg-zinc-700 text-zinc-300 touch-target border-b-2 border-zinc-900 active:border-b-0 active:translate-y-px transition-all"
+                className="px-2 py-1.5 rounded-lg text-xs bg-surface-2 text-text-secondary touch-target hover:bg-surface-3 transition-all"
               >
                 Lines
               </button>
             </div>
           </div>
-          <div className="w-full bg-zinc-700 rounded-full h-1.5 overflow-hidden">
+          <div className="w-full bg-surface-2 rounded-full h-1.5 overflow-hidden">
             <div
-              className="bg-blue-500 h-1.5 rounded-full transition-all duration-300"
+              className="bg-accent-blue h-1.5 rounded-full transition-all duration-300"
               style={{ width: `${((currentLineIndex + (isComplete ? 1 : 0)) / allLines.length) * 100}%` }}
             />
           </div>
@@ -813,7 +813,7 @@ function StudyView({ study }: { study: OpeningStudy }) {
 
         {/* Chessboard */}
         <div className="flex items-start justify-center">
-          <div className="chess-board-container rounded-sm">
+          <div className="chess-board-container board-wrapper">
             <Chessground
               ref={chessgroundRef}
               config={chessgroundConfig}
@@ -824,27 +824,27 @@ function StudyView({ study }: { study: OpeningStudy }) {
 
         {/* Comment / Status */}
         {isComplete ? (
-          <div className="mx-3 mt-2 rounded-lg bg-green-500/20 px-4 py-2 text-center">
-            <p className="text-green-400 font-medium text-sm flex items-center justify-center gap-2">
+          <div className="mx-3 mt-2 rounded-xl bg-accent-success/15 px-4 py-2 text-center border border-accent-success/20 animate-slide-up">
+            <p className="text-accent-success font-medium text-sm flex items-center justify-center gap-2">
               <CheckCircle className="h-4 w-4" />
               {isStudyComplete ? 'Study completed!' : 'Line completed!'}
             </p>
           </div>
         ) : currentComment ? (
-          <div className="mx-3 mt-2 rounded-lg bg-amber-500/15 px-3 py-2 border border-amber-500/30">
-            <p className="text-sm text-amber-100 flex items-start gap-2">
-              <OctagonAlert className="h-4 w-4 mt-0.5 shrink-0 text-amber-400" />
+          <div className="mx-3 mt-2 rounded-xl bg-accent-warning/10 px-3 py-2 border border-accent-warning/20 animate-slide-up">
+            <p className="text-sm text-text-primary flex items-start gap-2">
+              <OctagonAlert className="h-4 w-4 mt-0.5 shrink-0 text-accent-warning" />
               {currentComment}
             </p>
           </div>
         ) : null}
 
         {/* Sticky Footer Controls */}
-        <div className="sticky bottom-0 lg:hidden px-3 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-zinc-800 border-t border-zinc-700 mt-auto">
+        <div className="sticky bottom-0 lg:hidden px-3 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-surface-1 border-t border-border-subtle mt-auto">
           <div className="flex gap-2">
             <button
               onClick={goToStart}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-sm bg-zinc-700 py-2.5 text-sm font-medium text-white touch-target border-b-4 border-zinc-900 active:border-b-0 active:translate-y-0.5 transition-all"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-surface-2 py-2.5 text-sm font-medium text-text-primary touch-target hover:bg-surface-3 transition-all"
             >
               <RotateCcw className="h-4 w-4" />
               <span className="sr-only sm:not-sr-only">Restart</span>
@@ -852,7 +852,7 @@ function StudyView({ study }: { study: OpeningStudy }) {
             {isComplete && currentLineIndex < allLines.length - 1 && (
               <button
                 onClick={nextLine}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-sm bg-green-600 py-2.5 text-sm font-medium text-white touch-target border-b-4 border-green-800 active:border-b-0 active:translate-y-0.5 transition-all"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent-success py-2.5 text-sm font-medium text-white touch-target hover:brightness-110 transition-all"
               >
                 <span className="sr-only sm:not-sr-only">Next</span>
                 <ChevronRight className="h-4 w-4" />
@@ -861,7 +861,7 @@ function StudyView({ study }: { study: OpeningStudy }) {
             {isStudyComplete && (
               <button
                 onClick={restartStudy}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-sm bg-orange-600 py-2.5 text-sm font-medium text-white touch-target border-b-4 border-orange-800 active:border-b-0 active:translate-y-0.5 transition-all"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent-warning py-2.5 text-sm font-medium text-white touch-target hover:brightness-110 transition-all"
               >
                 <RotateCcw className="h-4 w-4" />
                 <span className="sr-only sm:not-sr-only">Reset</span>
@@ -872,10 +872,10 @@ function StudyView({ study }: { study: OpeningStudy }) {
       </div>
 
       {/* Desktop Layout */}
-      <div className="hidden lg:flex justify-center gap-8 p-6">
+      <div className="hidden lg:flex justify-center gap-6 p-6">
 
         {/* Board */}
-        <div className="h-[600px] w-[600px] shrink-0 rounded-sm overflow-hidden">
+        <div className="h-[600px] w-[600px] shrink-0 board-wrapper">
           <Chessground
             ref={chessgroundRef}
             config={chessgroundConfig}
@@ -884,43 +884,43 @@ function StudyView({ study }: { study: OpeningStudy }) {
         </div>
 
         {/* Sidebar */}
-        <div className="w-[350px] rounded-lg bg-zinc-800 overflow-hidden flex flex-col">
+        <div className="w-[350px] rounded-xl bg-surface-1 border border-border-subtle overflow-hidden flex flex-col">
           {/* Progress Overview */}
-          <div className="p-4 border-b border-zinc-700">
+          <div className="p-4 border-b border-border-subtle">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-zinc-400">Progress</span>
-              <span className="text-sm text-white">
+              <span className="text-sm font-medium text-text-secondary">Progress</span>
+              <span className="text-sm text-text-primary">
                 {currentLineIndex + (isComplete ? 1 : 0)} / {allLines.length} lines
               </span>
             </div>
-            <div className="w-full bg-zinc-700 rounded-full h-2 overflow-hidden">
+            <div className="w-full bg-surface-2 rounded-full h-2 overflow-hidden">
               <div
-                className="bg-blue-500 h-2 rounded-full transition-all duration-300 progress-bar-striped"
+                className="bg-accent-blue h-2 rounded-full transition-all duration-300 progress-bar-striped"
                 style={{ width: `${((currentLineIndex + (isComplete ? 1 : 0)) / allLines.length) * 100}%` }}
               />
             </div>
-            <p className="text-xs text-zinc-500 mt-2">
+            <p className="text-xs text-text-muted mt-2">
               Move {moveInfo.current} of {moveInfo.total}
             </p>
           </div>
 
           {/* Current Line Selector */}
-          <div className="p-4 border-b border-zinc-700">
+          <div className="p-4 border-b border-border-subtle">
             <button
               onClick={() => setShowLineSelector(!showLineSelector)}
               className="w-full flex items-center justify-between text-left"
             >
               <div>
-                <span className="text-sm text-zinc-400">Current Line</span>
-                <p className="text-white font-medium">
+                <span className="text-sm text-text-secondary">Current Line</span>
+                <p className="text-text-primary font-medium">
                   Line {currentLineIndex + 1}: {getLineName(currentLine, currentLineIndex)}
                 </p>
               </div>
-              <ChevronDown className={`h-5 w-5 text-zinc-400 transition-transform ${showLineSelector ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`h-5 w-5 text-text-muted transition-transform ${showLineSelector ? 'rotate-180' : ''}`} />
             </button>
 
             {showLineSelector && (
-              <div className="mt-3 space-y-1 max-h-[200px] overflow-y-auto">
+              <div className="mt-3 space-y-1 max-h-[200px] overflow-y-auto sidebar-scroll">
                 {allLineNodes.map((lineNodes, index) => (
                   <button
                     key={index}
@@ -928,9 +928,9 @@ function StudyView({ study }: { study: OpeningStudy }) {
                       selectLine(index)
                       setShowLineSelector(false)
                     }}
-                    className={`w-full text-left px-3 py-2 rounded-sm text-sm transition-colors ${index === currentLineIndex
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${index === currentLineIndex
+                      ? 'bg-accent-blue text-white'
+                      : 'bg-surface-2 text-text-secondary hover:bg-surface-3'
                       }`}
                   >
                     <span className="flex items-center gap-2">
@@ -944,8 +944,8 @@ function StudyView({ study }: { study: OpeningStudy }) {
           </div>
 
           {/* Current Moves */}
-          <div className="p-4 flex-1 overflow-y-auto">
-            <h3 className="text-sm font-medium text-zinc-400 mb-3">Moves</h3>
+          <div className="p-4 flex-1 overflow-y-auto sidebar-scroll">
+            <h3 className="text-sm font-medium text-text-secondary mb-3">Moves</h3>
             <CompactMoveList
               line={currentLine}
               currentMoveIndex={moveInfo.current}
@@ -955,47 +955,47 @@ function StudyView({ study }: { study: OpeningStudy }) {
 
           {/* Status / Comment Area */}
           {isComplete ? (
-            <div className="bg-green-500/20 p-4 text-center border-t border-zinc-700">
-              <CheckCircle className="mx-auto mb-2 h-8 w-8 text-green-500" />
-              <p className="text-green-400 font-medium">
+            <div className="bg-accent-success/15 p-4 text-center border-t border-border-subtle animate-slide-up">
+              <CheckCircle className="mx-auto mb-2 h-8 w-8 text-accent-success" />
+              <p className="text-accent-success font-medium">
                 {isStudyComplete ? 'Study completed!' : 'Line completed!'}
               </p>
             </div>
           ) : currentComment ? (
-            <div className="bg-amber-500/15 p-4 border-t border-amber-500/40">
+            <div className="bg-accent-warning/10 p-4 border-t border-accent-warning/20 animate-slide-up">
               <div className="flex items-start gap-3">
-                <OctagonAlert className="h-5 w-5 text-amber-400 mt-0.5 shrink-0" />
-                <p className="text-sm text-amber-100">{currentComment}</p>
+                <OctagonAlert className="h-5 w-5 text-accent-warning mt-0.5 shrink-0" />
+                <p className="text-sm text-text-primary">{currentComment}</p>
               </div>
             </div>
           ) : null}
 
           {/* Controls */}
-          <div className="p-4 border-t border-zinc-700 space-y-2">
+          <div className="p-4 border-t border-border-subtle space-y-2">
             <button
               onClick={goToStart}
-              className="w-full flex items-center justify-center gap-2 rounded-sm bg-zinc-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-all border-b-4 border-zinc-900 active:border-b-0 active:translate-y-0.5"
+              className="w-full flex items-center justify-center gap-2 rounded-lg bg-surface-2 px-4 py-2.5 text-sm font-medium text-text-primary hover:bg-surface-3 transition-all"
             >
               <RotateCcw className="h-4 w-4" />
               Restart Line
             </button>
 
-            {/* Next Line Button - only show when line is complete and not on last line */}
+            {/* Next Line Button */}
             {isComplete && currentLineIndex < allLines.length - 1 && (
               <button
                 onClick={nextLine}
-                className="w-full flex items-center justify-center gap-2 rounded-sm bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-500 transition-all border-b-4 border-green-800 active:border-b-0 active:translate-y-0.5"
+                className="w-full flex items-center justify-center gap-2 rounded-lg bg-accent-success px-4 py-2.5 text-sm font-medium text-white hover:brightness-110 transition-all"
               >
                 Next Line
                 <ChevronRight className="h-4 w-4" />
               </button>
             )}
 
-            {/* Restart Study Button - show when all lines are complete */}
+            {/* Restart Study Button */}
             {isStudyComplete && (
               <button
                 onClick={restartStudy}
-                className="w-full flex items-center justify-center gap-2 rounded-sm bg-orange-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-orange-500 transition-all border-b-4 border-orange-800 active:border-b-0 active:translate-y-0.5"
+                className="w-full flex items-center justify-center gap-2 rounded-lg bg-accent-warning px-4 py-2.5 text-sm font-medium text-white hover:brightness-110 transition-all"
               >
                 <RotateCcw className="h-4 w-4" />
                 Restart Study
@@ -1056,17 +1056,17 @@ function SpeedDrillView({ study }: { study: OpeningStudy }) {
       {/* Mobile Layout */}
       <div className="lg:hidden flex flex-col min-h-full">
         {/* Timer & Progress */}
-        <div className="px-3 py-3 bg-zinc-800 border-b border-zinc-700">
+        <div className="px-3 py-3 bg-surface-1 border-b border-border-subtle">
           <div className="flex items-center justify-between mb-2 h-8">
             <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-yellow-400" />
-              <span className="text-2xl font-mono font-bold text-white">{formatTime(elapsedMs)}</span>
+              <Clock className="h-5 w-5 text-accent-warning" />
+              <span className="text-2xl font-mono font-bold text-text-primary">{formatTime(elapsedMs)}</span>
             </div>
-            <span className="text-xs text-zinc-400">Line {progress.currentLine}/{progress.totalLines}</span>
+            <span className="text-xs text-text-secondary">Line {progress.currentLine}/{progress.totalLines}</span>
           </div>
-          <div className="h-1.5 bg-zinc-700 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-surface-2 rounded-full overflow-hidden">
             <div
-              className="h-full bg-yellow-500 transition-all duration-150"
+              className="h-full bg-accent-warning transition-all duration-150"
               style={{ width: `${progress.overallProgress}%` }}
             />
           </div>
@@ -1074,7 +1074,7 @@ function SpeedDrillView({ study }: { study: OpeningStudy }) {
 
         {/* Chessboard */}
         <div className="flex items-start justify-center">
-          <div className="chess-board-container rounded-sm" key={boardKey}>
+          <div className="chess-board-container board-wrapper" key={boardKey}>
             <Chessground ref={chessgroundRef} config={config} onMove={makeMove} />
           </div>
         </div>
@@ -1082,40 +1082,40 @@ function SpeedDrillView({ study }: { study: OpeningStudy }) {
         {/* Stats Grid */}
         <div className="px-3 py-2 grid grid-cols-4 gap-2 text-center">
           <div>
-            <p className="text-lg font-bold text-green-400">{(finalStats ?? stats).correctMoves}</p>
-            <p className="text-xs text-zinc-500">Correct</p>
+            <p className="text-lg font-bold text-accent-success">{(finalStats ?? stats).correctMoves}</p>
+            <p className="text-xs text-text-muted">Correct</p>
           </div>
           <div>
-            <p className="text-lg font-bold text-red-400">{(finalStats ?? stats).wrongMoves}</p>
-            <p className="text-xs text-zinc-500">Wrong</p>
+            <p className="text-lg font-bold text-accent-danger">{(finalStats ?? stats).wrongMoves}</p>
+            <p className="text-xs text-text-muted">Wrong</p>
           </div>
           <div>
-            <p className="text-lg font-bold text-blue-400">{(finalStats ?? stats).accuracy.toFixed(0)}%</p>
-            <p className="text-xs text-zinc-500">Accuracy</p>
+            <p className="text-lg font-bold text-accent-blue">{(finalStats ?? stats).accuracy.toFixed(0)}%</p>
+            <p className="text-xs text-text-muted">Accuracy</p>
           </div>
           <div>
-            <p className="text-lg font-bold text-yellow-400">
+            <p className="text-lg font-bold text-accent-warning">
               {(finalStats ?? stats).correctMoves > 0 ? ((finalStats ?? stats).averageTimePerMove / 1000).toFixed(1) : '0'}s
             </p>
-            <p className="text-xs text-zinc-500">Avg</p>
+            <p className="text-xs text-text-muted">Avg</p>
           </div>
         </div>
 
         {/* Results */}
         {showResults && finalStats && (
-          <div className="mx-3 rounded-lg bg-yellow-500/10 px-4 py-3 text-center border border-yellow-500/30">
-            <Trophy className="mx-auto h-8 w-8 text-yellow-400 mb-2" />
-            <p className="font-bold text-white">Drill Complete!</p>
-            <p className="text-xs text-zinc-400 mt-1">Time: {formatTime(finalStats.timeMs)} | Accuracy: {finalStats.accuracy.toFixed(0)}%</p>
+          <div className="mx-3 rounded-xl bg-accent-warning/10 px-4 py-3 text-center border border-accent-warning/20 animate-slide-up">
+            <Trophy className="mx-auto h-8 w-8 text-accent-warning mb-2" />
+            <p className="font-bold text-text-primary">Drill Complete!</p>
+            <p className="text-xs text-text-secondary mt-1">Time: {formatTime(finalStats.timeMs)} | Accuracy: {finalStats.accuracy.toFixed(0)}%</p>
           </div>
         )}
 
         {/* Sticky Footer Controls */}
-        <div className="sticky bottom-0 lg:hidden px-3 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-zinc-800 border-t border-zinc-700 mt-auto">
+        <div className="sticky bottom-0 lg:hidden px-3 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-surface-1 border-t border-border-subtle mt-auto">
           <div className="flex gap-2">
             <button
               onClick={handleReset}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-sm bg-yellow-600 py-2.5 text-sm font-medium text-white touch-target border-b-4 border-yellow-800 active:border-b-0 active:translate-y-0.5 transition-all"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent-warning py-2.5 text-sm font-medium text-white touch-target hover:brightness-110 transition-all"
             >
               <RotateCcw className="h-4 w-4" />
               {isComplete ? 'Try Again' : 'Reset'}
@@ -1125,9 +1125,9 @@ function SpeedDrillView({ study }: { study: OpeningStudy }) {
       </div>
 
       {/* Desktop Layout */}
-      <div className="hidden lg:flex justify-center gap-8 p-6">
+      <div className="hidden lg:flex justify-center gap-6 p-6">
         {/* Board */}
-        <div className="h-[600px] w-[600px] shrink-0 overflow-hidden" key={boardKey}>
+        <div className="h-[600px] w-[600px] shrink-0 board-wrapper" key={boardKey}>
           <Chessground
             ref={chessgroundRef}
             config={config}
@@ -1136,70 +1136,70 @@ function SpeedDrillView({ study }: { study: OpeningStudy }) {
         </div>
 
         {/* Sidebar */}
-        <div className="w-[350px] rounded-lg bg-zinc-800 overflow-hidden flex flex-col">
+        <div className="w-[350px] rounded-xl bg-surface-1 border border-border-subtle overflow-hidden flex flex-col">
           {/* Timer Display */}
-          <div className="p-4 border-b border-zinc-700 text-center">
-            <Clock className="mx-auto h-8 w-8 text-yellow-400 mb-2" />
-            <p className="text-4xl font-mono font-bold text-white">
+          <div className="p-4 border-b border-border-subtle text-center">
+            <Clock className="mx-auto h-8 w-8 text-accent-warning mb-2" />
+            <p className="text-4xl font-mono font-bold text-text-primary">
               {formatTime(elapsedMs)}
             </p>
             {!isRunning && !isComplete && (
-              <p className="text-xs text-zinc-500 mt-2">Make a move to start</p>
+              <p className="text-xs text-text-muted mt-2">Make a move to start</p>
             )}
           </div>
 
           {/* Progress */}
-          <div className="p-4 border-b border-zinc-700">
+          <div className="p-4 border-b border-border-subtle">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-zinc-400">Progress</h3>
-              <span className="text-sm text-zinc-500">
+              <h3 className="text-sm font-medium text-text-secondary">Progress</h3>
+              <span className="text-sm text-text-muted">
                 Line {progress.currentLine} / {progress.totalLines}
               </span>
             </div>
-            <div className="h-2 bg-zinc-700 rounded-full overflow-hidden">
+            <div className="h-2 bg-surface-2 rounded-full overflow-hidden">
               <div
-                className="h-full bg-yellow-500 transition-all duration-150 progress-bar-striped"
+                className="h-full bg-accent-warning transition-all duration-150 progress-bar-striped"
                 style={{ width: `${progress.overallProgress}%` }}
               />
             </div>
           </div>
 
           {/* Live Stats */}
-          <div className="p-4 border-b border-zinc-700">
-            <h3 className="text-sm font-medium text-zinc-400 mb-3">Stats</h3>
+          <div className="p-4 border-b border-border-subtle">
+            <h3 className="text-sm font-medium text-text-secondary mb-3">Stats</h3>
             <div className="grid grid-cols-2 gap-3">
               <div className="text-center">
-                <p className="text-2xl font-bold text-green-400">{(finalStats ?? stats).correctMoves}</p>
-                <p className="text-xs text-zinc-500">Correct</p>
+                <p className="text-2xl font-bold text-accent-success">{(finalStats ?? stats).correctMoves}</p>
+                <p className="text-xs text-text-muted">Correct</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold text-red-400">{(finalStats ?? stats).wrongMoves}</p>
-                <p className="text-xs text-zinc-500">Wrong</p>
+                <p className="text-2xl font-bold text-accent-danger">{(finalStats ?? stats).wrongMoves}</p>
+                <p className="text-xs text-text-muted">Wrong</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold text-blue-400">
+                <p className="text-2xl font-bold text-accent-blue">
                   {(finalStats ?? stats).accuracy.toFixed(0)}%
                 </p>
-                <p className="text-xs text-zinc-500">Accuracy</p>
+                <p className="text-xs text-text-muted">Accuracy</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold text-yellow-400">
+                <p className="text-2xl font-bold text-accent-warning">
                   {(finalStats ?? stats).correctMoves > 0 ? ((finalStats ?? stats).averageTimePerMove / 1000).toFixed(1) : '0.0'}s
                 </p>
-                <p className="text-xs text-zinc-500">Avg/Move</p>
+                <p className="text-xs text-text-muted">Avg/Move</p>
               </div>
             </div>
           </div>
 
           {/* Results Panel */}
           {showResults && finalStats && (
-            <div className="p-4 border-b border-zinc-700 bg-yellow-500/10">
-              <Trophy className="mx-auto h-10 w-10 text-yellow-400 mb-3" />
-              <h3 className="text-lg font-bold text-white text-center mb-2">Drill Complete!</h3>
+            <div className="p-4 border-b border-border-subtle bg-accent-warning/10 animate-slide-up">
+              <Trophy className="mx-auto h-10 w-10 text-accent-warning mb-3" />
+              <h3 className="text-lg font-bold text-text-primary text-center mb-2">Drill Complete!</h3>
               <div className="space-y-1 text-sm">
-                <p className="text-zinc-300">Time: <span className="text-white font-medium">{formatTime(finalStats.timeMs)}</span></p>
-                <p className="text-zinc-300">Accuracy: <span className="text-white font-medium">{finalStats.accuracy.toFixed(1)}%</span></p>
-                <p className="text-zinc-300">Avg per move: <span className="text-white font-medium">{(finalStats.averageTimePerMove / 1000).toFixed(2)}s</span></p>
+                <p className="text-text-secondary">Time: <span className="text-text-primary font-medium">{formatTime(finalStats.timeMs)}</span></p>
+                <p className="text-text-secondary">Accuracy: <span className="text-text-primary font-medium">{finalStats.accuracy.toFixed(1)}%</span></p>
+                <p className="text-text-secondary">Avg per move: <span className="text-text-primary font-medium">{(finalStats.averageTimePerMove / 1000).toFixed(2)}s</span></p>
               </div>
             </div>
           )}
@@ -1208,10 +1208,10 @@ function SpeedDrillView({ study }: { study: OpeningStudy }) {
           <div className="flex-1" />
 
           {/* Controls */}
-          <div className="p-4 border-t border-zinc-700">
+          <div className="p-4 border-t border-border-subtle">
             <button
               onClick={handleReset}
-              className="w-full flex items-center justify-center gap-2 rounded-sm bg-yellow-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-yellow-500 transition-all border-b-4 border-yellow-800 active:border-b-0 active:translate-y-0.5"
+              className="w-full flex items-center justify-center gap-2 rounded-lg bg-accent-warning px-4 py-2.5 text-sm font-medium text-white hover:brightness-110 transition-all"
             >
               <RotateCcw className="h-4 w-4" />
               {isComplete ? 'Try Again' : 'Reset'}
@@ -1256,13 +1256,13 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
     return (
       <div className="flex justify-center p-4 md:p-6">
         <div className="max-w-md text-center">
-          <Target className="mx-auto h-12 w-12 md:h-16 md:w-16 text-zinc-600 mb-4" />
-          <h2 className="text-lg md:text-xl font-bold text-white mb-2">No Mistakes Yet!</h2>
-          <p className="text-sm md:text-base text-zinc-400 mb-4">
+          <Target className="mx-auto h-12 w-12 md:h-16 md:w-16 text-text-muted mb-4" />
+          <h2 className="text-lg md:text-xl font-bold text-text-primary mb-2">No Mistakes Yet!</h2>
+          <p className="text-sm md:text-base text-text-secondary mb-4">
             Practice your opening and any mistakes you make will appear here for review.
           </p>
-          <p className="text-xs md:text-sm text-zinc-500">
-            Mistakes are tracked with spaced repetition - harder positions will appear more frequently.
+          <p className="text-xs md:text-sm text-text-muted">
+            Mistakes are tracked with spaced repetition — harder positions will appear more frequently.
           </p>
         </div>
       </div>
@@ -1273,9 +1273,9 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
     return (
       <div className="flex justify-center p-4 md:p-6">
         <div className="max-w-md text-center">
-          <CheckCircle className="mx-auto h-12 w-12 md:h-16 md:w-16 text-green-500 mb-4" />
-          <h2 className="text-lg md:text-xl font-bold text-white mb-2">All Caught Up!</h2>
-          <p className="text-sm md:text-base text-zinc-400">
+          <CheckCircle className="mx-auto h-12 w-12 md:h-16 md:w-16 text-accent-success mb-4" />
+          <h2 className="text-lg md:text-xl font-bold text-text-primary mb-2">All Caught Up!</h2>
+          <p className="text-sm md:text-base text-text-secondary">
             No mistakes due for review right now. Keep practicing!
           </p>
         </div>
@@ -1297,14 +1297,14 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
       {/* Mobile Layout */}
       <div className="lg:hidden flex flex-col min-h-full">
         {/* Info & Progress */}
-        <div className="px-3 py-3 bg-orange-500/10 border-b border-orange-500/30">
+        <div className="px-3 py-3 bg-accent-danger/8 border-b border-accent-danger/15">
           <div className="flex items-center justify-between mb-2 h-8">
-            <span className="text-xs font-medium text-orange-400">Mistakes Review</span>
-            <span className="text-xs text-zinc-400">{currentIndex + 1}/{totalMistakes}</span>
+            <span className="text-xs font-medium text-accent-danger">Mistakes Review</span>
+            <span className="text-xs text-text-secondary">{currentIndex + 1}/{totalMistakes}</span>
           </div>
-          <div className="h-1.5 bg-zinc-700 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-surface-2 rounded-full overflow-hidden">
             <div
-              className="h-full bg-orange-500 transition-all duration-300"
+              className="h-full bg-accent-danger transition-all duration-300"
               style={{ width: `${((currentIndex + (isCorrect ? 1 : 0)) / totalMistakes) * 100}%` }}
             />
           </div>
@@ -1312,37 +1312,37 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
 
         {/* Chessboard */}
         <div className="flex items-start justify-center">
-          <div className="chess-board-container rounded-sm" key={boardKey}>
+          <div className="chess-board-container board-wrapper" key={boardKey}>
             <Chessground ref={chessgroundRef} config={config} onMove={makeMove} />
           </div>
         </div>
 
         {/* Position Info */}
         {parentNode && (
-          <div className="px-3 py-2 bg-zinc-800/50">
-            <p className="text-xs text-zinc-400">Find the move after: <span className="text-white font-bold">{parentNode.san}</span></p>
+          <div className="px-3 py-2 bg-surface-1/50">
+            <p className="text-xs text-text-secondary">Find the move after: <span className="text-text-primary font-bold">{parentNode.san}</span></p>
           </div>
         )}
 
         {/* Status */}
         <div className="px-3 py-2">
           {isCorrect ? (
-            <div className="rounded-lg bg-green-500/20 px-4 py-2 text-center">
-              <p className="text-green-400 font-medium text-sm flex items-center justify-center gap-2">
+            <div className="rounded-xl bg-accent-success/15 px-4 py-2 text-center border border-accent-success/20 animate-slide-up">
+              <p className="text-accent-success font-medium text-sm flex items-center justify-center gap-2">
                 <CheckCircle className="h-4 w-4" />
                 Correct!
               </p>
             </div>
           ) : showWrongMove ? (
-            <div className="rounded-lg bg-red-500/20 px-4 py-2 text-center">
-              <p className="text-red-400 font-medium text-sm flex items-center justify-center gap-2">
+            <div className="rounded-xl bg-accent-danger/15 px-4 py-2 text-center border border-accent-danger/20 animate-slide-up">
+              <p className="text-accent-danger font-medium text-sm flex items-center justify-center gap-2">
                 <XCircle className="h-4 w-4" />
                 Wrong move! Try again.
               </p>
             </div>
           ) : (
-            <div className="rounded-lg bg-blue-500/20 px-4 py-2 text-center">
-              <p className="text-blue-400 font-medium text-sm">
+            <div className="rounded-xl bg-accent-blue/15 px-4 py-2 text-center border border-accent-blue/20">
+              <p className="text-accent-blue font-medium text-sm">
                 Find the correct move!
                 {wrongAttempts > 0 && ` (${wrongAttempts} wrong)`}
               </p>
@@ -1353,31 +1353,31 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
         {/* Stats */}
         <div className="px-3 py-2 flex justify-center gap-6">
           <div className="text-center">
-            <p className="text-lg font-bold text-green-400">{correctCount}</p>
-            <p className="text-xs text-zinc-500">Correct</p>
+            <p className="text-lg font-bold text-accent-success">{correctCount}</p>
+            <p className="text-xs text-text-muted">Correct</p>
           </div>
           <div className="text-center">
-            <p className="text-lg font-bold text-red-400">{wrongCount}</p>
-            <p className="text-xs text-zinc-500">Wrong</p>
+            <p className="text-lg font-bold text-accent-danger">{wrongCount}</p>
+            <p className="text-xs text-text-muted">Wrong</p>
           </div>
         </div>
 
         {/* Sticky Footer Controls */}
-        <div className="sticky bottom-0 lg:hidden px-3 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-zinc-800 border-t border-zinc-700 mt-auto">
+        <div className="sticky bottom-0 lg:hidden px-3 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-surface-1 border-t border-border-subtle mt-auto">
           <div className="flex gap-2">
             {!isCorrect ? (
               <>
                 <button
                   onClick={showHint}
                   disabled={hintLevel >= 2}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-sm bg-zinc-700 py-2.5 text-sm font-medium text-white disabled:opacity-50 touch-target border-b-4 border-zinc-900 active:border-b-0 active:translate-y-0.5 transition-all"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-surface-2 py-2.5 text-sm font-medium text-text-primary disabled:opacity-50 touch-target hover:bg-surface-3 transition-all"
                 >
-                  <Lightbulb className={`h-4 w-4 ${hintLevel > 0 ? 'text-yellow-400' : ''}`} />
+                  <Lightbulb className={`h-4 w-4 ${hintLevel > 0 ? 'text-accent-warning' : ''}`} />
                   <span className="sr-only sm:not-sr-only">Hint</span>
                 </button>
                 <button
                   onClick={skipMistake}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-sm bg-zinc-700 py-2.5 text-sm font-medium text-white touch-target border-b-4 border-zinc-900 active:border-b-0 active:translate-y-0.5 transition-all"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-surface-2 py-2.5 text-sm font-medium text-text-primary touch-target hover:bg-surface-3 transition-all"
                 >
                   <SkipForward className="h-4 w-4" />
                   <span className="sr-only sm:not-sr-only">Skip</span>
@@ -1386,7 +1386,7 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
             ) : currentIndex < totalMistakes - 1 ? (
               <button
                 onClick={nextMistake}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-sm bg-green-600 py-2.5 text-sm font-medium text-white touch-target border-b-4 border-green-800 active:border-b-0 active:translate-y-0.5 transition-all"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent-success py-2.5 text-sm font-medium text-white touch-target hover:brightness-110 transition-all"
               >
                 <span className="sr-only sm:not-sr-only">Next</span>
                 <ChevronRight className="h-4 w-4" />
@@ -1394,7 +1394,7 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
             ) : (
               <button
                 onClick={nextMistake}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-sm bg-green-600 py-2.5 text-sm font-medium text-white touch-target border-b-4 border-green-800 active:border-b-0 active:translate-y-0.5 transition-all"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent-success py-2.5 text-sm font-medium text-white touch-target hover:brightness-110 transition-all"
               >
                 <Trophy className="h-4 w-4" />
                 <span className="sr-only sm:not-sr-only">Finish</span>
@@ -1405,9 +1405,9 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
       </div>
 
       {/* Desktop Layout */}
-      <div className="hidden lg:flex justify-center gap-8 p-6">
+      <div className="hidden lg:flex justify-center gap-6 p-6">
         {/* Board */}
-        <div className="h-[600px] w-[600px] shrink-0 overflow-hidden" key={boardKey}>
+        <div className="h-[600px] w-[600px] shrink-0 board-wrapper" key={boardKey}>
           <Chessground
             ref={chessgroundRef}
             config={config}
@@ -1416,26 +1416,26 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
         </div>
 
         {/* Sidebar */}
-        <div className="w-[350px] rounded-lg bg-zinc-800 overflow-hidden flex flex-col">
+        <div className="w-[350px] rounded-xl bg-surface-1 border border-border-subtle overflow-hidden flex flex-col">
           {/* Info Header */}
-          <div className="p-4 border-b border-zinc-700 bg-orange-500/10">
-            <h3 className="text-sm font-medium text-orange-400 mb-1">Mistakes Review</h3>
-            <p className="text-xs text-zinc-400">
+          <div className="p-4 border-b border-border-subtle bg-accent-danger/8">
+            <h3 className="text-sm font-medium text-accent-danger mb-1">Mistakes Review</h3>
+            <p className="text-xs text-text-secondary">
               Practice positions where you made mistakes. Spaced repetition helps you remember.
             </p>
           </div>
 
           {/* Progress */}
-          <div className="p-4 border-b border-zinc-700">
+          <div className="p-4 border-b border-border-subtle">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-zinc-400">Progress</h3>
-              <span className="text-sm text-zinc-500">
+              <h3 className="text-sm font-medium text-text-secondary">Progress</h3>
+              <span className="text-sm text-text-muted">
                 {currentIndex + 1} / {totalMistakes}
               </span>
             </div>
-            <div className="h-2 bg-zinc-700 rounded-full overflow-hidden">
+            <div className="h-2 bg-surface-2 rounded-full overflow-hidden">
               <div
-                className="h-full bg-orange-500 transition-all duration-300 progress-bar-striped"
+                className="h-full bg-accent-danger transition-all duration-300 progress-bar-striped"
                 style={{ width: `${((currentIndex + (isCorrect ? 1 : 0)) / totalMistakes) * 100}%` }}
               />
             </div>
@@ -1443,11 +1443,11 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
 
           {/* Current Position Info */}
           {parentNode && (
-            <div className="p-4 border-b border-zinc-700">
-              <h3 className="text-sm font-medium text-zinc-400 mb-2">Find the move after:</h3>
-              <p className="text-lg font-bold text-white">{parentNode.san}</p>
+            <div className="p-4 border-b border-border-subtle">
+              <h3 className="text-sm font-medium text-text-secondary mb-2">Find the move after:</h3>
+              <p className="text-lg font-bold text-text-primary">{parentNode.san}</p>
               {currentMistake && (
-                <p className="text-xs text-zinc-500 mt-1">
+                <p className="text-xs text-text-muted mt-1">
                   Wrong attempts: {currentMistake.wrongAttempts} | Streak: {currentMistake.streak}
                 </p>
               )}
@@ -1455,22 +1455,22 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
           )}
 
           {/* Status */}
-          <div className="p-4 border-b border-zinc-700">
+          <div className="p-4 border-b border-border-subtle">
             {isCorrect ? (
-              <div className="rounded-md bg-green-500/20 p-4 text-center">
-                <CheckCircle className="mx-auto mb-2 h-8 w-8 text-green-500" />
-                <p className="text-green-400 font-medium">Correct!</p>
+              <div className="rounded-xl bg-accent-success/15 p-4 text-center border border-accent-success/20 animate-slide-up">
+                <CheckCircle className="mx-auto mb-2 h-8 w-8 text-accent-success" />
+                <p className="text-accent-success font-medium">Correct!</p>
               </div>
             ) : showWrongMove ? (
-              <div className="rounded-md bg-red-500/20 p-4 text-center">
-                <XCircle className="mx-auto mb-2 h-8 w-8 text-red-500" />
-                <p className="text-red-400 font-medium">Wrong move! Try again.</p>
+              <div className="rounded-xl bg-accent-danger/15 p-4 text-center border border-accent-danger/20 animate-slide-up">
+                <XCircle className="mx-auto mb-2 h-8 w-8 text-accent-danger" />
+                <p className="text-accent-danger font-medium">Wrong move! Try again.</p>
               </div>
             ) : (
-              <div className="rounded-md bg-blue-500/20 p-4 text-center">
-                <p className="text-blue-400 font-medium">Find the correct move!</p>
+              <div className="rounded-xl bg-accent-blue/15 p-4 text-center border border-accent-blue/20">
+                <p className="text-accent-blue font-medium">Find the correct move!</p>
                 {wrongAttempts > 0 && (
-                  <p className="text-xs text-zinc-400 mt-1">
+                  <p className="text-xs text-text-secondary mt-1">
                     {wrongAttempts} wrong {wrongAttempts === 1 ? 'attempt' : 'attempts'}
                   </p>
                 )}
@@ -1479,15 +1479,15 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
           </div>
 
           {/* Stats */}
-          <div className="p-4 border-b border-zinc-700">
+          <div className="p-4 border-b border-border-subtle">
             <div className="grid grid-cols-2 gap-3 text-center">
               <div>
-                <p className="text-2xl font-bold text-green-400">{correctCount}</p>
-                <p className="text-xs text-zinc-500">Correct</p>
+                <p className="text-2xl font-bold text-accent-success">{correctCount}</p>
+                <p className="text-xs text-text-muted">Correct</p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-red-400">{wrongCount}</p>
-                <p className="text-xs text-zinc-500">Wrong</p>
+                <p className="text-2xl font-bold text-accent-danger">{wrongCount}</p>
+                <p className="text-xs text-text-muted">Wrong</p>
               </div>
             </div>
           </div>
@@ -1496,21 +1496,21 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
           <div className="flex-1" />
 
           {/* Controls */}
-          <div className="p-4 border-t border-zinc-700 space-y-2">
+          <div className="p-4 border-t border-border-subtle space-y-2">
             <div className="flex gap-2">
               {!isCorrect ? (
                 <>
                   <button
                     onClick={showHint}
                     disabled={hintLevel >= 2}
-                    className="flex-1 flex items-center justify-center gap-2 rounded-sm bg-zinc-700 px-3 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-all disabled:opacity-50 border-b-4 border-zinc-900 active:border-b-0 active:translate-y-0.5"
+                    className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-surface-2 px-3 py-2.5 text-sm font-medium text-text-primary hover:bg-surface-3 transition-all disabled:opacity-50"
                   >
-                    <Lightbulb className={`h-4 w-4 ${hintLevel > 0 ? 'text-yellow-400' : ''}`} />
+                    <Lightbulb className={`h-4 w-4 ${hintLevel > 0 ? 'text-accent-warning' : ''}`} />
                     Hint
                   </button>
                   <button
                     onClick={skipMistake}
-                    className="flex-1 flex items-center justify-center gap-2 rounded-sm bg-zinc-700 px-3 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-all border-b-4 border-zinc-900 active:border-b-0 active:translate-y-0.5"
+                    className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-surface-2 px-3 py-2.5 text-sm font-medium text-text-primary hover:bg-surface-3 transition-all"
                   >
                     <SkipForward className="h-4 w-4" />
                     Skip
@@ -1519,7 +1519,7 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
               ) : currentIndex < totalMistakes - 1 ? (
                 <button
                   onClick={nextMistake}
-                  className="flex-1 flex items-center justify-center gap-2 rounded-sm bg-green-600 px-3 py-2.5 text-sm font-medium text-white hover:bg-green-500 transition-all border-b-4 border-green-800 active:border-b-0 active:translate-y-0.5"
+                  className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-accent-success px-3 py-2.5 text-sm font-medium text-white hover:brightness-110 transition-all"
                 >
                   Next
                   <ChevronRight className="h-4 w-4" />
@@ -1527,7 +1527,7 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
               ) : (
                 <button
                   onClick={nextMistake}
-                  className="flex-1 flex items-center justify-center gap-2 rounded-sm bg-green-600 px-3 py-2.5 text-sm font-medium text-white hover:bg-green-500 transition-all border-b-4 border-green-800 active:border-b-0 active:translate-y-0.5"
+                  className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-accent-success px-3 py-2.5 text-sm font-medium text-white hover:brightness-110 transition-all"
                 >
                   <Trophy className="h-4 w-4" />
                   Finish Review
@@ -1538,7 +1538,7 @@ function MistakesReviewView({ study, onMistakeCompleted }: { study: OpeningStudy
             {/* Clear mistakes button */}
             <button
               onClick={clearAllMistakes}
-              className="w-full text-xs text-zinc-500 hover:text-zinc-400 transition-colors"
+              className="w-full text-xs text-text-muted hover:text-text-secondary transition-colors"
             >
               Clear all mistakes for this study
             </button>

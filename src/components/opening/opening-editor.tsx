@@ -553,14 +553,14 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
       {/* Graph Modal */}
       {showGraphModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-          <div className="w-full max-w-[1200px] h-[80vh] max-h-[80vh] bg-zinc-800 rounded-lg p-3 md:p-4 flex flex-col">
+          <div className="w-full max-w-[1200px] h-[80vh] max-h-[80vh] bg-surface-1 rounded-lg p-3 md:p-4 flex flex-col">
             <div className="flex items-center justify-between mb-3 md:mb-4">
-              <h2 className="text-base md:text-lg font-semibold text-white">Opening Tree Graph</h2>
+              <h2 className="text-base md:text-lg font-semibold text-text-primary">Opening Tree Graph</h2>
               <button
                 onClick={() => setShowGraphModal(false)}
-                className="p-2 rounded-sm hover:bg-zinc-700 transition-colors touch-target"
+                className="p-2 rounded-lg hover:bg-surface-2 transition-colors touch-target"
               >
-                <X className="h-5 w-5 text-zinc-400" />
+                <X className="h-5 w-5 text-text-secondary" />
               </button>
             </div>
             <div className="flex-1 min-h-0">
@@ -633,7 +633,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
     <>
       <button
         onClick={goToStart}
-        className={`${compact ? 'p-2.5' : 'p-2'} rounded-sm hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white touch-target`}
+        className={`${compact ? 'p-2.5' : 'p-2'} rounded-lg hover:bg-surface-2 transition-colors text-text-secondary hover:text-text-primary touch-target`}
         title="Go to start"
       >
         <ChevronsLeft className={`${compact ? 'h-4 w-4' : 'h-5 w-5'}`} />
@@ -641,7 +641,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
       <button
         onClick={goToPreviousMove}
         disabled={currentPath.length === 0}
-        className={`${compact ? 'p-2.5' : 'p-2'} rounded-sm hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed touch-target`}
+        className={`${compact ? 'p-2.5' : 'p-2'} rounded-lg hover:bg-surface-2 transition-colors text-text-secondary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed touch-target`}
         title="Previous move"
       >
         <ChevronLeft className={`${compact ? 'h-4 w-4' : 'h-5 w-5'}`} />
@@ -649,7 +649,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
       <button
         onClick={goToNextMove}
         disabled={!currentNode?.children.length && (currentPath.length === 0 ? moves.length === 0 : true)}
-        className={`${compact ? 'p-2.5' : 'p-2'} rounded-sm hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed touch-target`}
+        className={`${compact ? 'p-2.5' : 'p-2'} rounded-lg hover:bg-surface-2 transition-colors text-text-secondary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed touch-target`}
         title="Next move"
       >
         <ChevronRight className={`${compact ? 'h-4 w-4' : 'h-5 w-5'}`} />
@@ -676,7 +676,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
             }
           }
         }}
-        className={`${compact ? 'p-2.5' : 'p-2'} rounded-sm hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white touch-target`}
+        className={`${compact ? 'p-2.5' : 'p-2'} rounded-lg hover:bg-surface-2 transition-colors text-text-secondary hover:text-text-primary touch-target`}
         title="Go to end"
       >
         <ChevronsRight className={`${compact ? 'h-4 w-4' : 'h-5 w-5'}`} />
@@ -688,15 +688,15 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
   const renderMovesContent = (mobile = false) => (
     <>
       {/* Header */}
-      <div className={`${mobile ? 'p-2' : 'p-3'} border-b border-zinc-700 shrink-0`}>
+      <div className={`${mobile ? 'p-2' : 'p-3'} border-b border-border-subtle shrink-0`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="flex gap-1 bg-zinc-700 rounded-sm p-0.5">
+            <div className="flex gap-1 bg-surface-2 rounded-lg p-0.5">
               <button
                 onClick={() => setMoveViewMode('list')}
                 className={`p-1.5 rounded transition-colors ${moveViewMode === 'list'
-                  ? 'bg-zinc-600 text-white'
-                  : 'text-zinc-400 hover:text-white'
+                  ? 'bg-surface-3 text-text-primary'
+                  : 'text-text-secondary hover:text-text-primary'
                   }`}
                 title="Compact list"
               >
@@ -705,8 +705,8 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
               <button
                 onClick={() => setMoveViewMode('tree')}
                 className={`p-1.5 rounded transition-colors ${moveViewMode === 'tree'
-                  ? 'bg-zinc-600 text-white'
-                  : 'text-zinc-400 hover:text-white'
+                  ? 'bg-surface-3 text-text-primary'
+                  : 'text-text-secondary hover:text-text-primary'
                   }`}
                 title="Variation tree"
               >
@@ -717,7 +717,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
           <div className="flex items-center gap-1">
             <button
               onClick={() => setShowGraphModal(true)}
-              className="p-1.5 rounded text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors"
+              className="p-1.5 rounded text-text-secondary hover:bg-surface-2 hover:text-text-primary transition-colors"
               title="Open tree graph"
             >
               <Network className="h-4 w-4" />
@@ -725,7 +725,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
             {currentNode && (
               <button
                 onClick={handleDeleteClick}
-                className="p-1.5 rounded text-red-400 hover:bg-red-600/20 transition-colors"
+                className="p-1.5 rounded text-accent-danger hover:bg-accent-danger/20 transition-colors"
                 title="Delete this move"
               >
                 <Trash2 className="h-4 w-4" />
@@ -756,19 +756,19 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
 
       {/* Annotation Section */}
       {currentNode && (
-        <div className="border-t border-zinc-700 shrink-0">
+        <div className="border-t border-border-subtle shrink-0">
           {/* Entry Point - only show for nodes on the linear trunk */}
           {(practiceStartNodeId === currentNode.id || isOnLinearTrunk(moves, currentNode.id)) && (
-            <div className={`${mobile ? 'p-2' : 'p-3'} border-b border-zinc-700`}>
+            <div className={`${mobile ? 'p-2' : 'p-3'} border-b border-border-subtle`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Flag className="h-3.5 w-3.5 text-zinc-400" />
-                  <span className="text-xs text-zinc-400">Entry Point</span>
+                  <Flag className="h-3.5 w-3.5 text-text-secondary" />
+                  <span className="text-xs text-text-secondary">Entry Point</span>
                 </div>
                 {practiceStartNodeId === currentNode.id ? (
                   <button
                     onClick={() => setPracticeStartNodeId(undefined)}
-                    className="flex items-center gap-1 text-xs text-green-400 hover:text-green-300 transition-colors touch-target"
+                    className="flex items-center gap-1 text-xs text-accent-success hover:text-accent-success/80 transition-colors touch-target"
                   >
                     <Flag className="h-3 w-3" />
                     Clear
@@ -776,7 +776,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
                 ) : (
                   <button
                     onClick={() => setPracticeStartNodeId(currentNode.id)}
-                    className="flex items-center gap-1 text-xs text-zinc-400 hover:text-white transition-colors touch-target"
+                    className="flex items-center gap-1 text-xs text-text-secondary hover:text-text-primary transition-colors touch-target"
                   >
                     <Flag className="h-3 w-3" />
                     Set
@@ -787,16 +787,16 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
           )}
 
           {/* NAGs & Move Info */}
-          <div className={`${mobile ? 'p-2' : 'p-3'} border-b border-zinc-700`}>
+          <div className={`${mobile ? 'p-2' : 'p-3'} border-b border-border-subtle`}>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-zinc-400">
+              <span className="text-xs text-text-secondary">
                 {currentNode.san}
-                {!isUserMove && <span className="ml-1 text-zinc-500">(opponent)</span>}
+                {!isUserMove && <span className="ml-1 text-text-muted">(opponent)</span>}
               </span>
               {!currentNode.isMainLine && (
                 <button
                   onClick={handlePromoteToMain}
-                  className="flex items-center gap-1 text-xs text-zinc-400 hover:text-white transition-colors touch-target"
+                  className="flex items-center gap-1 text-xs text-text-secondary hover:text-text-primary transition-colors touch-target"
                   title="Promote to main line"
                 >
                   <ArrowUpRight className="h-3 w-3" />
@@ -815,7 +815,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
                     aria-label={label}
                     className={`px-2.5 py-1.5 rounded text-xs font-bold transition-colors touch-target ${isActive
                       ? 'bg-yellow-500 text-black'
-                      : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
+                      : 'bg-surface-2 text-text-secondary hover:bg-surface-3'
                       }`}
                   >
                     {symbol}
@@ -828,10 +828,10 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
           {/* Comment */}
           <div className={`${mobile ? 'p-2' : 'p-3'}`}>
             <div className="flex items-center gap-2 mb-2">
-              <MessageSquare className="h-3.5 w-3.5 text-zinc-400" />
-              <span className="text-xs text-zinc-400">Comment</span>
+              <MessageSquare className="h-3.5 w-3.5 text-text-secondary" />
+              <span className="text-xs text-text-secondary">Comment</span>
               {currentNode.comment && isUserMove && (
-                <span className="text-xs text-green-400">●</span>
+                <span className="text-xs text-accent-success">●</span>
               )}
             </div>
             {isUserMove ? (
@@ -842,13 +842,13 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
                   onFocus={() => setEditingComment(true)}
                   placeholder="Add commentary..."
                   rows={2}
-                  className="w-full rounded-sm bg-zinc-700 border border-zinc-600 py-1.5 px-2 text-xs text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none resize-none"
+                  className="w-full rounded-lg bg-surface-2 border border-border-strong py-1.5 px-2 text-xs text-text-primary placeholder-text-muted focus:border-accent-blue focus:outline-none resize-none"
                 />
                 {editingComment && commentText !== (currentNode.comment || '') && (
                   <div className="flex gap-2 mt-2">
                     <button
                       onClick={saveComment}
-                      className="flex-1 rounded-sm bg-blue-600 px-2 py-1.5 text-xs font-medium text-white hover:bg-blue-500 transition-colors touch-target"
+                      className="flex-1 rounded-lg bg-accent-blue px-2 py-1.5 text-xs font-medium text-white hover:brightness-110 transition-colors touch-target"
                     >
                       Save
                     </button>
@@ -857,7 +857,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
                         setCommentText(currentNode.comment || '')
                         setEditingComment(false)
                       }}
-                      className="flex-1 rounded-sm bg-zinc-700 px-2 py-1.5 text-xs font-medium text-white hover:bg-zinc-600 transition-colors touch-target"
+                      className="flex-1 rounded-lg bg-surface-2 px-2 py-1.5 text-xs font-medium text-text-primary hover:bg-surface-3 transition-colors touch-target"
                     >
                       Cancel
                     </button>
@@ -865,7 +865,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
                 )}
               </>
             ) : (
-              <p className="text-xs text-zinc-500">Only for your moves ({color})</p>
+              <p className="text-xs text-text-muted">Only for your moves ({color})</p>
             )}
           </div>
         </div>
@@ -877,22 +877,22 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
   const renderSettingsContent = (mobile = false) => (
     <>
       {/* Opening Name */}
-      <div className={`${mobile ? 'p-3' : 'p-4'} border-b border-zinc-700`}>
-        <label className="block text-sm font-medium text-zinc-400 mb-1.5">
-          Opening Name <span className="text-red-400">*</span>
+      <div className={`${mobile ? 'p-3' : 'p-4'} border-b border-border-subtle`}>
+        <label className="block text-sm font-medium text-text-secondary mb-1.5">
+          Opening Name <span className="text-accent-danger">*</span>
         </label>
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g., My Sicilian Repertoire"
-          className="w-full rounded-sm bg-zinc-700 border border-zinc-600 py-2 px-3 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none"
+          className="w-full rounded-lg bg-surface-2 border border-border-strong py-2 px-3 text-sm text-text-primary placeholder-text-muted focus:border-accent-blue focus:outline-none"
         />
       </div>
 
       {/* Description */}
-      <div className={`${mobile ? 'p-3' : 'p-4'} border-b border-zinc-700`}>
-        <label className="block text-sm font-medium text-zinc-400 mb-1.5">
+      <div className={`${mobile ? 'p-3' : 'p-4'} border-b border-border-subtle`}>
+        <label className="block text-sm font-medium text-text-secondary mb-1.5">
           Description
         </label>
         <textarea
@@ -900,30 +900,30 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Notes about this opening..."
           rows={2}
-          className="w-full rounded-sm bg-zinc-700 border border-zinc-600 py-2 px-3 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none resize-none"
+          className="w-full rounded-lg bg-surface-2 border border-border-strong py-2 px-3 text-sm text-text-primary placeholder-text-muted focus:border-accent-blue focus:outline-none resize-none"
         />
       </div>
 
       {/* Playing as */}
       <div className={`${mobile ? 'p-3' : 'p-4'}`}>
-        <label className="block text-sm font-medium text-zinc-400 mb-1.5">
+        <label className="block text-sm font-medium text-text-secondary mb-1.5">
           Playing as
         </label>
         <div className="flex gap-2">
           <button
             onClick={() => setColor('white')}
-            className={`flex-1 py-2.5 rounded-sm text-sm font-medium transition-colors touch-target ${color === 'white'
+            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors touch-target ${color === 'white'
               ? 'bg-zinc-200 text-zinc-900'
-              : 'bg-zinc-700 text-zinc-400 hover:text-white'
+              : 'bg-surface-2 text-text-secondary hover:text-text-primary'
               }`}
           >
             White
           </button>
           <button
             onClick={() => setColor('black')}
-            className={`flex-1 py-2.5 rounded-sm text-sm font-medium transition-colors touch-target ${color === 'black'
-              ? 'bg-zinc-600 text-white border border-zinc-500'
-              : 'bg-zinc-700 text-zinc-400 hover:text-white'
+            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors touch-target ${color === 'black'
+              ? 'bg-surface-3 text-text-primary border border-border-strong'
+              : 'bg-surface-2 text-text-secondary hover:text-text-primary'
               }`}
           >
             Black
@@ -934,49 +934,49 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
   )
 
   return (
-    <div className="min-h-screen bg-zinc-900">
+    <div className="min-h-screen bg-surface-0">
       {sharedDialogs}
 
       {/* Mobile Layout */}
       <div className="lg:hidden flex flex-col min-h-[calc(100vh-3.5rem)] safe-bottom">
         {/* Top Bar with Name Input and Actions */}
-        <div className="flex items-center gap-2 px-3 py-2 bg-zinc-800 border-b border-zinc-700">
+        <div className="flex items-center gap-2 px-3 py-2 bg-surface-1 border-b border-border-subtle">
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Opening name..."
-            className="flex-1 min-w-0 rounded-sm bg-zinc-700 border border-zinc-600 py-1.5 px-2.5 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none"
+            className="flex-1 min-w-0 rounded-lg bg-surface-2 border border-border-strong py-1.5 px-2.5 text-sm text-text-primary placeholder-text-muted focus:border-accent-blue focus:outline-none"
           />
           <button
             onClick={onCancel}
-            className="p-2 rounded-sm bg-zinc-700 text-zinc-400 hover:text-white transition-colors touch-target"
+            className="p-2 rounded-lg bg-surface-2 text-text-secondary hover:text-text-primary transition-colors touch-target"
           >
             <X className="h-4 w-4" />
           </button>
           <button
             onClick={handleSave}
-            className="p-2 rounded-sm bg-blue-600 text-white hover:bg-blue-500 transition-colors touch-target"
+            className="p-2 rounded-lg bg-accent-blue text-white hover:brightness-110 transition-colors touch-target"
           >
             <Save className="h-4 w-4" />
           </button>
         </div>
 
         {/* Chessboard */}
-        <div className="flex items-center justify-center p-2 bg-zinc-900">
-          <div className="chess-board-container rounded-sm">
+        <div className="flex items-center justify-center p-2 bg-surface-0">
+          <div className="chess-board-container board-wrapper">
             <Chessground ref={chessgroundRef} config={config} onMove={handleMove} />
           </div>
         </div>
 
         {/* Navigation Bar */}
-        <div className="flex items-center justify-center gap-1 px-3 py-1.5 bg-zinc-800 border-y border-zinc-700">
+        <div className="flex items-center justify-center gap-1 px-3 py-1.5 bg-surface-1 border-y border-border-subtle">
           {renderNavigationButtons(true)}
-          <div className="w-px h-5 bg-zinc-600 mx-2" />
+          <div className="w-px h-5 bg-border-strong mx-2" />
           <button
             onClick={undo}
             disabled={historyIndex === 0}
-            className="p-2.5 rounded-sm hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white disabled:opacity-30 touch-target"
+            className="p-2.5 rounded-lg hover:bg-surface-2 transition-colors text-text-secondary hover:text-text-primary disabled:opacity-30 touch-target"
             title="Undo"
           >
             <Undo2 className="h-4 w-4" />
@@ -984,7 +984,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
           <button
             onClick={redo}
             disabled={historyIndex >= history.length - 1}
-            className="p-2.5 rounded-sm hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white disabled:opacity-30 touch-target"
+            className="p-2.5 rounded-lg hover:bg-surface-2 transition-colors text-text-secondary hover:text-text-primary disabled:opacity-30 touch-target"
             title="Redo"
           >
             <Redo2 className="h-4 w-4" />
@@ -992,14 +992,14 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
         </div>
 
         {/* Tab Content */}
-        <div className="flex-1 flex flex-col min-h-0 bg-zinc-800">
+        <div className="flex-1 flex flex-col min-h-0 bg-surface-1">
           {/* Tab Headers */}
-          <div className="flex border-b border-zinc-700 shrink-0">
+          <div className="flex border-b border-border-subtle shrink-0">
             <button
               onClick={() => setMobileTab('moves')}
               className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors ${mobileTab === 'moves'
-                ? 'text-white border-b-2 border-blue-500'
-                : 'text-zinc-400'
+                ? 'text-text-primary border-b-2 border-accent-blue'
+                : 'text-text-secondary'
                 }`}
             >
               <List className="h-3.5 w-3.5" />
@@ -1008,8 +1008,8 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
             <button
               onClick={() => setMobileTab('explorer')}
               className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors ${mobileTab === 'explorer'
-                ? 'text-white border-b-2 border-blue-500'
-                : 'text-zinc-400'
+                ? 'text-text-primary border-b-2 border-accent-blue'
+                : 'text-text-secondary'
                 }`}
             >
               <BarChart3 className="h-3.5 w-3.5" />
@@ -1018,8 +1018,8 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
             <button
               onClick={() => setMobileTab('settings')}
               className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors ${mobileTab === 'settings'
-                ? 'text-white border-b-2 border-blue-500'
-                : 'text-zinc-400'
+                ? 'text-text-primary border-b-2 border-accent-blue'
+                : 'text-text-secondary'
                 }`}
             >
               <Settings className="h-3.5 w-3.5" />
@@ -1064,19 +1064,19 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
             {/* Left Column: Board + Controls */}
             <div className="flex flex-col gap-3">
               {/* Chessboard */}
-              <div className="h-[560px] w-[560px] shrink-0 rounded-sm">
+              <div className="h-[560px] w-[560px] shrink-0 board-wrapper">
                 <Chessground ref={chessgroundRef} config={config} onMove={handleMove} />
               </div>
 
               {/* Navigation Bar */}
-              <div className="flex items-center gap-2 bg-zinc-800 rounded-lg p-2">
+              <div className="flex items-center gap-2 bg-surface-1 rounded-xl p-2 border border-border-subtle">
                 {renderNavigationButtons()}
 
                 <div className="flex-1" />
 
                 <button
                   onClick={() => setShowGraphModal(true)}
-                  className="p-2 rounded-sm hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white flex items-center gap-1.5"
+                  className="p-2 rounded-lg hover:bg-surface-2 transition-colors text-text-secondary hover:text-text-primary flex items-center gap-1.5"
                   title="Open tree graph"
                 >
                   <Network className="h-5 w-5" />
@@ -1089,9 +1089,9 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
             <div className="flex-1 min-w-[380px] max-w-[450px]">
               {/* Tabbed Interface */}
               <Tabs defaultValue="moves" className="w-full h-[600px]">
-                <div className="rounded-lg bg-zinc-800 overflow-hidden h-full flex flex-col">
+                <div className="rounded-xl bg-surface-1 border border-border-subtle overflow-hidden h-full flex flex-col">
                   {/* Tabs Header */}
-                  <TabsList className="w-full grid grid-cols-3 p-1 border-b border-zinc-700 bg-transparent rounded-none shrink-0">
+                  <TabsList className="w-full grid grid-cols-3 p-1 border-b border-border-subtle bg-transparent rounded-none shrink-0">
                     <TabsTrigger value="moves" className="flex items-center gap-1.5 text-xs">
                       <List className="h-3.5 w-3.5" />
                       Moves
@@ -1136,16 +1136,16 @@ export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorP
                   </TabsContent>
 
                   {/* Action Buttons - shown on all tabs */}
-                  <div className="p-4 flex gap-2 border-t border-zinc-700 mt-auto shrink-0">
+                  <div className="p-4 flex gap-2 border-t border-border-subtle mt-auto shrink-0">
                     <button
                       onClick={onCancel}
-                      className="flex-1 rounded-sm bg-zinc-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-600 transition-colors"
+                      className="flex-1 rounded-lg bg-surface-2 px-4 py-2.5 text-sm font-medium text-text-primary hover:bg-surface-3 transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleSave}
-                      className="flex-1 flex items-center justify-center gap-2 rounded-sm bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-500 transition-colors"
+                      className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-accent-blue px-4 py-2.5 text-sm font-medium text-white hover:brightness-110 transition-colors"
                     >
                       <Save className="h-4 w-4" />
                       Save

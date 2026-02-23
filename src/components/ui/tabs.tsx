@@ -76,9 +76,9 @@ export function TabsTrigger({ value, children, className = '', disabled = false 
       aria-selected={isActive}
       disabled={disabled}
       onClick={() => onChange(value)}
-      className={`px-3 py-1.5 text-sm font-medium rounded-sm transition-colors ${isActive
-        ? 'bg-zinc-700 text-white'
-        : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/50'
+      className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${isActive
+        ? 'bg-surface-2 text-text-primary'
+        : 'text-text-secondary hover:text-text-primary hover:bg-surface-2/50'
         } ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}
     >
       {children}
@@ -126,7 +126,7 @@ export function LegacyTabs({ tabs, defaultTab, children, className = '' }: Legac
 
   return (
     <div className={className}>
-      <div className="flex border-b border-zinc-700 mb-4" role="tablist">
+      <div className="flex border-b border-border-subtle mb-4" role="tablist">
         {tabs.map(tab => (
           <button
             key={tab.id}
@@ -134,8 +134,8 @@ export function LegacyTabs({ tabs, defaultTab, children, className = '' }: Legac
             role="tab"
             aria-selected={activeTab === tab.id}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${activeTab === tab.id
-              ? 'border-blue-500 text-blue-400'
-              : 'border-transparent text-zinc-400 hover:text-zinc-200'
+              ? 'border-accent-blue text-accent-blue'
+              : 'border-transparent text-text-secondary hover:text-text-primary'
               }`}
           >
             {tab.icon}

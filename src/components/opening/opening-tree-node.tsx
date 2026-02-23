@@ -27,22 +27,22 @@ export const MoveTreeNode = memo(function MoveTreeNode({ data, id }: MoveNodePro
   // Node styling based on state
   const getBgColor = () => {
     if (isSelected) return 'bg-blue-600'
-    if (isInPath) return 'bg-zinc-600'
-    if (isMainLine) return 'bg-zinc-700'
-    return 'bg-zinc-800'
+    if (isInPath) return 'bg-surface-3'
+    if (isMainLine) return 'bg-surface-2'
+    return 'bg-surface-1'
   }
 
   const getBorderColor = () => {
     if (isPracticeStart) return 'border-green-500 border-2'
     if (isSelected) return 'border-blue-400 border-2'
-    if (isMainLine) return 'border-zinc-500 border'
-    return 'border-zinc-600 border'
+    if (isMainLine) return 'border-border-strong border'
+    return 'border-border-subtle border'
   }
 
   const getTextColor = () => {
     if (isSelected) return 'text-white'
-    if (color === 'white') return 'text-zinc-100'
-    return 'text-zinc-300'
+    if (color === 'white') return 'text-text-primary'
+    return 'text-text-secondary'
   }
 
   if (isStart) {
@@ -51,8 +51,8 @@ export const MoveTreeNode = memo(function MoveTreeNode({ data, id }: MoveNodePro
         <div
           className={`
             px-3 py-1.5 rounded-sm text-xs font-medium cursor-pointer
-            bg-zinc-700 border border-zinc-500 text-zinc-300
-            hover:bg-zinc-600 transition-colors
+            bg-surface-2 border border-border-strong text-text-secondary
+            hover:bg-surface-3 transition-colors
             ${isSelected ? 'ring-2 ring-blue-500' : ''}
           `}
         >
@@ -61,7 +61,7 @@ export const MoveTreeNode = memo(function MoveTreeNode({ data, id }: MoveNodePro
         <Handle
           type="source"
           position={Position.Right}
-          className="bg-zinc-500! w-2! h-2!"
+          className="bg-border-strong! w-2! h-2!"
         />
       </>
     )
@@ -72,7 +72,7 @@ export const MoveTreeNode = memo(function MoveTreeNode({ data, id }: MoveNodePro
       <Handle
         type="target"
         position={Position.Left}
-        className="bg-zinc-500! w-2! h-2!"
+        className="bg-border-strong! w-2! h-2!"
       />
       <div
         className={`
@@ -84,7 +84,7 @@ export const MoveTreeNode = memo(function MoveTreeNode({ data, id }: MoveNodePro
       >
         {/* Move number indicator for white moves */}
         {color === 'white' && !isStart && (
-          <span className="text-zinc-500 text-[10px] mr-0.5">{moveNumber}.</span>
+          <span className="text-text-muted text-[10px] mr-0.5">{moveNumber}.</span>
         )}
 
         {/* Move notation */}
@@ -114,7 +114,7 @@ export const MoveTreeNode = memo(function MoveTreeNode({ data, id }: MoveNodePro
       <Handle
         type="source"
         position={Position.Right}
-        className="bg-zinc-500! w-2! h-2!"
+        className="bg-border-strong! w-2! h-2!"
       />
     </>
   )

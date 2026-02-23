@@ -24,14 +24,14 @@ const pieceSymbols: Record<Color, Record<PromotionPiece, string>> = {
 export function PromotionDialog({ color, onSelect, onCancel }: PromotionDialogProps) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
       onClick={onCancel}
     >
       <div
-        className="flex flex-col gap-2 rounded-lg bg-zinc-800 p-4 shadow-xl"
+        className="flex flex-col gap-2 rounded-xl bg-surface-1 p-4 shadow-2xl border border-border-subtle"
         onClick={(e) => e.stopPropagation()}
       >
-        <p className="text-center text-sm font-medium text-zinc-400 mb-2">
+        <p className="text-center text-sm font-medium text-text-secondary mb-2">
           Promote to:
         </p>
         <div className="flex gap-2">
@@ -39,7 +39,7 @@ export function PromotionDialog({ color, onSelect, onCancel }: PromotionDialogPr
             <button
               key={piece}
               onClick={() => onSelect(piece)}
-              className="flex h-16 w-16 items-center justify-center rounded-sm bg-zinc-700 text-5xl transition-colors hover:bg-zinc-600"
+              className="flex h-16 w-16 items-center justify-center rounded-lg bg-surface-2 text-5xl transition-all hover:bg-surface-3 hover:scale-105"
               title={name}
             >
               {pieceSymbols[color][piece]}

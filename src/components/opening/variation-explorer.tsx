@@ -20,7 +20,7 @@ export function VariationExplorer({
 }: VariationExplorerProps) {
   if (moves.length === 0) {
     return (
-      <div className="text-sm text-zinc-500 italic p-2">
+      <div className="text-sm text-text-muted italic p-2">
         No moves in this opening
       </div>
     )
@@ -85,19 +85,19 @@ function TreeNode({
   }, [])
 
   return (
-    <div className={`${depth > 0 ? 'ml-4 border-l border-zinc-700 pl-2' : ''}`}>
+    <div className={`${depth > 0 ? 'ml-4 border-l border-border-subtle pl-2' : ''}`}>
       {/* Move row */}
       <div className="flex items-center gap-1 py-0.5">
         {/* Expand/collapse for variations */}
         {hasVariations ? (
           <button
             onClick={toggleExpand}
-            className="p-0.5 hover:bg-zinc-700 rounded transition-colors"
+            className="p-0.5 hover:bg-surface-2 rounded transition-colors"
           >
             {isExpanded ? (
-              <ChevronDown className="h-3 w-3 text-zinc-500" />
+              <ChevronDown className="h-3 w-3 text-text-muted" />
             ) : (
-              <ChevronRight className="h-3 w-3 text-zinc-500" />
+              <ChevronRight className="h-3 w-3 text-text-muted" />
             )}
           </button>
         ) : (
@@ -106,7 +106,7 @@ function TreeNode({
 
         {/* Move number */}
         {(isWhiteToMove || isFirst) && (
-          <span className="text-zinc-500 text-xs min-w-5">
+          <span className="text-text-muted text-xs min-w-5">
             {moveNumber}.{!isWhiteToMove && '..'}
           </span>
         )}
@@ -115,35 +115,35 @@ function TreeNode({
         <button
           onClick={() => onMoveClick(node.id)}
           className={`px-1.5 py-0.5 rounded text-sm font-medium transition-colors ${isCurrentMove
-            ? 'bg-blue-600 text-white'
+            ? 'bg-accent-blue text-white'
             : isInPath
-              ? 'text-blue-400 hover:bg-zinc-700'
+              ? 'text-accent-blue hover:bg-surface-2'
               : node.isMainLine
-                ? 'text-zinc-200 hover:bg-zinc-700'
-                : 'text-zinc-400 hover:bg-zinc-700'
-            } ${isPracticeStart ? 'ring-1 ring-green-500' : ''}`}
+                ? 'text-text-primary hover:bg-surface-2'
+                : 'text-text-secondary hover:bg-surface-2'
+            } ${isPracticeStart ? 'ring-1 ring-accent-success' : ''}`}
         >
           {node.san}
           {nagString && (
-            <span className="text-yellow-500 ml-0.5">{nagString}</span>
+            <span className="text-accent-warning ml-0.5">{nagString}</span>
           )}
         </button>
 
         {/* Practice start flag */}
         {isPracticeStart && (
-          <Flag className="h-3 w-3 text-green-500" />
+          <Flag className="h-3 w-3 text-accent-success" />
         )}
 
         {/* Comment indicator */}
         {node.comment && (
-          <span className="text-zinc-500" title={node.comment}>
+          <span className="text-text-muted" title={node.comment}>
             <MessageSquare className="h-3 w-3" />
           </span>
         )}
 
         {/* Variation count badge */}
         {hasVariations && (
-          <span className="text-xs text-zinc-500 bg-zinc-700 px-1.5 rounded">
+          <span className="text-xs text-text-muted bg-surface-2 px-1.5 rounded">
             +{variations.length}
           </span>
         )}
@@ -170,7 +170,7 @@ function TreeNode({
           {variations.map(variation => (
             <div
               key={variation.id}
-              className="mt-1 bg-zinc-800/50 rounded-sm py-1"
+              className="mt-1 bg-surface-1/50 rounded-lg py-1"
             >
               <TreeNode
                 node={variation}

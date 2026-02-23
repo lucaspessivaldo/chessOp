@@ -38,19 +38,19 @@ export function AccordionItem({
   }, [isOpen])
 
   return (
-    <div className="rounded-sm bg-zinc-800 overflow-hidden">
+    <div className="rounded-lg bg-surface-1 overflow-hidden">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-zinc-750 transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-surface-2 transition-colors"
         aria-expanded={isOpen}
       >
         <div className="flex items-center gap-2">
-          {icon && <span className="text-zinc-400">{icon}</span>}
-          <span className="text-sm font-medium text-zinc-300">{title}</span>
+          {icon && <span className="text-text-secondary">{icon}</span>}
+          <span className="text-sm font-medium text-text-primary">{title}</span>
           {badge}
         </div>
         <ChevronDown
-          className={`h-4 w-4 text-zinc-500 transition-transform duration-200 motion-reduce:transition-none ${isOpen ? 'rotate-180' : ''
+          className={`h-4 w-4 text-text-muted transition-transform duration-200 motion-reduce:transition-none ${isOpen ? 'rotate-180' : ''
             }`}
         />
       </button>

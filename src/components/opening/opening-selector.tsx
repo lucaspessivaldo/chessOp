@@ -81,35 +81,35 @@ export function OpeningSelector({ onSelect, onCreateNew }: OpeningSelectorProps)
       <div className="flex gap-3 mb-4">
         {/* Search */}
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
           <input
             type="text"
             placeholder="Search openings..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-sm bg-zinc-800 border border-zinc-700 py-2 pl-10 pr-4 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="w-full rounded-lg bg-surface-1 border border-border-subtle py-2 pl-10 pr-4 text-sm text-text-primary placeholder-text-muted focus:border-accent-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue"
           />
         </div>
 
         {/* Color filter */}
-        <div className="flex rounded-sm bg-zinc-800 border border-zinc-700 p-1">
+        <div className="flex rounded-lg bg-surface-1 border border-border-subtle p-1">
           <button
             onClick={() => setColorFilter('all')}
-            className={`px-3 py-1 text-xs font-medium rounded-sm transition-colors ${colorFilter === 'all' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'
+            className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${colorFilter === 'all' ? 'bg-surface-3 text-text-primary' : 'text-text-secondary hover:text-text-primary'
               }`}
           >
             All
           </button>
           <button
             onClick={() => setColorFilter('white')}
-            className={`px-3 py-1 text-xs font-medium rounded-sm transition-colors ${colorFilter === 'white' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'
+            className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${colorFilter === 'white' ? 'bg-surface-3 text-text-primary' : 'text-text-secondary hover:text-text-primary'
               }`}
           >
             White
           </button>
           <button
             onClick={() => setColorFilter('black')}
-            className={`px-3 py-1 text-xs font-medium rounded-sm transition-colors ${colorFilter === 'black' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'
+            className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${colorFilter === 'black' ? 'bg-surface-3 text-text-primary' : 'text-text-secondary hover:text-text-primary'
               }`}
           >
             Black
@@ -125,9 +125,9 @@ export function OpeningSelector({ onSelect, onCreateNew }: OpeningSelectorProps)
           {/* Create new button */}
           <button
             onClick={() => setShowCreateDialog(true)}
-            className="w-full text-left rounded-sm border-2 border-dashed border-zinc-700 hover:border-blue-500 p-4 transition-colors group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="w-full text-left rounded-xl border-2 border-dashed border-border-subtle hover:border-accent-blue/50 p-5 transition-all group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue"
           >
-            <div className="flex items-center justify-center gap-2 text-zinc-400 group-hover:text-blue-400">
+            <div className="flex items-center justify-center gap-2 text-text-muted group-hover:text-accent-blue">
               <Plus className="h-5 w-5" />
               <span className="font-medium">Create New Opening Study</span>
             </div>
@@ -135,43 +135,56 @@ export function OpeningSelector({ onSelect, onCreateNew }: OpeningSelectorProps)
 
           {/* Studies list */}
           {filteredStudies.length === 0 ? (
-            <p className="text-center text-zinc-400 py-8">
-              {customStudies.length === 0
-                ? "You haven't created any opening studies yet"
-                : "No openings match your filters"}
-            </p>
+            <div className="text-center py-12">
+              <div className="w-16 h-16 rounded-2xl bg-surface-1 flex items-center justify-center mx-auto mb-4">
+                <Search className="h-7 w-7 text-text-muted" />
+              </div>
+              <p className="text-text-secondary font-medium mb-1">
+                {customStudies.length === 0
+                  ? "No opening studies yet"
+                  : "No openings match your filters"}
+              </p>
+              <p className="text-sm text-text-muted">
+                {customStudies.length === 0
+                  ? "Create your first study to start building your repertoire."
+                  : "Try adjusting your search or filter."}
+              </p>
+            </div>
           ) : (
             filteredStudies.map((study) => (
               <div
                 key={study.id}
-                className="flex items-center gap-2 rounded-sm bg-zinc-800 hover:bg-zinc-700 p-4 transition-colors group"
+                className="flex items-center gap-2 rounded-xl bg-surface-1 hover:bg-surface-2 border border-border-subtle hover:border-border-strong p-4 transition-all group"
               >
                 <button
                   onClick={() => onSelect(study)}
                   className="flex-1 text-left focus-visible:outline-none"
                 >
                   <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-medium text-white group-hover:text-blue-400 transition-colors">
-                        {study.name}
-                      </h3>
-                      {study.description && (
-                        <p className="text-sm text-zinc-400 mt-1 line-clamp-2">
-                          {study.description}
-                        </p>
-                      )}
+                    <div className="flex items-start gap-3">
+                      {/* Color indicator */}
+                      <div className={`mt-1 w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold shrink-0 ${study.color === 'white'
+                        ? 'bg-zinc-100 text-zinc-800'
+                        : 'bg-surface-2 text-text-primary border border-border-strong'
+                        }`}>
+                        {study.color === 'white' ? '♔' : '♚'}
+                      </div>
+                      <div>
+                        <h3 className="font-medium text-text-primary group-hover:text-accent-blue transition-colors">
+                          {study.name}
+                        </h3>
+                        {study.description && (
+                          <p className="text-sm text-text-secondary mt-0.5 line-clamp-2">
+                            {study.description}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    <span className={`text-xs px-2 py-1 rounded font-medium ${study.color === 'white'
-                      ? 'bg-zinc-100 text-zinc-900'
-                      : 'bg-zinc-600 text-zinc-100 border border-zinc-500'
-                      }`}>
-                      {study.color}
-                    </span>
                   </div>
                 </button>
                 <button
                   onClick={() => handleDeleteStudy(study.id)}
-                  className="p-2 text-zinc-500 hover:text-red-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 rounded"
+                  className="p-2 text-text-muted hover:text-accent-danger transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-danger rounded-lg"
                   title="Delete opening"
                 >
                   <Trash2 className="h-4 w-4" />

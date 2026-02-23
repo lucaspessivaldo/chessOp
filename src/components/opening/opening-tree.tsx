@@ -223,7 +223,7 @@ export function OpeningTree({
   return (
     <div className="relative w-full h-full">
       {/* Stats bar */}
-      <div className="absolute top-2 left-2 z-10 flex gap-3 text-xs text-zinc-500 bg-zinc-800/80 px-2 py-1 rounded">
+      <div className="absolute top-2 left-2 z-10 flex gap-3 text-xs text-text-muted bg-surface-1/80 px-2 py-1 rounded-lg">
         <span>{stats.totalMoves} moves</span>
         <span>{stats.variations} variations</span>
         <span>depth {stats.maxDepth}</span>
@@ -250,12 +250,12 @@ export function OpeningTree({
         nodesConnectable={false}
         elementsSelectable={false}
         proOptions={{ hideAttribution: true }}
-        className="bg-zinc-900"
+        className="bg-surface-0"
       >
         <Background color="#3f3f46" gap={16} size={1} />
         <Controls
           showInteractive={false}
-          className="bg-zinc-800! border-zinc-700! shadow-lg! [&>button]:bg-zinc-700! [&>button]:border-zinc-600! [&>button]:hover:bg-zinc-600! [&>button>svg]:fill-zinc-300!"
+          className="bg-surface-1! border-border-subtle! shadow-lg! [&>button]:bg-surface-2! [&>button]:border-border-subtle! [&>button]:hover:bg-surface-3! [&>button>svg]:fill-text-secondary!"
         />
         <MiniMap
           nodeColor={(node) => {
@@ -266,7 +266,7 @@ export function OpeningTree({
             return '#27272a'
           }}
           maskColor="rgba(0, 0, 0, 0.8)"
-          className="bg-zinc-800! border-zinc-700!"
+          className="bg-surface-1! border-border-subtle!"
         />
       </ReactFlow>
 
@@ -274,7 +274,7 @@ export function OpeningTree({
       {contextMenuPos && contextNode && (
         <div
           data-context-menu
-          className="fixed z-50 min-w-56 rounded-sm border border-zinc-700 bg-zinc-800 p-1 text-zinc-100 shadow-lg"
+          className="fixed z-50 min-w-56 rounded-xl border border-border-subtle bg-surface-1 p-1 text-text-primary shadow-lg"
           style={{
             left: Math.min(contextMenuPos.x, window.innerWidth - 240),
             top: Math.min(contextMenuPos.y, window.innerHeight - 400)
@@ -282,14 +282,14 @@ export function OpeningTree({
           onClick={(e) => e.stopPropagation()}
         >
           {/* Move name header */}
-          <div className="px-2 py-1.5 text-xs text-zinc-400 border-b border-zinc-700 mb-1">
-            Move: <span className="text-blue-400 font-medium">{contextNode.data.san}</span>
+          <div className="px-2 py-1.5 text-xs text-text-muted border-b border-border-subtle mb-1">
+            Move: <span className="text-accent-blue font-medium">{contextNode.data.san}</span>
           </div>
 
           {/* NAG Buttons - available for all moves */}
           {onToggleNag && (
-            <div className="px-2 py-1.5 border-b border-zinc-700 mb-1">
-              <span className="text-xs text-zinc-500 mb-1.5 block">Evaluation</span>
+            <div className="px-2 py-1.5 border-b border-border-subtle mb-1">
+              <span className="text-xs text-text-muted mb-1.5 block">Evaluation</span>
               <div className="flex flex-wrap gap-1">
                 {nagButtons.map(({ nag, symbol, label }) => {
                   const isActive = currentNags.includes(nag)
@@ -300,7 +300,7 @@ export function OpeningTree({
                       title={label}
                       className={`px-2 py-0.5 rounded text-xs font-bold transition-colors ${isActive
                         ? 'bg-yellow-500 text-black'
-                        : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
+                        : 'bg-surface-2 text-text-secondary hover:bg-surface-3'
                         }`}
                     >
                       {symbol}
@@ -313,11 +313,11 @@ export function OpeningTree({
 
           {/* Comment section - only for user moves */}
           {onUpdateComment && contextNode.data.color === startColor && (
-            <div className="px-2 py-1.5 border-b border-zinc-700 mb-1">
+            <div className="px-2 py-1.5 border-b border-border-subtle mb-1">
               {!showCommentInput ? (
                 <button
                   onClick={() => setShowCommentInput(true)}
-                  className="w-full flex items-center rounded-sm px-1 py-1 text-sm hover:bg-zinc-700 transition-colors"
+                  className="w-full flex items-center rounded-sm px-1 py-1 text-sm hover:bg-surface-2 transition-colors"
                 >
                   <MessageSquare className="h-4 w-4 mr-2" />
                   {commentText ? 'Edit comment' : 'Add comment'}
@@ -330,18 +330,18 @@ export function OpeningTree({
                     placeholder="Add a comment..."
                     rows={2}
                     autoFocus
-                    className="w-full rounded bg-zinc-700 border border-zinc-600 py-1.5 px-2 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none resize-none"
+                    className="w-full rounded-lg bg-surface-2 border border-border-strong py-1.5 px-2 text-sm text-text-primary placeholder-text-muted focus:border-accent-blue focus:outline-none resize-none"
                   />
                   <div className="flex gap-1.5">
                     <button
                       onClick={handleSaveComment}
-                      className="flex-1 rounded bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-500 transition-colors"
+                      className="flex-1 rounded-lg bg-accent-blue px-2 py-1 text-xs font-medium text-white hover:bg-accent-blue/90 transition-colors"
                     >
                       Save
                     </button>
                     <button
                       onClick={() => setShowCommentInput(false)}
-                      className="flex-1 rounded bg-zinc-700 px-2 py-1 text-xs font-medium text-white hover:bg-zinc-600 transition-colors"
+                      className="flex-1 rounded-lg bg-surface-2 px-2 py-1 text-xs font-medium text-text-primary hover:bg-surface-3 transition-colors"
                     >
                       Cancel
                     </button>
@@ -355,7 +355,7 @@ export function OpeningTree({
           {(contextNode.data.isPracticeStart || isOnLinearTrunk(moves, contextNode.id)) && (
             <button
               onClick={handleSetPracticeStart}
-              className="w-full flex items-center rounded-sm px-2 py-1.5 text-sm hover:bg-zinc-700 transition-colors"
+              className="w-full flex items-center rounded-sm px-2 py-1.5 text-sm hover:bg-surface-2 transition-colors"
             >
               <Flag className="h-4 w-4 mr-2" />
               {contextNode.data.isPracticeStart ? 'Clear entry point' : 'Set as entry point'}
@@ -365,7 +365,7 @@ export function OpeningTree({
           {!contextNode.data.isMainLine && (
             <button
               onClick={handlePromoteToMain}
-              className="w-full flex items-center rounded-sm px-2 py-1.5 text-sm hover:bg-zinc-700 transition-colors"
+              className="w-full flex items-center rounded-sm px-2 py-1.5 text-sm hover:bg-surface-2 transition-colors"
             >
               <ArrowUpRight className="h-4 w-4 mr-2" />
               Promote to main line
@@ -374,17 +374,17 @@ export function OpeningTree({
 
           <button
             onClick={handleCopyFen}
-            className="w-full flex items-center rounded-sm px-2 py-1.5 text-sm hover:bg-zinc-700 transition-colors"
+            className="w-full flex items-center rounded-sm px-2 py-1.5 text-sm hover:bg-surface-2 transition-colors"
           >
             <Copy className="h-4 w-4 mr-2" />
             Copy FEN
           </button>
 
-          <div className="-mx-1 my-1 h-px bg-zinc-700" />
+          <div className="-mx-1 my-1 h-px bg-border-subtle" />
 
           <button
             onClick={handleDeleteVariation}
-            className="w-full flex items-center rounded-sm px-2 py-1.5 text-sm text-red-400 hover:bg-red-900/20 transition-colors"
+            className="w-full flex items-center rounded-sm px-2 py-1.5 text-sm text-accent-danger hover:bg-accent-danger/20 transition-colors"
           >
             <Trash2 className="h-4 w-4 mr-2" />
             Delete move

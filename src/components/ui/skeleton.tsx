@@ -5,7 +5,7 @@ interface SkeletonProps {
 export function Skeleton({ className = '' }: SkeletonProps) {
   return (
     <div
-      className={`animate-pulse bg-zinc-700 rounded motion-reduce:animate-none ${className}`}
+      className={`animate-pulse bg-surface-2 rounded motion-reduce:animate-none ${className}`}
       aria-hidden="true"
     />
   )
@@ -26,7 +26,7 @@ export function SkeletonText({ lines = 1, className = '' }: { lines?: number; cl
 
 export function SkeletonCard({ className = '' }: SkeletonProps) {
   return (
-    <div className={`rounded-lg bg-zinc-800 p-4 space-y-3 ${className}`}>
+    <div className={`rounded-lg bg-surface-1 p-4 space-y-3 ${className}`}>
       <div className="flex items-start justify-between">
         <div className="space-y-2 flex-1">
           <Skeleton className="h-5 w-3/4" />
@@ -42,7 +42,7 @@ export function OpeningSelectorSkeleton() {
   return (
     <div className="space-y-2">
       {/* Create new button skeleton */}
-      <div className="w-full rounded-lg border-2 border-dashed border-zinc-700 p-4">
+      <div className="w-full rounded-lg border-2 border-dashed border-border-subtle p-4">
         <div className="flex items-center justify-center gap-2">
           <Skeleton className="h-5 w-5 rounded" />
           <Skeleton className="h-5 w-48" />

@@ -32,7 +32,7 @@ export function OpeningStatsPanel({
   if (isLoading) {
     return (
       <div className="p-4">
-        <div className="flex items-center gap-2 text-zinc-400">
+        <div className="flex items-center gap-2 text-text-secondary">
           <Loader2 className="h-4 w-4 animate-spin" />
           <span className="text-sm">Loading stats...</span>
         </div>
@@ -44,7 +44,7 @@ export function OpeningStatsPanel({
   if (error) {
     return (
       <div className="p-4">
-        <div className="flex items-center gap-2 text-red-400">
+        <div className="flex items-center gap-2 text-accent-danger">
           <AlertCircle className="h-4 w-4" />
           <span className="text-sm">Failed to load stats</span>
         </div>
@@ -56,7 +56,7 @@ export function OpeningStatsPanel({
   if (!stats) {
     return (
       <div className="p-4">
-        <div className="text-sm text-zinc-500 italic">
+        <div className="text-sm text-text-muted italic">
           No statistics available
         </div>
       </div>
@@ -77,8 +77,8 @@ export function OpeningStatsPanel({
       {/* Opening name */}
       {stats.opening && (
         <div className="text-xs">
-          <span className="text-zinc-500">{stats.opening.eco}</span>
-          <span className="text-zinc-300 ml-2 font-semibold">{stats.opening.name}</span>
+          <span className="text-text-muted">{stats.opening.eco}</span>
+          <span className="text-text-secondary ml-2 font-semibold">{stats.opening.name}</span>
         </div>
       )}
 
@@ -102,11 +102,11 @@ export function OpeningStatsPanel({
           />
         </div>
         <div className="flex justify-between text-xs mt-1">
-          <span className="text-zinc-300">{whitePercent.toFixed(0)}%</span>
-          <span className="text-zinc-400">{drawPercent.toFixed(0)}%</span>
-          <span className="text-zinc-500">{blackPercent.toFixed(0)}%</span>
+          <span className="text-text-secondary">{whitePercent.toFixed(0)}%</span>
+          <span className="text-text-secondary">{drawPercent.toFixed(0)}%</span>
+          <span className="text-text-muted">{blackPercent.toFixed(0)}%</span>
         </div>
-        <div className="text-xs text-zinc-500 text-center mt-1">
+        <div className="text-xs text-text-muted text-center mt-1">
           {formatGameCount(totalGames)} games
         </div>
       </div>
@@ -114,7 +114,7 @@ export function OpeningStatsPanel({
       {/* Candidate moves */}
       {stats.moves.length > 0 && (
         <div className="space-y-1">
-          <div className="text-xs text-zinc-500 uppercase tracking-wider">
+          <div className="text-xs text-text-muted uppercase tracking-wider">
             Top Moves
           </div>
           <div className="space-y-1">
@@ -132,7 +132,7 @@ export function OpeningStatsPanel({
           {hasMoreMoves && (
             <button
               onClick={() => setShowAllMoves(!showAllMoves)}
-              className="w-full flex items-center justify-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 py-1 transition-colors"
+              className="w-full flex items-center justify-center gap-1 text-xs text-text-muted hover:text-text-secondary py-1 transition-colors"
             >
               {showAllMoves ? (
                 <>
@@ -152,7 +152,7 @@ export function OpeningStatsPanel({
 
       {/* No moves message */}
       {stats.moves.length === 0 && (
-        <div className="text-xs text-zinc-500 italic">
+        <div className="text-xs text-text-muted italic">
           No recorded games from this position
         </div>
       )}
@@ -180,24 +180,24 @@ function MoveRow({ move, sideToMove, isInRepertoire, onClick, onHover }: MoveRow
       onMouseLeave={() => onHover?.(false)}
       className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors group ${isInRepertoire
         ? 'bg-green-600/20 hover:bg-green-600/30'
-        : 'bg-zinc-700/50 hover:bg-zinc-700'
+        : 'bg-surface-2/50 hover:bg-surface-2'
         }`}
     >
       {/* In repertoire indicator or add button */}
       {isInRepertoire ? (
         <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />
       ) : (
-        <Plus className="h-3.5 w-3.5 text-zinc-500 group-hover:text-blue-400 shrink-0 transition-colors" />
+        <Plus className="h-3.5 w-3.5 text-text-muted group-hover:text-accent-blue shrink-0 transition-colors" />
       )}
 
       {/* Move name */}
-      <span className={`font-mono text-sm min-w-10 ${isInRepertoire ? 'text-green-400' : 'text-zinc-200'
+      <span className={`font-mono text-sm min-w-10 ${isInRepertoire ? 'text-accent-success' : 'text-text-primary'
         }`}>
         {move.san}
       </span>
 
       {/* Popularity bar */}
-      <div className="flex-1 h-2 bg-zinc-600 rounded overflow-hidden">
+      <div className="flex-1 h-2 bg-surface-3 rounded overflow-hidden">
         <div
           className={`h-full ${isInRepertoire ? 'bg-green-500' : 'bg-blue-500'}`}
           style={{ width: `${Math.min(100, (totalGames / 100) * 0.01)}%` }} // Placeholder scaling
@@ -206,16 +206,16 @@ function MoveRow({ move, sideToMove, isInRepertoire, onClick, onHover }: MoveRow
 
       {/* Stats */}
       <div className="flex items-center gap-2 text-xs">
-        <span className="text-zinc-400 min-w-[35px] text-right">
+        <span className="text-text-secondary min-w-[35px] text-right">
           {formatGameCount(totalGames)}
         </span>
-        <span className={`min-w-[35px] text-right ${winRate >= 55 ? 'text-green-400' :
-          winRate >= 45 ? 'text-zinc-300' :
-            'text-red-400'
+        <span className={`min-w-[35px] text-right ${winRate >= 55 ? 'text-accent-success' :
+          winRate >= 45 ? 'text-text-secondary' :
+            'text-accent-danger'
           }`}>
           {winRate.toFixed(0)}%
         </span>
-        <span className="text-zinc-500 min-w-[30px] text-right" title="Average player rating">
+        <span className="text-text-muted min-w-[30px] text-right" title="Average player rating">
           {move.averageRating}
         </span>
       </div>
