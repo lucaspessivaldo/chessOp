@@ -27,7 +27,7 @@ export function VariationExplorer({
   }
 
   return (
-    <div className="text-sm space-y-1">
+    <div className="font-mono text-sm space-y-1">
       {moves.map((node, index) => (
         <TreeNode
           key={node.id}

@@ -185,7 +185,7 @@ export function CompactMoveList({ line, currentMoveIndex, startColor = 'white' }
   let isWhite = startColor === 'white'
 
   return (
-    <div className="font-mono text-sm flex flex-wrap gap-x-1 gap-y-0.5">
+    <div className="font-mono text-sm flex flex-wrap gap-x-1.5 gap-y-1">
       {line.map((node, index) => {
         const showNumber = isWhite
         const currentNumber = moveNumber
@@ -205,8 +205,8 @@ export function CompactMoveList({ line, currentMoveIndex, startColor = 'white' }
               <span className="text-text-muted mr-0.5">{currentNumber}.</span>
             )}
             <span
-              className={`px-1 rounded ${isCurrent
-                ? 'bg-accent-blue text-white'
+              className={`px-1.5 py-0.5 rounded-md ${isCurrent
+                ? 'bg-accent-blue text-white font-semibold'
                 : isPast
                   ? 'text-text-secondary'
                   : 'text-text-muted'

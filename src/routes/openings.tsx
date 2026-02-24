@@ -16,6 +16,7 @@ import {
   OpeningEditor,
   VariationSelector,
 } from '@/components/opening'
+import { GameLayout } from '@/components/game-layout'
 import {
   ChevronRight,
   RotateCcw,
@@ -735,6 +736,7 @@ function StudyView({ study }: { study: OpeningStudy }) {
 
   // Check if all lines are completed (on last line and it's complete)
   const isStudyComplete = isComplete && currentLineIndex === allLines.length - 1
+  const lineProgress = ((currentLineIndex + (isComplete ? 1 : 0)) / allLines.length) * 100
 
   return (
     <>
@@ -785,66 +787,71 @@ function StudyView({ study }: { study: OpeningStudy }) {
         </DialogContent>
       </Dialog>
 
-      {/* Mobile Layout */}
-      <div className="lg:hidden flex flex-col min-h-full">
-        {/* Progress Bar */}
-        <div className="px-3 py-3 bg-surface-1 border-b border-border-subtle">
-          <div className="flex items-center justify-between mb-2 h-8">
-            <div className="flex items-center gap-2 text-xs text-text-secondary">
-              <span>Move {moveInfo.current}/{moveInfo.total}</span>
+      <GameLayout
+        board={
+          <Chessground
+            ref={chessgroundRef}
+            config={chessgroundConfig}
+            onMove={makeMove}
+          />
+        }
+        mobileTopBar={
+          <div className="px-3 py-3 bg-surface-1 border-b border-border-subtle">
+            <div className="flex items-center justify-between mb-2 h-8">
+              <div className="flex items-center gap-2 text-xs text-text-secondary">
+                <span>Move {moveInfo.current}/{moveInfo.total}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-text-secondary">
+                  Line {currentLineIndex + (isComplete ? 1 : 0)}/{allLines.length}
+                </span>
+                <button
+                  onClick={() => setShowLinesModal(true)}
+                  className="px-2 py-1.5 rounded-lg text-xs bg-surface-2 text-text-secondary touch-target hover:bg-surface-3 transition-all border-b-2 border-surface-0 active:border-b-0 active:translate-y-px"
+                >
+                  Lines
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-text-secondary">Line {currentLineIndex + (isComplete ? 1 : 0)}/{allLines.length}</span>
-              <button
-                onClick={() => setShowLinesModal(true)}
-                className="px-2 py-1.5 rounded-lg text-xs bg-surface-2 text-text-secondary touch-target hover:bg-surface-3 transition-all"
-              >
-                Lines
-              </button>
+            <div className="w-full bg-surface-2 rounded-full h-1.5 overflow-hidden">
+              <div
+                className="bg-accent-blue h-1.5 rounded-full transition-all duration-300 progress-bar-striped"
+                style={{ width: `${lineProgress}%` }}
+              />
             </div>
           </div>
-          <div className="w-full bg-surface-2 rounded-full h-1.5 overflow-hidden">
-            <div
-              className="bg-accent-blue h-1.5 rounded-full transition-all duration-300"
-              style={{ width: `${((currentLineIndex + (isComplete ? 1 : 0)) / allLines.length) * 100}%` }}
-            />
+        }
+        mobileContent={
+          <div className="min-h-[52px]">
+            {isComplete ? (
+              <div className="mx-3 mt-2 rounded-xl bg-accent-success/15 px-4 py-2 text-center border border-accent-success/20 animate-fade-in">
+                <p className="text-accent-success font-medium text-sm flex items-center justify-center gap-2">
+                  <CheckCircle className="h-4 w-4" />
+                  {isStudyComplete ? 'Study completed!' : 'Line completed!'}
+                </p>
+              </div>
+            ) : currentComment ? (
+              <div className="mx-3 mt-2 rounded-xl bg-accent-warning/10 px-4 py-2 border border-accent-warning/20 animate-fade-in">
+                <p className="text-sm text-text-primary flex items-start gap-2">
+                  <OctagonAlert className="h-4 w-4 mt-0.5 shrink-0 text-accent-warning" />
+                  {currentComment}
+                </p>
+              </div>
+            ) : (
+              <div className="mx-3 mt-2 rounded-xl bg-surface-1 px-4 py-2 border border-border-subtle">
+                <p className="text-sm text-text-muted flex items-center gap-2">
+                  <BookOpen className="h-4 w-4 shrink-0" />
+                  Play the expected move to continue
+                </p>
+              </div>
+            )}
           </div>
-        </div>
-
-        {/* Chessboard */}
-        <div className="flex items-start justify-center">
-          <div className="chess-board-container board-wrapper">
-            <Chessground
-              ref={chessgroundRef}
-              config={chessgroundConfig}
-              onMove={makeMove}
-            />
-          </div>
-        </div>
-
-        {/* Comment / Status */}
-        {isComplete ? (
-          <div className="mx-3 mt-2 rounded-xl bg-accent-success/15 px-4 py-2 text-center border border-accent-success/20 animate-slide-up">
-            <p className="text-accent-success font-medium text-sm flex items-center justify-center gap-2">
-              <CheckCircle className="h-4 w-4" />
-              {isStudyComplete ? 'Study completed!' : 'Line completed!'}
-            </p>
-          </div>
-        ) : currentComment ? (
-          <div className="mx-3 mt-2 rounded-xl bg-accent-warning/10 px-3 py-2 border border-accent-warning/20 animate-slide-up">
-            <p className="text-sm text-text-primary flex items-start gap-2">
-              <OctagonAlert className="h-4 w-4 mt-0.5 shrink-0 text-accent-warning" />
-              {currentComment}
-            </p>
-          </div>
-        ) : null}
-
-        {/* Sticky Footer Controls */}
-        <div className="sticky bottom-0 lg:hidden px-3 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-surface-1 border-t border-border-subtle mt-auto">
+        }
+        mobileFooter={
           <div className="flex gap-2">
             <button
               onClick={goToStart}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-surface-2 py-2.5 text-sm font-medium text-text-primary touch-target hover:bg-surface-3 transition-all"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-surface-2 py-2.5 text-sm font-medium text-text-primary touch-target hover:bg-surface-3 transition-all border-b-4 border-surface-0 active:border-b-0 active:translate-y-0.5"
             >
               <RotateCcw className="h-4 w-4" />
               <span className="sr-only sm:not-sr-only">Restart</span>
@@ -852,7 +859,7 @@ function StudyView({ study }: { study: OpeningStudy }) {
             {isComplete && currentLineIndex < allLines.length - 1 && (
               <button
                 onClick={nextLine}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent-success py-2.5 text-sm font-medium text-white touch-target hover:brightness-110 transition-all"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent-success py-2.5 text-sm font-medium text-white touch-target border-b-4 border-accent-success/60 active:border-b-0 active:translate-y-0.5 transition-all"
               >
                 <span className="sr-only sm:not-sr-only">Next</span>
                 <ChevronRight className="h-4 w-4" />
@@ -861,149 +868,148 @@ function StudyView({ study }: { study: OpeningStudy }) {
             {isStudyComplete && (
               <button
                 onClick={restartStudy}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent-warning py-2.5 text-sm font-medium text-white touch-target hover:brightness-110 transition-all"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent-warning py-2.5 text-sm font-medium text-white touch-target border-b-4 border-accent-warning/60 active:border-b-0 active:translate-y-0.5 transition-all"
               >
                 <RotateCcw className="h-4 w-4" />
                 <span className="sr-only sm:not-sr-only">Reset</span>
               </button>
             )}
           </div>
-        </div>
-      </div>
-
-      {/* Desktop Layout */}
-      <div className="hidden lg:flex justify-center gap-6 p-6">
-
-        {/* Board */}
-        <div className="h-[600px] w-[600px] shrink-0 board-wrapper">
-          <Chessground
-            ref={chessgroundRef}
-            config={chessgroundConfig}
-            onMove={makeMove}
-          />
-        </div>
-
-        {/* Sidebar */}
-        <div className="w-[350px] rounded-xl bg-surface-1 border border-border-subtle overflow-hidden flex flex-col">
-          {/* Progress Overview */}
-          <div className="p-4 border-b border-border-subtle">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-text-secondary">Progress</span>
-              <span className="text-sm text-text-primary">
-                {currentLineIndex + (isComplete ? 1 : 0)} / {allLines.length} lines
-              </span>
-            </div>
-            <div className="w-full bg-surface-2 rounded-full h-2 overflow-hidden">
-              <div
-                className="bg-accent-blue h-2 rounded-full transition-all duration-300 progress-bar-striped"
-                style={{ width: `${((currentLineIndex + (isComplete ? 1 : 0)) / allLines.length) * 100}%` }}
-              />
-            </div>
-            <p className="text-xs text-text-muted mt-2">
-              Move {moveInfo.current} of {moveInfo.total}
-            </p>
-          </div>
-
-          {/* Current Line Selector */}
-          <div className="p-4 border-b border-border-subtle">
-            <button
-              onClick={() => setShowLineSelector(!showLineSelector)}
-              className="w-full flex items-center justify-between text-left"
-            >
-              <div>
-                <span className="text-sm text-text-secondary">Current Line</span>
-                <p className="text-text-primary font-medium">
-                  Line {currentLineIndex + 1}: {getLineName(currentLine, currentLineIndex)}
-                </p>
+        }
+        sidebar={
+          <>
+            {/* Progress Overview */}
+            <div className="p-4 border-b border-border-subtle">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-medium text-text-secondary">Progress</span>
+                <span className="text-sm text-text-primary">
+                  {currentLineIndex + (isComplete ? 1 : 0)} / {allLines.length} lines
+                </span>
               </div>
-              <ChevronDown className={`h-5 w-5 text-text-muted transition-transform ${showLineSelector ? 'rotate-180' : ''}`} />
-            </button>
-
-            {showLineSelector && (
-              <div className="mt-3 space-y-1 max-h-[200px] overflow-y-auto sidebar-scroll">
-                {allLineNodes.map((lineNodes, index) => (
-                  <button
-                    key={index}
-                    onClick={() => {
-                      selectLine(index)
-                      setShowLineSelector(false)
-                    }}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${index === currentLineIndex
-                      ? 'bg-accent-blue text-white'
-                      : 'bg-surface-2 text-text-secondary hover:bg-surface-3'
-                      }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      {index === currentLineIndex && <CheckCircle className="h-4 w-4" />}
-                      Line {index + 1}: {getLineName(lineNodes, index)}
-                    </span>
-                  </button>
-                ))}
+              <div className="w-full bg-surface-2 rounded-full h-2 overflow-hidden">
+                <div
+                  className="bg-accent-blue h-2 rounded-full transition-all duration-300 progress-bar-striped"
+                  style={{ width: `${lineProgress}%` }}
+                />
               </div>
-            )}
-          </div>
-
-          {/* Current Moves */}
-          <div className="p-4 flex-1 overflow-y-auto sidebar-scroll">
-            <h3 className="text-sm font-medium text-text-secondary mb-3">Moves</h3>
-            <CompactMoveList
-              line={currentLine}
-              currentMoveIndex={moveInfo.current}
-              startColor={study.color === 'white' ? 'white' : 'black'}
-            />
-          </div>
-
-          {/* Status / Comment Area */}
-          {isComplete ? (
-            <div className="bg-accent-success/15 p-4 text-center border-t border-border-subtle animate-slide-up">
-              <CheckCircle className="mx-auto mb-2 h-8 w-8 text-accent-success" />
-              <p className="text-accent-success font-medium">
-                {isStudyComplete ? 'Study completed!' : 'Line completed!'}
+              <p className="text-xs text-text-muted mt-2">
+                Move {moveInfo.current} of {moveInfo.total}
               </p>
             </div>
-          ) : currentComment ? (
-            <div className="bg-accent-warning/10 p-4 border-t border-accent-warning/20 animate-slide-up">
-              <div className="flex items-start gap-3">
-                <OctagonAlert className="h-5 w-5 text-accent-warning mt-0.5 shrink-0" />
-                <p className="text-sm text-text-primary">{currentComment}</p>
-              </div>
-            </div>
-          ) : null}
 
-          {/* Controls */}
-          <div className="p-4 border-t border-border-subtle space-y-2">
-            <button
-              onClick={goToStart}
-              className="w-full flex items-center justify-center gap-2 rounded-lg bg-surface-2 px-4 py-2.5 text-sm font-medium text-text-primary hover:bg-surface-3 transition-all"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Restart Line
-            </button>
-
-            {/* Next Line Button */}
-            {isComplete && currentLineIndex < allLines.length - 1 && (
+            {/* Current Line Selector */}
+            <div className="p-4 border-b border-border-subtle">
               <button
-                onClick={nextLine}
-                className="w-full flex items-center justify-center gap-2 rounded-lg bg-accent-success px-4 py-2.5 text-sm font-medium text-white hover:brightness-110 transition-all"
+                onClick={() => setShowLineSelector(!showLineSelector)}
+                className="w-full flex items-center justify-between text-left rounded-lg px-3 py-2 -mx-3 hover:bg-surface-2/80 transition-colors cursor-pointer"
               >
-                Next Line
-                <ChevronRight className="h-4 w-4" />
+                <div>
+                  <span className="text-xs text-text-muted uppercase tracking-wide">Current Line</span>
+                  <p className="text-text-primary font-medium text-sm mt-0.5">
+                    Line {currentLineIndex + 1}: {getLineName(currentLine, currentLineIndex)}
+                  </p>
+                </div>
+                <ChevronDown className={`h-5 w-5 text-text-muted transition-transform shrink-0 ml-2 ${showLineSelector ? 'rotate-180' : ''}`} />
               </button>
-            )}
 
-            {/* Restart Study Button */}
-            {isStudyComplete && (
+              {showLineSelector && (
+                <div className="mt-3 space-y-1 max-h-[200px] overflow-y-auto sidebar-scroll">
+                  {allLineNodes.map((lineNodes, index) => (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        selectLine(index)
+                        setShowLineSelector(false)
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${index === currentLineIndex
+                        ? 'bg-accent-blue text-white'
+                        : 'bg-surface-2 text-text-secondary hover:bg-surface-3'
+                        }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        {index === currentLineIndex && <CheckCircle className="h-4 w-4" />}
+                        Line {index + 1}: {getLineName(lineNodes, index)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Current Moves */}
+            <div className="p-4 flex-1 overflow-y-auto sidebar-scroll">
+              <h3 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-3">Moves</h3>
+              <CompactMoveList
+                line={currentLine}
+                currentMoveIndex={moveInfo.current}
+                startColor={study.color === 'white' ? 'white' : 'black'}
+              />
+            </div>
+
+            {/* Spacer to push status + controls to bottom */}
+            <div className="flex-1" />
+
+            {/* Status / Comment Area — fixed min-height to avoid layout shifts */}
+            <div className="min-h-14">
+              {isComplete ? (
+                <div className="bg-accent-success/15 p-4 text-center border-t border-border-subtle">
+                  <p className="text-accent-success font-medium flex items-center justify-center gap-2">
+                    <CheckCircle className="h-5 w-5" />
+                    {isStudyComplete ? 'Study completed!' : 'Line completed!'}
+                  </p>
+                </div>
+              ) : currentComment ? (
+                <div className="bg-accent-warning/10 p-4 border-t border-accent-warning/20">
+                  <div className="flex items-start gap-3">
+                    <OctagonAlert className="h-5 w-5 text-accent-warning mt-0.5 shrink-0" />
+                    <p className="text-sm text-text-primary">{currentComment}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 border-t border-border-subtle">
+                  <p className="text-sm text-text-muted flex items-center gap-2">
+                    <BookOpen className="h-4 w-4 shrink-0" />
+                    Play the expected move to continue
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Controls */}
+            <div className="p-4 border-t border-border-subtle space-y-2">
               <button
-                onClick={restartStudy}
-                className="w-full flex items-center justify-center gap-2 rounded-lg bg-accent-warning px-4 py-2.5 text-sm font-medium text-white hover:brightness-110 transition-all"
+                onClick={goToStart}
+                className="w-full flex items-center justify-center gap-2 rounded-lg bg-surface-2 px-4 py-2.5 text-sm font-medium text-text-primary hover:bg-surface-3 transition-all border-b-4 border-surface-0 active:border-b-0 active:translate-y-0.5"
               >
                 <RotateCcw className="h-4 w-4" />
-                Restart Study
+                Restart Line
               </button>
-            )}
-          </div>
-        </div>
-      </div>
+
+              {/* Next Line Button */}
+              {isComplete && currentLineIndex < allLines.length - 1 && (
+                <button
+                  onClick={nextLine}
+                  className="w-full flex items-center justify-center gap-2 rounded-lg bg-accent-success px-4 py-2.5 text-sm font-medium text-white hover:brightness-110 transition-all border-b-4 border-accent-success/60 active:border-b-0 active:translate-y-0.5"
+                >
+                  Next Line
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              )}
+
+              {/* Restart Study Button */}
+              {isStudyComplete && (
+                <button
+                  onClick={restartStudy}
+                  className="w-full flex items-center justify-center gap-2 rounded-lg bg-accent-warning px-4 py-2.5 text-sm font-medium text-white hover:brightness-110 transition-all border-b-4 border-accent-warning/60 active:border-b-0 active:translate-y-0.5"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Restart Study
+                </button>
+              )}
+            </div>
+          </>
+        }
+      />
     </>
   )
 }

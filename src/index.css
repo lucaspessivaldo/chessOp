@@ -186,6 +186,15 @@ body {
   animation: slide-up-fade 0.25s ease-out;
 }
 
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
 /* Focus visible styles for better accessibility */
 .focus-visible-ring:focus-visible {
   outline: 2px solid var(--accent-blue);
@@ -344,6 +353,17 @@ body {
   overflow: hidden;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
   border: 1px solid oklch(1 0 0 / 6%);
+}
+
+/* ===== GameLayout responsive board sizing ===== */
+.game-board {
+  --board-size: min(calc(100vh - 160px), calc(100vw - 520px), 600px);
+  width: var(--board-size);
+  height: var(--board-size);
+}
+
+.game-sidebar {
+  height: var(--board-size, auto);
 }
 
 /* Chess grid pattern for hero */
