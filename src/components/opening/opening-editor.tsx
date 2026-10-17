@@ -31,6 +31,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { ActionButton } from '@/components/training/training-ui'
 import { useOpeningEditor } from '@/hooks/use-opening-editor'
 import { useOpeningStats } from '@/hooks/use-opening-stats'
+import { useEngineAnalysis } from '@/hooks/use-engine'
 import { useHotkeys } from '@/hooks/use-hotkeys'
 import { useSettings } from '@/lib/settings'
 import {
@@ -54,6 +55,8 @@ import { MoveList } from './move-list'
 import { VariationExplorer } from './variation-explorer'
 import { OpeningStatsPanel } from './opening-stats'
 import { PgnPanel } from './pgn-panel'
+import { EvalBar } from './eval-bar'
+import { EnginePanel } from './engine-panel'
 
 // React Flow + dagre are heavy: load the graph only when it's opened
 const OpeningTree = lazy(() => import('./opening-tree').then(m => ({ default: m.OpeningTree })))
@@ -84,7 +87,7 @@ const tabs: { id: EditorTab; label: string; icon: typeof List }[] = [
 
 export function OpeningEditor({ initialStudy, onSave, onCancel, onDirtyChange }: OpeningEditorProps) {
   const { addToast } = useToast()
-  const { lichessToken } = useSettings()
+  const { lichessToken, engineEnabled, engineArrow } = useSettings()
   const editor = useOpeningEditor(initialStudy)
   const { moves, path, currentNode, fen, practiceStartNodeId, navigate, play, commit, undo, redo } = editor
 
@@ -131,6 +134,9 @@ export function OpeningEditor({ initialStudy, onSave, onCancel, onDirtyChange }:
   const turnColor = getTurnColor(chess)
   const legalDests = useMemo(() => getLegalDests(chess), [chess])
   const children = currentNode ? currentNode.children : moves
+
+  const engine = useEngineAnalysis(fen, engineEnabled)
+  const bestLine = engine.analysis?.lines[0] ?? null
 
   const { stats, isLoading: statsLoading, error: statsError, refetch } = useOpeningStats(fen, {
     token: lichessToken,
@@ -284,13 +290,16 @@ export function OpeningEditor({ initialStudy, onSave, onCancel, onDirtyChange }:
     const shapes: DrawShape[] = []
     if (hoveredUci) {
       shapes.push({ orig: hoveredUci.slice(0, 2) as Key, dest: hoveredUci.slice(2, 4) as Key, brush: 'blue' })
+    } else if (engineArrow && bestLine?.pv[0]) {
+      const best = bestLine.pv[0]
+      shapes.push({ orig: best.slice(0, 2) as Key, dest: best.slice(2, 4) as Key, brush: 'paleBlue' })
     }
     if (currentNode?.nags?.length) {
       const nagShape = createNagShape(currentNode.uci.slice(2, 4) as Key, currentNode.nags[0])
       if (nagShape) shapes.push(nagShape)
     }
     return shapes
-  }, [hoveredUci, currentNode])
+  }, [hoveredUci, currentNode, engineArrow, bestLine])
 
   const config = useMemo((): Config => ({
     fen,
@@ -572,6 +581,19 @@ export function OpeningEditor({ initialStudy, onSave, onCancel, onDirtyChange }:
     </div>
   )
 
+  const enginePanel = (
+    <EnginePanel
+      fen={fen}
+      status={engine.status}
+      analysis={engine.analysis}
+      onHover={setHoveredUci}
+      onPlay={uci => {
+        setHoveredUci(null)
+        playUci(uci.slice(0, 2) as Key, uci.slice(2, 4) as Key, (uci[4] as PromotionPiece | undefined) || undefined)
+      }}
+    />
+  )
+
   const tabContent = tab === 'moves' ? movesTab : tab === 'explorer' ? explorerTab : detailsTab
 
   const saveButtons = (
@@ -635,6 +657,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel, onDirtyChange }:
 
       <GameLayout
         board={<Chessground config={config} onMove={handleBoardMove} />}
+        boardAside={engineEnabled && <EvalBar line={bestLine} orientation={color} />}
         belowBoard={navigationBar}
         mobileTopBar={
           <div className="flex items-center gap-2 border-b border-border-subtle bg-surface-1 px-3 py-2">
@@ -647,14 +670,17 @@ export function OpeningEditor({ initialStudy, onSave, onCancel, onDirtyChange }:
             </ActionButton>
           </div>
         }
+        mobileBoardTop={engineEnabled && <EvalBar line={bestLine} orientation={color} direction="horizontal" className="rounded-none" />}
         mobileContent={
           <div className="mt-2 flex flex-col border-t border-border-subtle bg-surface-1">
+            {enginePanel}
             {tabBar}
             {tabContent}
           </div>
         }
         sidebar={
           <>
+            {enginePanel}
             {tabBar}
             <div className="flex min-h-0 flex-1 flex-col overflow-y-auto sidebar-scroll">{tabContent}</div>
             <div className="shrink-0 border-t border-border-subtle p-3">

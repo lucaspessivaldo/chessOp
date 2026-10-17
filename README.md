@@ -16,6 +16,8 @@ no account, no backend — your studies are stored in `localStorage`.
 
 ### Other features
 
+- Stockfish 19 in the editor (WASM, lite single-threaded, ~1.9 MB loaded on demand): evaluation bar,
+  top 3 lines and best-move arrow; click a line to add its move
 - PGN import (merge or replace) and export, with variations, comments and annotations (`!`, `?!`, …)
 - Entry point: start practice from a given position (earlier moves become a single setup line)
 - Interactive tree graph of the repertoire, arrows/circles drawn on the board saved per move
@@ -45,6 +47,7 @@ bun run lint
 Vite · React 19 · TypeScript · TanStack Router (file-based) · Tailwind CSS v4 ·
 [`@lichess-org/chessground`](https://github.com/lichess-org/chessground) (board) ·
 [`@jackstenglein/chess`](https://github.com/jackstenglein/chess) (rules, PGN with variations) ·
+[Stockfish.js](https://github.com/nmrugg/stockfish.js) (engine, in a Web Worker) ·
 React Flow + dagre (tree graph, lazy-loaded)
 
 ### Project structure

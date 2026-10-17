@@ -16,6 +16,10 @@ interface GameLayoutProps {
   mobileTopBar?: ReactNode
   /** Extra class on the board wrapper (e.g., ring for wrong move) */
   boardClassName?: string
+  /** Narrow element shown to the left of the board on desktop (e.g. an evaluation bar) */
+  boardAside?: ReactNode
+  /** Mobile-only element right above the board */
+  mobileBoardTop?: ReactNode
 }
 
 /**
@@ -32,6 +36,8 @@ export function GameLayout({
   mobileFooter,
   mobileTopBar,
   boardClassName,
+  boardAside,
+  mobileBoardTop,
 }: GameLayoutProps) {
   return (
     <div
@@ -41,10 +47,14 @@ export function GameLayout({
       )}
     >
       {mobileTopBar && <div className="lg:hidden">{mobileTopBar}</div>}
+      {mobileBoardTop && <div className="lg:hidden">{mobileBoardTop}</div>}
 
-      <div className="flex shrink-0 flex-col items-center gap-3">
-        <div className={cn('game-board board-wrapper transition-shadow duration-200', boardClassName)}>
-          {board}
+      <div className="flex shrink-0 flex-col items-center gap-3 lg:items-end">
+        <div className="flex gap-2">
+          {boardAside && <div className="hidden lg:block">{boardAside}</div>}
+          <div className={cn('game-board board-wrapper transition-shadow duration-200', boardClassName)}>
+            {board}
+          </div>
         </div>
         {belowBoard && <div className="w-full game-board-width">{belowBoard}</div>}
       </div>

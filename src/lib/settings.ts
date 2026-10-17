@@ -11,10 +11,20 @@ export interface Settings {
   lichessToken: string
   /** Color theme; 'system' follows the OS preference */
   theme: 'system' | 'light' | 'dark'
+  /** Run Stockfish in the editor */
+  engineEnabled: boolean
+  /** Draw the engine's best move on the editor board */
+  engineArrow: boolean
 }
 
 const STORAGE_KEY = 'chessop-settings'
-const DEFAULT_SETTINGS: Settings = { soundEnabled: true, lichessToken: '', theme: 'system' }
+const DEFAULT_SETTINGS: Settings = {
+  soundEnabled: true,
+  lichessToken: '',
+  theme: 'system',
+  engineEnabled: true,
+  engineArrow: true,
+}
 
 let current: Settings = { ...DEFAULT_SETTINGS, ...readJson<Partial<Settings>>(STORAGE_KEY, {}) }
 const listeners = new Set<() => void>()
