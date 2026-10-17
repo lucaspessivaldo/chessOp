@@ -1,4 +1,4 @@
-import { useEffect, useRef, useImperativeHandle, forwardRef, useState, useCallback } from 'react'
+import { useEffect, useLayoutEffect, useRef, useImperativeHandle, forwardRef, useState } from 'react'
 import { Chessground as ChessgroundApi } from '@lichess-org/chessground'
 import type { Api } from '@lichess-org/chessground/api'
 import type { Config } from '@lichess-org/chessground/config'
@@ -19,11 +19,25 @@ export interface ChessgroundProps {
   onMove?: (orig: Key, dest: Key) => void
 }
 
+/**
+ * React wrapper around Chessground.
+ *
+ * The board is created once its container has a size (shapes need real dimensions).
+ * After every user move the latest config is re-applied on the next frame, so a move
+ * rejected by the parent (wrong move, pending promotion) snaps back automatically.
+ */
 export const Chessground = forwardRef<ChessgroundRef, ChessgroundProps>(
   ({ config, className, onMove }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null)
     const apiRef = useRef<Api | null>(null)
+    const configRef = useRef(config)
+    const onMoveRef = useRef(onMove)
     const [isReady, setIsReady] = useState(false)
+
+    useLayoutEffect(() => {
+      configRef.current = config
+      onMoveRef.current = onMove
+    })
 
     useImperativeHandle(ref, () => ({
       get api() {
@@ -31,74 +45,60 @@ export const Chessground = forwardRef<ChessgroundRef, ChessgroundProps>(
       },
     }))
 
-    // Check if container has valid dimensions
-    const checkDimensions = useCallback(() => {
-      if (!containerRef.current) return false
-      const rect = containerRef.current.getBoundingClientRect()
-      return rect.width > 0 && rect.height > 0
-    }, [])
-
     useEffect(() => {
-      if (!containerRef.current) return
+      const container = containerRef.current
+      if (!container) return
 
-      // Wait for valid dimensions before initializing
-      const initializeWhenReady = () => {
-        if (!checkDimensions()) {
-          // Use requestAnimationFrame to wait for layout
-          requestAnimationFrame(initializeWhenReady)
-          return
-        }
+      let resyncFrame = 0
 
-        // Strip shapes from initial config to prevent NaN errors
-        // Shapes will be applied after board dimensions are properly calculated
-        const { drawable, ...restConfig } = config || {}
-        const initialDrawable = drawable ? {
-          ...drawable,
-          autoShapes: [], // Don't render shapes on initial mount
-          shapes: [], // Also clear manual shapes
-        } : undefined
-
-        const mergedConfig: Config = {
-          ...restConfig,
-          drawable: initialDrawable,
+      const init = () => {
+        if (apiRef.current) return
+        const { drawable, ...rest } = configRef.current ?? {}
+        apiRef.current = ChessgroundApi(container, {
+          ...rest,
+          // Shapes are applied once the board has its final dimensions
+          drawable: drawable ? { ...drawable, autoShapes: [], shapes: [] } : undefined,
           events: {
-            ...config?.events,
+            ...configRef.current?.events,
             move: (orig, dest) => {
-              config?.events?.move?.(orig, dest)
-              onMove?.(orig, dest)
+              configRef.current?.events?.move?.(orig, dest)
+              onMoveRef.current?.(orig, dest)
+              cancelAnimationFrame(resyncFrame)
+              resyncFrame = requestAnimationFrame(() => {
+                if (apiRef.current && configRef.current) apiRef.current.set(configRef.current)
+              })
             },
           },
-        }
-
-        apiRef.current = ChessgroundApi(containerRef.current!, mergedConfig)
-
-        // Defer setting ready state to allow chessground to fully initialize
-        // and compute board dimensions before shapes are applied
-        requestAnimationFrame(() => {
-          setIsReady(true)
         })
+        setIsReady(true)
       }
 
-      initializeWhenReady()
+      const observer = new ResizeObserver(entries => {
+        const rect = entries[0]?.contentRect
+        if (!rect || rect.width === 0 || rect.height === 0) return
+        if (!apiRef.current) {
+          init()
+        } else {
+          apiRef.current.redrawAll()
+        }
+      })
+      observer.observe(container)
 
       return () => {
+        observer.disconnect()
+        cancelAnimationFrame(resyncFrame)
         apiRef.current?.destroy()
         apiRef.current = null
         setIsReady(false)
       }
     }, [])
 
-    // Update config when it changes (excluding initial mount)
-    // This includes applying shapes after the board is ready
+    // Apply config changes once the board is ready
     useEffect(() => {
       if (apiRef.current && config && isReady) {
-        // Only apply config if the board has valid dimensions
-        // This prevents NaN errors when shapes are calculated
-        if (checkDimensions()) {
-          apiRef.current.set(config)
-        }
+        apiRef.current.set(config)
       }
-    }, [config, isReady, checkDimensions])
+    }, [config, isReady])
 
     return (
       <div
@@ -111,4 +111,3 @@ export const Chessground = forwardRef<ChessgroundRef, ChessgroundProps>(
 )
 
 Chessground.displayName = 'Chessground'
-

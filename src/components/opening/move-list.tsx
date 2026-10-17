@@ -169,54 +169,57 @@ function MoveTree({
 
 interface CompactMoveListProps {
   line: OpeningMoveNode[]
+  /** Number of moves already played */
   currentMoveIndex: number
-  startColor?: 'white' | 'black'
+  /** Ply of the line's starting position (0 = initial position, white to move) */
+  startPly?: number
+  /** Hide moves that haven't been played yet (practice) */
+  hideFuture?: boolean
 }
 
 /**
- * A compact linear move list for showing a single line (used in practice mode)
+ * A compact linear move list for a single line
  */
-export function CompactMoveList({ line, currentMoveIndex, startColor = 'white' }: CompactMoveListProps) {
+export function CompactMoveList({ line, currentMoveIndex, startPly = 0, hideFuture = false }: CompactMoveListProps) {
   if (line.length === 0) {
     return <div className="text-sm text-text-muted italic">No moves</div>
   }
 
-  let moveNumber = 1
-  let isWhite = startColor === 'white'
+  const visible = hideFuture ? line.slice(0, currentMoveIndex) : line
 
   return (
-    <div className="font-mono text-sm flex flex-wrap gap-x-1.5 gap-y-1">
-      {line.map((node, index) => {
-        const showNumber = isWhite
-        const currentNumber = moveNumber
-
-        // Increment move number after black's move
-        if (!isWhite) {
-          moveNumber++
-        }
-        isWhite = !isWhite
-
+    <ol className="font-mono text-sm flex flex-wrap gap-x-1 gap-y-1" aria-label="Moves of the line">
+      {visible.map((node, index) => {
+        const ply = startPly + index
+        const isWhite = ply % 2 === 0
+        const moveNumber = Math.floor(ply / 2) + 1
+        const showNumber = isWhite || index === 0
+        const isLastPlayed = index === currentMoveIndex - 1
         const isPast = index < currentMoveIndex
-        const isCurrent = index === currentMoveIndex
+        const nag = node.nags?.map(n => NAG_SYMBOLS[n] || '').join('') || ''
 
         return (
-          <span key={node.id} className="inline-flex items-center">
+          <li key={node.id} className="inline-flex items-center">
             {showNumber && (
-              <span className="text-text-muted mr-0.5">{currentNumber}.</span>
+              <span className="text-text-muted mr-0.5 text-xs">{moveNumber}.{isWhite ? '' : '..'}</span>
             )}
             <span
-              className={`px-1.5 py-0.5 rounded-md ${isCurrent
+              className={`px-1.5 py-0.5 rounded-md ${isLastPlayed
                 ? 'bg-accent-blue text-white font-semibold'
                 : isPast
-                  ? 'text-text-secondary'
+                  ? 'text-text-primary'
                   : 'text-text-muted'
                 }`}
             >
               {node.san}
+              {nag && <span className={isLastPlayed ? 'text-white/80' : 'text-accent-warning'}>{nag}</span>}
             </span>
-          </span>
+          </li>
         )
       })}
-    </div>
+      {hideFuture && currentMoveIndex < line.length && (
+        <li className="px-1.5 py-0.5 text-text-muted">…</li>
+      )}
+    </ol>
   )
 }

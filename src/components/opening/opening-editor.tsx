@@ -1,1162 +1,669 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
-import { Chess } from '@jackstenglein/chess'
-import type { Square } from '@jackstenglein/chess'
-import type { Config } from '@lichess-org/chessground/config'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import type { Key } from '@lichess-org/chessground/types'
+import type { Config } from '@lichess-org/chessground/config'
 import type { DrawShape } from '@lichess-org/chessground/draw'
-import type { OpeningStudy, OpeningMoveNode, BoardShape } from '@/types/opening'
-import { Chessground, type ChessgroundRef } from '@/components/chessground'
-import { PromotionDialog, type PromotionPiece } from '@/components/promotion-dialog'
-import { MoveList } from './move-list'
-import { VariationExplorer } from './variation-explorer'
-import { OpeningTree } from './opening-tree'
-import { OpeningStatsPanel } from './opening-stats'
-import { useOpeningStats } from '@/hooks/use-opening-stats'
-import { useToast } from '@/components/ui/toast'
-import { ConfirmDialog, AlertDialog } from '@/components/ui/custom-dialog'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import {
+  ArrowUpRight,
+  BarChart3,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Flag,
+  GitBranch,
+  List,
+  MessageSquare,
+  Network,
+  Redo2,
+  Save,
+  Settings2,
+  Trash2,
+  Undo2,
+} from 'lucide-react'
+import type { Square } from '@jackstenglein/chess'
+import type { OpeningStudy, BoardShape } from '@/types/opening'
+import { Chessground } from '@/components/chessground'
+import { PromotionDialog } from '@/components/promotion-dialog'
+import { GameLayout } from '@/components/game-layout'
+import { useToast } from '@/components/ui/toast'
+import { ConfirmDialog } from '@/components/ui/custom-dialog'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { ActionButton } from '@/components/training/training-ui'
+import { useOpeningEditor } from '@/hooks/use-opening-editor'
+import { useOpeningStats } from '@/hooks/use-opening-stats'
+import { useHotkeys } from '@/hooks/use-hotkeys'
+import { useSettings } from '@/lib/settings'
+import {
+  deleteNode,
+  findNodeById,
   generateNodeId,
+  getPathToNode,
+  isOnLinearTrunk,
+  promoteToMainLine,
+  saveOpeningStudy,
   updateNodeComment,
   updateNodeNags,
   updateNodeShapes,
-  deleteNode,
-  getNodeAtPath,
-  getPathToNode,
-  saveOpeningStudy,
-  promoteToMainLine,
-  findNodeById,
-  isOnLinearTrunk,
-  INITIAL_FEN,
 } from '@/lib/opening-utils'
-import { createChess, getLegalDests, getTurnColor, toChessgroundFen, isCheck, isPromotionMove as checkIsPromotionMove } from '@/chess/chess-utils'
+import { createChess, getLegalDests, getTurnColor, isPromotionMove } from '@/chess/chess-utils'
 import { createNagShape } from '@/chess/nag-shapes'
 import { playSound, getMoveSound } from '@/lib/sounds'
-import { Save, Trash2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Undo2, Redo2, ArrowUpRight, List, GitBranch, Flag, BarChart3, MessageSquare, Network, X, Settings } from 'lucide-react'
+import type { PromotionPiece } from '@/types/chess'
+import { cn } from '@/lib/utils'
+import { MoveList } from './move-list'
+import { VariationExplorer } from './variation-explorer'
+import { OpeningStatsPanel } from './opening-stats'
+import { PgnPanel } from './pgn-panel'
+
+// React Flow + dagre are heavy: load the graph only when it's opened
+const OpeningTree = lazy(() => import('./opening-tree').then(m => ({ default: m.OpeningTree })))
 
 interface OpeningEditorProps {
-  initialStudy?: OpeningStudy
+  initialStudy: OpeningStudy
   onSave: (study: OpeningStudy) => void
   onCancel: () => void
+  /** Notified when the editor gets/loses unsaved changes */
+  onDirtyChange?: (dirty: boolean) => void
 }
 
-interface PendingPromotion {
-  from: Key
-  to: Key
-}
+type EditorTab = 'moves' | 'explorer' | 'details'
 
-export function OpeningEditor({ initialStudy, onSave, onCancel }: OpeningEditorProps) {
-  const chessgroundRef = useRef<ChessgroundRef>(null)
+const nagButtons = [
+  { nag: '$1', symbol: '!', label: 'Good move' },
+  { nag: '$3', symbol: '!!', label: 'Brilliant move' },
+  { nag: '$6', symbol: '?!', label: 'Dubious move' },
+  { nag: '$2', symbol: '?', label: 'Mistake' },
+  { nag: '$4', symbol: '??', label: 'Blunder' },
+]
+
+const tabs: { id: EditorTab; label: string; icon: typeof List }[] = [
+  { id: 'moves', label: 'Moves', icon: List },
+  { id: 'explorer', label: 'Explorer', icon: BarChart3 },
+  { id: 'details', label: 'Details', icon: Settings2 },
+]
+
+export function OpeningEditor({ initialStudy, onSave, onCancel, onDirtyChange }: OpeningEditorProps) {
   const { addToast } = useToast()
+  const { lichessToken } = useSettings()
+  const editor = useOpeningEditor(initialStudy)
+  const { moves, path, currentNode, fen, practiceStartNodeId, navigate, play, commit, undo, redo } = editor
 
   // Study metadata
-  const [name, setName] = useState(initialStudy?.name || '')
-  const [description, setDescription] = useState(initialStudy?.description || '')
-  const [color, setColor] = useState<'white' | 'black'>(initialStudy?.color || 'white')
+  const [name, setName] = useState(initialStudy.name)
+  const [description, setDescription] = useState(initialStudy.description ?? '')
+  const [color, setColor] = useState<'white' | 'black'>(initialStudy.color)
 
-  // Move tree
-  const [moves, setMoves] = useState<OpeningMoveNode[]>(initialStudy?.moves || [])
-  const [currentPath, setCurrentPath] = useState<string[]>([])
-  const currentPathRef = useRef<string[]>([])
+  const [tab, setTab] = useState<EditorTab>('moves')
+  const [moveView, setMoveView] = useState<'list' | 'tree'>('list')
+  const [showGraph, setShowGraph] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [hoveredUci, setHoveredUci] = useState<string | null>(null)
+  const [pendingPromotion, setPendingPromotion] = useState<{ from: Key; to: Key } | null>(null)
+  const [commentDraft, setCommentDraft] = useState<{ nodeId: string; text: string } | null>(null)
 
-  // Practice start marker
-  const [practiceStartNodeId, setPracticeStartNodeId] = useState<string | undefined>(
-    initialStudy?.practiceStartNodeId
+  // ===== Dirty tracking =====
+  const [savedSnapshot, setSavedSnapshot] = useState(() => JSON.stringify({
+    moves: initialStudy.moves,
+    practiceStartNodeId: initialStudy.practiceStartNodeId,
+    name: initialStudy.name,
+    description: initialStudy.description ?? '',
+    color: initialStudy.color,
+  }))
+  const currentSnapshot = useMemo(
+    () => JSON.stringify({ moves, practiceStartNodeId, name, description, color }),
+    [moves, practiceStartNodeId, name, description, color]
   )
+  const isDirty = currentSnapshot !== savedSnapshot
 
-  // Keep ref in sync with state
-  currentPathRef.current = currentPath
+  useEffect(() => {
+    onDirtyChange?.(isDirty)
+  }, [isDirty, onDirtyChange])
 
-  // Chess state
-  const chessRef = useRef<Chess>(createChess(INITIAL_FEN))
-  const [fen, setFen] = useState(INITIAL_FEN)
-  const [lastMove, setLastMove] = useState<[Key, Key] | undefined>()
-  const [pendingPromotion, setPendingPromotion] = useState<PendingPromotion | null>(null)
+  useEffect(() => {
+    if (!isDirty) return
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault()
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [isDirty])
 
-  // Comment editing
-  const [editingComment, setEditingComment] = useState(false)
-  const [commentText, setCommentText] = useState('')
+  // ===== Board =====
+  const chess = useMemo(() => createChess(fen), [fen])
+  const turnColor = getTurnColor(chess)
+  const legalDests = useMemo(() => getLegalDests(chess), [chess])
+  const children = currentNode ? currentNode.children : moves
 
-  // Move view mode (list vs tree)
-  const [moveViewMode, setMoveViewMode] = useState<'list' | 'tree'>('list')
-
-  // Graph modal state
-  const [showGraphModal, setShowGraphModal] = useState(false)
-
-  // Stats panel toggle (kept for accordion state tracking)
-  const [showStats] = useState(true)
-
-  // Hovered explorer move (for showing arrow on board)
-  const [hoveredMoveUci, setHoveredMoveUci] = useState<string | null>(null)
-
-  // Undo/Redo history
-  const [history, setHistory] = useState<OpeningMoveNode[][]>([initialStudy?.moves || []])
-  const [historyIndex, setHistoryIndex] = useState(0)
-
-  // Dialog states
-  const [deleteConfirm, setDeleteConfirm] = useState(false)
-  const [validationAlert, setValidationAlert] = useState<{ isOpen: boolean; message: string }>({
-    isOpen: false,
-    message: '',
+  const { stats, isLoading: statsLoading, error: statsError, refetch } = useOpeningStats(fen, {
+    token: lichessToken,
+    enabled: tab === 'explorer',
   })
 
-  // Get current node
-  const currentNode = currentPath.length > 0 ? getNodeAtPath(moves, currentPath) : null
-
-  // Check if the current node is a user move (user's color)
-  // Depth 0 = first move (white), depth 1 = second move (black), etc.
-  // If user plays white: even depths (0, 2, 4...) are user moves
-  // If user plays black: odd depths (1, 3, 5...) are user moves
-  const isUserMove = currentPath.length > 0 && (
-    (color === 'white' && (currentPath.length - 1) % 2 === 0) ||
-    (color === 'black' && (currentPath.length - 1) % 2 === 1)
-  )
-
-  // Sync comment text when current node changes
-  useEffect(() => {
-    setCommentText(currentNode?.comment || '')
-    setEditingComment(false)
-  }, [currentNode?.id])
-
-  // Lichess opening stats
-  const { stats, isLoading: statsLoading, error: statsError } = useOpeningStats(
-    showStats ? fen : null,
-    { enabled: showStats }
-  )
-
-  // Get repertoire moves at current position
-  const repertoireMoves = currentNode?.children.map(c => c.uci) || moves.map(m => m.uci)
-
-  // Push to history when moves change (called manually after significant changes)
-  const pushToHistory = useCallback((newMoves: OpeningMoveNode[]) => {
-    setHistory(prev => {
-      const newHistory = prev.slice(0, historyIndex + 1)
-      newHistory.push(newMoves)
-      return newHistory.slice(-50) // Keep last 50 states
-    })
-    setHistoryIndex(prev => Math.min(prev + 1, 49))
-  }, [historyIndex])
-
-  // Undo
-  const undo = useCallback(() => {
-    if (historyIndex > 0) {
-      const newIndex = historyIndex - 1
-      setHistoryIndex(newIndex)
-      setMoves(history[newIndex])
+  const playUci = useCallback((from: Key, to: Key, promotion?: PromotionPiece) => {
+    const board = createChess(fen)
+    let move
+    try {
+      move = board.move({ from: from as Square, to: to as Square, promotion })
+    } catch {
+      move = null
     }
-  }, [historyIndex, history])
-
-  // Redo
-  const redo = useCallback(() => {
-    if (historyIndex < history.length - 1) {
-      const newIndex = historyIndex + 1
-      setHistoryIndex(newIndex)
-      setMoves(history[newIndex])
-    }
-  }, [historyIndex, history])
-
-  // Sync chess instance with current position
-  const syncChess = useCallback((targetFen: string) => {
-    chessRef.current = createChess(targetFen)
-    setFen(targetFen)
-  }, [])
-
-  // Legal destinations
-  const legalDests = getLegalDests(chessRef.current)
-  const turnColor = getTurnColor(chessRef.current)
-  const inCheck = isCheck(chessRef.current)
-
-  // Handle making a move
-  const executeMove = useCallback((from: Key, to: Key, promotion?: PromotionPiece) => {
-    const chess = chessRef.current
-    const move = chess.move({ from: from as Square, to: to as Square, promotion })
-
-    if (!move) return false
-
-    const newFen = toChessgroundFen(chess)
-    const uci = `${from}${to}${promotion || ''}`
-
-    // Update FEN state immediately so the board reflects the new position
-    setFen(newFen)
-
-    // Use ref to get the latest path (avoids stale closure issues)
-    const latestPath = currentPathRef.current
-
-    // Get parent node from current moves state
-    setMoves(prevMoves => {
-      const parentNode = latestPath.length > 0 ? getNodeAtPath(prevMoves, latestPath) : null
-      const existingMoves = latestPath.length === 0 ? prevMoves : (parentNode?.children || [])
-      const existingMove = existingMoves.find(m => m.uci === uci)
-
-      if (existingMove) {
-        // Move exists, just navigate to it (update path via ref and state)
-        const newPath = [...latestPath, existingMove.id]
-        currentPathRef.current = newPath
-        setCurrentPath(newPath)
-        setLastMove([from, to])
-        return prevMoves // No change to moves
-      }
-
-      // New move, add to tree
-      // A move is main line if:
-      // 1. It's the first move at root level (no siblings), OR
-      // 2. It's the first child of a parent that is itself main line
-      const isFirstMoveAtPosition = existingMoves.length === 0
-      const parentIsMainLine = parentNode?.isMainLine ?? true // Root level counts as main line
-      const shouldBeMainLine = isFirstMoveAtPosition && parentIsMainLine
-
-      const newNode: OpeningMoveNode = {
-        id: generateNodeId(),
-        san: move.san,
-        uci,
-        fen: newFen,
-        children: [],
-        isMainLine: shouldBeMainLine,
-      }
-
-      const parentId = latestPath.length > 0 ? latestPath[latestPath.length - 1] : null
-
-      // Update path to include new node
-      const newPath = [...latestPath, newNode.id]
-      currentPathRef.current = newPath
-      setCurrentPath(newPath)
-      setLastMove([from, to])
-
-      // Add the node to the tree
-      if (parentId !== null) {
-        const addToParent = (nodes: OpeningMoveNode[]): OpeningMoveNode[] => {
-          return nodes.map(node => {
-            if (node.id === parentId) {
-              return {
-                ...node,
-                children: [...node.children, newNode],
-              }
-            }
-            return {
-              ...node,
-              children: addToParent(node.children),
-            }
-          })
-        }
-        return addToParent(prevMoves)
-      } else {
-        return [...prevMoves, newNode]
-      }
+    if (!move) return
+    play({
+      id: generateNodeId(),
+      san: move.san,
+      uci: `${from}${to}${promotion ?? ''}`,
+      fen: board.fen(),
+      children: [],
+      isMainLine: false,
     })
-
-    // Play sound
-    const soundType = getMoveSound({
+    playSound(getMoveSound({
       isCapture: !!move.captured,
-      isCastle: move.san === 'O-O' || move.san === 'O-O-O',
-      isCheck: isCheck(chess),
+      isCastle: move.san.startsWith('O-O'),
+      isCheck: board.isCheck(),
       isPromotion: !!move.promotion,
-    })
-    playSound(soundType)
+    }))
+  }, [fen, play])
 
-    return true
-  }, []) // No dependencies needed since we use refs
-
-  // Handle move from board
-  const handleMove = useCallback((from: Key, to: Key, promotion?: PromotionPiece) => {
-    if (!promotion && checkIsPromotionMove(chessRef.current, from, to)) {
+  const handleBoardMove = useCallback((from: Key, to: Key) => {
+    if (isPromotionMove(chess, from, to)) {
       setPendingPromotion({ from, to })
       return
     }
-    executeMove(from, to, promotion)
-  }, [executeMove])
+    playUci(from, to)
+  }, [chess, playUci])
 
-  // Complete promotion
-  const completePromotion = useCallback((piece: PromotionPiece) => {
-    if (!pendingPromotion) return
-    executeMove(pendingPromotion.from, pendingPromotion.to, piece)
-    setPendingPromotion(null)
-  }, [pendingPromotion, executeMove])
+  // ===== Navigation =====
+  const goBack = useCallback(() => navigate(path.slice(0, -1)), [navigate, path])
+  const goForward = useCallback(() => {
+    const next = children.find(n => n.isMainLine) ?? children[0]
+    if (next) navigate([...path, next.id])
+  }, [children, navigate, path])
+  const goToStart = useCallback(() => navigate([]), [navigate])
+  const goToEnd = useCallback(() => {
+    const newPath = [...path]
+    let level = children
+    while (level.length > 0) {
+      const next = level.find(n => n.isMainLine) ?? level[0]
+      newPath.push(next.id)
+      level = next.children
+    }
+    navigate(newPath)
+  }, [children, navigate, path])
+  const goToNode = useCallback((nodeId: string) => navigate(getPathToNode(moves, nodeId)), [moves, navigate])
 
-  // Cancel promotion
-  const cancelPromotion = useCallback(() => {
-    setPendingPromotion(null)
-  }, [])
+  // ===== Tree edits =====
+  const deleteMove = useCallback((nodeId: string) => {
+    const nodePath = getPathToNode(moves, nodeId)
+    const newPath = path.includes(nodeId) ? nodePath.slice(0, -1) : path
+    const entryRemoved = practiceStartNodeId && nodePath.length > 0 && getPathToNode(moves, practiceStartNodeId).includes(nodeId)
+    commit(deleteNode(moves, nodeId), { path: newPath, practiceStartNodeId: entryRemoved ? null : undefined })
+    addToast('Move deleted — Ctrl+Z to undo', 'info')
+  }, [moves, path, practiceStartNodeId, commit, addToast])
 
-  // Navigation - update both ref and state for consistency
-  const goToPreviousMove = useCallback(() => {
-    const path = currentPathRef.current
-    if (path.length === 0) return
-    const newPath = path.slice(0, -1)
-    currentPathRef.current = newPath
-    setCurrentPath(newPath)
-    setMoves(currentMoves => {
-      const node = newPath.length > 0 ? getNodeAtPath(currentMoves, newPath) : null
-      syncChess(node?.fen || INITIAL_FEN)
-      return currentMoves
-    })
-    setLastMove(undefined)
-  }, [syncChess])
+  const toggleNag = useCallback((nodeId: string, nag: string) => {
+    const node = findNodeById(moves, nodeId)
+    if (!node) return
+    const nags = node.nags?.includes(nag) ? undefined : [nag]
+    commit(updateNodeNags(moves, nodeId, nags))
+  }, [moves, commit])
 
-  const goToNextMove = useCallback(() => {
-    const path = currentPathRef.current
-    setMoves(currentMoves => {
-      const node = path.length > 0 ? getNodeAtPath(currentMoves, path) : null
-      const children = node?.children || (path.length === 0 ? currentMoves : [])
-      if (children.length === 0) return currentMoves
-      const nextNode = children[0]
-      const newPath = [...path, nextNode.id]
-      currentPathRef.current = newPath
-      setCurrentPath(newPath)
-      syncChess(nextNode.fen)
-      const from = nextNode.uci.slice(0, 2) as Key
-      const to = nextNode.uci.slice(2, 4) as Key
-      setLastMove([from, to])
-      return currentMoves
-    })
-  }, [syncChess])
+  const saveComment = useCallback((nodeId: string, text: string) => {
+    const node = findNodeById(moves, nodeId)
+    if (!node || (node.comment ?? '') === text.trim()) return
+    commit(updateNodeComment(moves, nodeId, text))
+  }, [moves, commit])
 
-  const goToStart = useCallback(() => {
-    currentPathRef.current = []
-    setCurrentPath([])
-    syncChess(INITIAL_FEN)
-    setLastMove(undefined)
-  }, [syncChess])
+  const toggleEntryPoint = useCallback((nodeId: string) => {
+    commit(moves, { practiceStartNodeId: practiceStartNodeId === nodeId ? null : nodeId })
+  }, [moves, practiceStartNodeId, commit])
 
-  const goToNode = useCallback((nodeId: string) => {
-    setMoves(currentMoves => {
-      const path = getPathToNode(currentMoves, nodeId)
-      if (path.length > 0) {
-        currentPathRef.current = path
-        setCurrentPath(path)
-        const node = getNodeAtPath(currentMoves, path)
-        if (node) {
-          syncChess(node.fen)
-          const from = node.uci.slice(0, 2) as Key
-          const to = node.uci.slice(2, 4) as Key
-          setLastMove([from, to])
-        }
-      }
-      return currentMoves
-    })
-  }, [syncChess])
-
-  // Delete current move and all descendants
-  const handleDeleteClick = useCallback(() => {
+  const handleShapesChange = useCallback((shapes: DrawShape[]) => {
     if (!currentNode) return
-    setDeleteConfirm(true)
-  }, [currentNode])
+    const boardShapes: BoardShape[] = shapes
+      .filter(s => s.brush)
+      .map(s => ({ orig: s.orig, dest: s.dest, brush: s.brush! }))
+    if (JSON.stringify(boardShapes) === JSON.stringify(currentNode.shapes ?? [])) return
+    commit(updateNodeShapes(moves, currentNode.id, boardShapes))
+  }, [currentNode, moves, commit])
 
-  const confirmDeleteMove = useCallback(() => {
-    if (!currentNode) return
-    const newMoves = deleteNode(moves, currentNode.id)
-    pushToHistory(newMoves)
-    setMoves(newMoves)
-    goToPreviousMove()
-    setDeleteConfirm(false)
-    addToast('Move deleted', 'success')
-  }, [currentNode, goToPreviousMove, moves, pushToHistory, addToast])
+  // ===== Save =====
+  const handleSave = useCallback(() => {
+    if (!name.trim()) {
+      setTab('details')
+      addToast('Give your study a name before saving', 'warning')
+      return
+    }
+    const study: OpeningStudy = {
+      ...initialStudy,
+      name: name.trim(),
+      description: description.trim() || undefined,
+      color,
+      moves,
+      practiceStartNodeId,
+      updatedAt: Date.now(),
+    }
+    if (!saveOpeningStudy(study)) {
+      addToast('Could not save: browser storage is full or unavailable', 'error')
+      return
+    }
+    setSavedSnapshot(currentSnapshot)
+    addToast('Study saved', 'success')
+    onSave(study)
+  }, [name, description, color, moves, practiceStartNodeId, initialStudy, currentSnapshot, onSave, addToast])
 
-  // Save comment for current move
-  const saveComment = useCallback(() => {
-    if (!currentNode) return
-    const newMoves = updateNodeComment(moves, currentNode.id, commentText || undefined)
-    pushToHistory(newMoves)
-    setMoves(newMoves)
-    setEditingComment(false)
-    addToast('Comment saved', 'success')
-  }, [currentNode, commentText, moves, pushToHistory, addToast])
-
-  // Toggle NAG annotation for current move (single selection only)
-  const toggleNag = useCallback((nag: string) => {
-    if (!currentNode) return
-    const currentNags = currentNode.nags || []
-    const hasNag = currentNags.includes(nag)
-    // If already has this NAG, remove it; otherwise replace with this NAG only
-    const newNags = hasNag ? [] : [nag]
-    const newMoves = updateNodeNags(moves, currentNode.id, newNags.length > 0 ? newNags : undefined)
-    pushToHistory(newMoves)
-    setMoves(newMoves)
-  }, [currentNode, moves, pushToHistory])
-
-  // Promote variation to main line
-  const handlePromoteToMain = useCallback(() => {
-    if (!currentNode || currentNode.isMainLine) return
-    const newMoves = promoteToMainLine(moves, currentNode.id)
-    pushToHistory(newMoves)
-    setMoves(newMoves)
-  }, [currentNode, moves, pushToHistory])
-
-  // Keyboard shortcuts
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger shortcuts when typing in inputs
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        return
-      }
-
-      if (e.key === 'ArrowLeft') {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return
+      const target = e.target as HTMLElement | null
+      const typing = target && ['INPUT', 'TEXTAREA'].includes(target.tagName)
+      const key = e.key.toLowerCase()
+      if (key === 's') {
         e.preventDefault()
-        goToPreviousMove()
-      } else if (e.key === 'ArrowRight') {
+        handleSave()
+      } else if (!typing && key === 'z') {
         e.preventDefault()
-        goToNextMove()
-      } else if (e.key === 'Home') {
-        e.preventDefault()
-        goToStart()
-      } else if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
-        e.preventDefault()
-        if (e.shiftKey) {
-          redo()
-        } else {
-          undo()
-        }
-      } else if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+        if (e.shiftKey) redo()
+        else undo()
+      } else if (!typing && key === 'y') {
         e.preventDefault()
         redo()
       }
     }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [handleSave, undo, redo])
 
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [goToPreviousMove, goToNextMove, goToStart, undo, redo])
+  useHotkeys({
+    ArrowLeft: goBack,
+    ArrowRight: goForward,
+    Home: goToStart,
+    End: goToEnd,
+    Delete: currentNode ? () => setConfirmDelete(true) : undefined,
+  })
 
-  // Save the study
-  const handleSave = useCallback(() => {
-    if (!name.trim()) {
-      setValidationAlert({ isOpen: true, message: 'Please enter a name for the opening study' })
-      return
+  // ===== Board config =====
+  const autoShapes = useMemo((): DrawShape[] => {
+    const shapes: DrawShape[] = []
+    if (hoveredUci) {
+      shapes.push({ orig: hoveredUci.slice(0, 2) as Key, dest: hoveredUci.slice(2, 4) as Key, brush: 'blue' })
     }
-
-    const study: OpeningStudy = {
-      id: initialStudy?.id || generateNodeId(),
-      name: name.trim(),
-      description: description.trim() || undefined,
-      color,
-      rootFen: INITIAL_FEN,
-      moves,
-      practiceStartNodeId,
-      createdAt: initialStudy?.createdAt || Date.now(),
-      updatedAt: Date.now(),
+    if (currentNode?.nags?.length) {
+      const nagShape = createNagShape(currentNode.uci.slice(2, 4) as Key, currentNode.nags[0])
+      if (nagShape) shapes.push(nagShape)
     }
+    return shapes
+  }, [hoveredUci, currentNode])
 
-    saveOpeningStudy(study)
-    addToast('Opening study saved!', 'success')
-    onSave(study)
-  }, [name, description, color, moves, practiceStartNodeId, initialStudy, onSave, addToast])
-
-  // Handle shapes change from drawable
-  const handleShapesChange = useCallback((shapes: DrawShape[]) => {
-    if (!currentNode) return
-
-    // Convert to BoardShape format, filtering shapes without brush
-    const boardShapes: BoardShape[] = shapes
-      .filter(s => s.brush) // Only keep shapes with a brush color
-      .map(s => ({
-        orig: s.orig,
-        dest: s.dest,
-        brush: s.brush!,
-      }))
-
-    const updatedMoves = updateNodeShapes(moves, currentNode.id, boardShapes)
-    pushToHistory(updatedMoves)
-    setMoves(updatedMoves)
-  }, [currentNode, moves, pushToHistory])
-
-  // Convert saved shapes to drawable shapes
-  const savedShapes: DrawShape[] = currentNode?.shapes?.map(s => ({
-    orig: s.orig as Key,
-    dest: s.dest as Key | undefined,
-    brush: s.brush,
-  })) ?? []
-
-  // Create hover arrow shape if a move is being hovered in explorer
-  const hoverArrowShape: DrawShape | null = hoveredMoveUci ? {
-    orig: hoveredMoveUci.slice(0, 2) as Key,
-    dest: hoveredMoveUci.slice(2, 4) as Key,
-    brush: 'blue',
-  } : null
-
-  // Create NAG shape for current move (if it has NAGs)
-  const nagShape: DrawShape | null = currentNode?.nags?.length
-    ? createNagShape(currentNode.uci.slice(2, 4) as Key, currentNode.nags[0]) || null
-    : null
-
-  // Programmatic shapes (hover arrow + NAG shape)
-  const autoShapes: DrawShape[] = [
-    ...(hoverArrowShape ? [hoverArrowShape] : []),
-    ...(nagShape ? [nagShape] : []),
-  ]
-
-  // Chessground config with drawing enabled
-  const config: Config = {
+  const config = useMemo((): Config => ({
     fen,
     orientation: color,
     turnColor,
-    lastMove,
-    check: inCheck,
-    movable: {
-      free: false,
-      color: turnColor,
-      dests: legalDests,
-      showDests: true,
-    },
+    lastMove: currentNode ? [currentNode.uci.slice(0, 2) as Key, currentNode.uci.slice(2, 4) as Key] : undefined,
+    check: chess.isCheck(),
+    movable: { free: false, color: turnColor, dests: legalDests, showDests: true },
     premovable: { enabled: false },
     animation: { enabled: true, duration: 200 },
     drawable: {
       enabled: true,
       visible: true,
       defaultSnapToValidMove: true,
-      shapes: savedShapes, // User-drawn shapes (can be cleared with right-click)
-      autoShapes, // Programmatic shapes (hover arrow)
+      shapes: currentNode?.shapes?.map(s => ({ orig: s.orig as Key, dest: s.dest as Key | undefined, brush: s.brush })) ?? [],
+      autoShapes,
       onChange: handleShapesChange,
     },
-  }
+  }), [fen, color, turnColor, currentNode, chess, legalDests, autoShapes, handleShapesChange])
 
-  // NAG buttons configuration
-  const nagButtons = [
-    { nag: '$1', symbol: '!', label: 'Good move' },
-    { nag: '$2', symbol: '?', label: 'Poor move' },
-    { nag: '$3', symbol: '!!', label: 'Brilliant' },
-    { nag: '$4', symbol: '??', label: 'Blunder' },
-    { nag: '$6', symbol: '?!', label: 'Dubious' },
-  ]
-
-  // Mobile tab state
-  const [mobileTab, setMobileTab] = useState<'moves' | 'explorer' | 'settings'>('moves')
-
-  // Shared dialogs and modals
-  const sharedDialogs = (
-    <>
-      {/* Dialogs */}
-      <ConfirmDialog
-        isOpen={deleteConfirm}
-        title="Delete Move"
-        message="Delete this move and all its continuations? This cannot be undone."
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
-        variant="danger"
-        onConfirm={confirmDeleteMove}
-        onCancel={() => setDeleteConfirm(false)}
-      />
-      <AlertDialog
-        isOpen={validationAlert.isOpen}
-        title="Validation Error"
-        message={validationAlert.message}
-        variant="warning"
-        onClose={() => setValidationAlert({ isOpen: false, message: '' })}
-      />
-
-      {/* Promotion Dialog */}
-      {pendingPromotion && (
-        <PromotionDialog
-          color={turnColor}
-          onSelect={completePromotion}
-          onCancel={cancelPromotion}
-        />
-      )}
-
-      {/* Graph Modal */}
-      {showGraphModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-          <div className="w-full max-w-[1200px] h-[80vh] max-h-[80vh] bg-surface-1 rounded-lg p-3 md:p-4 flex flex-col">
-            <div className="flex items-center justify-between mb-3 md:mb-4">
-              <h2 className="text-base md:text-lg font-semibold text-text-primary">Opening Tree Graph</h2>
-              <button
-                onClick={() => setShowGraphModal(false)}
-                className="p-2 rounded-lg hover:bg-surface-2 transition-colors touch-target"
-              >
-                <X className="h-5 w-5 text-text-secondary" />
-              </button>
-            </div>
-            <div className="flex-1 min-h-0">
-              <OpeningTree
-                moves={moves}
-                currentPath={currentPath}
-                onNodeClick={(nodeId) => {
-                  if (nodeId === 'start') {
-                    goToStart()
-                  } else {
-                    goToNode(nodeId)
-                  }
-                }}
-                onSetPracticeStart={(nodeId) => {
-                  if (practiceStartNodeId === nodeId) {
-                    setPracticeStartNodeId(undefined)
-                  } else {
-                    setPracticeStartNodeId(nodeId)
-                  }
-                }}
-                onDeleteVariation={(nodeId) => {
-                  const newMoves = deleteNode(moves, nodeId)
-                  pushToHistory(newMoves)
-                  setMoves(newMoves)
-                  if (currentPath.includes(nodeId)) {
-                    const idx = currentPath.indexOf(nodeId)
-                    const newPath = currentPath.slice(0, idx)
-                    currentPathRef.current = newPath
-                    setCurrentPath(newPath)
-                    const node = newPath.length > 0 ? getNodeAtPath(newMoves, newPath) : null
-                    syncChess(node?.fen || INITIAL_FEN)
-                    setLastMove(undefined)
-                  }
-                  addToast('Move deleted', 'success')
-                }}
-                onPromoteToMain={(nodeId) => {
-                  const newMoves = promoteToMainLine(moves, nodeId)
-                  pushToHistory(newMoves)
-                  setMoves(newMoves)
-                }}
-                onUpdateComment={(nodeId, comment) => {
-                  const newMoves = updateNodeComment(moves, nodeId, comment)
-                  pushToHistory(newMoves)
-                  setMoves(newMoves)
-                  addToast(comment ? 'Comment saved' : 'Comment removed', 'success')
-                }}
-                onToggleNag={(nodeId, nag) => {
-                  const node = findNodeById(moves, nodeId)
-                  if (!node) return
-                  const currentNags = node.nags || []
-                  // Single selection: if already has this NAG, remove it; otherwise replace
-                  const newNags = currentNags.includes(nag) ? [] : [nag]
-                  const newMoves = updateNodeNags(moves, nodeId, newNags.length > 0 ? newNags : undefined)
-                  pushToHistory(newMoves)
-                  setMoves(newMoves)
-                }}
-                getNodeData={(nodeId) => findNodeById(moves, nodeId) || undefined}
-                startColor={color}
-                practiceStartNodeId={practiceStartNodeId}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+  // ===== UI pieces =====
+  const navButton = 'rounded-lg p-2.5 text-text-secondary transition-colors hover:bg-surface-2 hover:text-text-primary disabled:opacity-30 disabled:pointer-events-none'
+  const navigationBar = (
+    <div className="flex items-center justify-center gap-0.5 border-y border-border-subtle bg-surface-1 px-2 py-1 lg:rounded-xl lg:border">
+      <button type="button" onClick={goToStart} disabled={path.length === 0} className={navButton} title="Start (Home)" aria-label="Go to start">
+        <ChevronsLeft className="h-5 w-5" />
+      </button>
+      <button type="button" onClick={goBack} disabled={path.length === 0} className={navButton} title="Previous (←)" aria-label="Previous move">
+        <ChevronLeft className="h-5 w-5" />
+      </button>
+      <button type="button" onClick={goForward} disabled={children.length === 0} className={navButton} title="Next (→)" aria-label="Next move">
+        <ChevronRight className="h-5 w-5" />
+      </button>
+      <button type="button" onClick={goToEnd} disabled={children.length === 0} className={navButton} title="End of line (End)" aria-label="Go to end">
+        <ChevronsRight className="h-5 w-5" />
+      </button>
+      <div className="mx-1.5 h-5 w-px bg-border-strong" />
+      <button type="button" onClick={undo} disabled={!editor.canUndo} className={navButton} title="Undo (Ctrl+Z)" aria-label="Undo">
+        <Undo2 className="h-5 w-5" />
+      </button>
+      <button type="button" onClick={redo} disabled={!editor.canRedo} className={navButton} title="Redo (Ctrl+Y)" aria-label="Redo">
+        <Redo2 className="h-5 w-5" />
+      </button>
+      <div className="mx-1.5 h-5 w-px bg-border-strong" />
+      <button type="button" onClick={() => setShowGraph(true)} className={cn(navButton, 'flex items-center gap-1.5')} title="Tree graph" aria-label="Open tree graph">
+        <Network className="h-5 w-5" />
+        <span className="hidden text-sm sm:inline">Graph</span>
+      </button>
+    </div>
   )
 
-  // Navigation buttons component (shared between mobile and desktop)
-  const renderNavigationButtons = (compact = false) => (
-    <>
-      <button
-        onClick={goToStart}
-        className={`${compact ? 'p-2.5' : 'p-2'} rounded-lg hover:bg-surface-2 transition-colors text-text-secondary hover:text-text-primary touch-target`}
-        title="Go to start"
-      >
-        <ChevronsLeft className={`${compact ? 'h-4 w-4' : 'h-5 w-5'}`} />
-      </button>
-      <button
-        onClick={goToPreviousMove}
-        disabled={currentPath.length === 0}
-        className={`${compact ? 'p-2.5' : 'p-2'} rounded-lg hover:bg-surface-2 transition-colors text-text-secondary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed touch-target`}
-        title="Previous move"
-      >
-        <ChevronLeft className={`${compact ? 'h-4 w-4' : 'h-5 w-5'}`} />
-      </button>
-      <button
-        onClick={goToNextMove}
-        disabled={!currentNode?.children.length && (currentPath.length === 0 ? moves.length === 0 : true)}
-        className={`${compact ? 'p-2.5' : 'p-2'} rounded-lg hover:bg-surface-2 transition-colors text-text-secondary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed touch-target`}
-        title="Next move"
-      >
-        <ChevronRight className={`${compact ? 'h-4 w-4' : 'h-5 w-5'}`} />
-      </button>
-      <button
-        onClick={() => {
-          // Go to end of main line
-          let node = currentNode
-          let path = [...currentPath]
-          const nodesToTraverse = currentPath.length === 0 ? moves : (node?.children || [])
-          let mainNode = nodesToTraverse.find(n => n.isMainLine) || nodesToTraverse[0]
-          while (mainNode) {
-            path.push(mainNode.id)
-            const nextMain = mainNode.children.find(n => n.isMainLine) || mainNode.children[0]
-            if (!nextMain) break
-            mainNode = nextMain
-          }
-          if (path.length > currentPath.length) {
-            setCurrentPath(path)
-            const endNode = getNodeAtPath(moves, path)
-            if (endNode) {
-              syncChess(endNode.fen)
-              setLastMove([endNode.uci.slice(0, 2) as Key, endNode.uci.slice(2, 4) as Key])
-            }
-          }
-        }}
-        className={`${compact ? 'p-2.5' : 'p-2'} rounded-lg hover:bg-surface-2 transition-colors text-text-secondary hover:text-text-primary touch-target`}
-        title="Go to end"
-      >
-        <ChevronsRight className={`${compact ? 'h-4 w-4' : 'h-5 w-5'}`} />
-      </button>
-    </>
-  )
+  const draftText = commentDraft && commentDraft.nodeId === currentNode?.id ? commentDraft.text : currentNode?.comment ?? ''
+  const commentChanged = !!currentNode && draftText.trim() !== (currentNode.comment ?? '')
+  const ply = path.length - 1
+  const isUserMove = !!currentNode && (ply % 2 === 0) === (color === 'white')
+  const canSetEntry = !!currentNode && (practiceStartNodeId === currentNode.id || isOnLinearTrunk(moves, currentNode.id))
 
-  // Moves content component (shared)
-  const renderMovesContent = (mobile = false) => (
-    <>
-      {/* Header */}
-      <div className={`${mobile ? 'p-2' : 'p-3'} border-b border-border-subtle shrink-0`}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="flex gap-1 bg-surface-2 rounded-lg p-0.5">
-              <button
-                onClick={() => setMoveViewMode('list')}
-                className={`p-1.5 rounded transition-colors ${moveViewMode === 'list'
-                  ? 'bg-surface-3 text-text-primary'
-                  : 'text-text-secondary hover:text-text-primary'
-                  }`}
-                title="Compact list"
-              >
-                <List className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setMoveViewMode('tree')}
-                className={`p-1.5 rounded transition-colors ${moveViewMode === 'tree'
-                  ? 'bg-surface-3 text-text-primary'
-                  : 'text-text-secondary hover:text-text-primary'
-                  }`}
-                title="Variation tree"
-              >
-                <GitBranch className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-          <div className="flex items-center gap-1">
+  const annotationPanel = currentNode ? (
+    <div className="space-y-3 border-t border-border-subtle p-3">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm font-semibold text-text-primary">
+          <span className="font-mono">{Math.floor(ply / 2) + 1}{ply % 2 === 0 ? '.' : '...'}{currentNode.san}</span>
+          <span className="ml-2 text-xs font-normal text-text-muted">{isUserMove ? 'your move' : 'opponent'}</span>
+        </span>
+        <div className="flex items-center gap-1">
+          {!currentNode.isMainLine && (
             <button
-              onClick={() => setShowGraphModal(true)}
-              className="p-1.5 rounded text-text-secondary hover:bg-surface-2 hover:text-text-primary transition-colors"
-              title="Open tree graph"
+              type="button"
+              onClick={() => commit(promoteToMainLine(moves, currentNode.id))}
+              className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-text-secondary hover:bg-surface-2 hover:text-text-primary"
+              title="Make this the main line"
             >
-              <Network className="h-4 w-4" />
+              <ArrowUpRight className="h-3.5 w-3.5" /> Promote
             </button>
-            {currentNode && (
-              <button
-                onClick={handleDeleteClick}
-                className="p-1.5 rounded text-accent-danger hover:bg-accent-danger/20 transition-colors"
-                title="Delete this move"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            )}
-          </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setConfirmDelete(true)}
+            className="rounded-md p-1.5 text-accent-danger hover:bg-accent-danger/15"
+            title="Delete this move and its continuations (Del)"
+            aria-label="Delete move"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
         </div>
       </div>
-      {/* Move List */}
-      <div className={`${mobile ? 'p-2' : 'p-3'} flex-1 overflow-y-auto scrollbar-thin min-h-0`}>
-        {moveViewMode === 'list' ? (
-          <MoveList
-            moves={moves}
-            currentPath={currentPath}
-            onMoveClick={goToNode}
-            practiceStartNodeId={practiceStartNodeId}
-          />
-        ) : (
-          <VariationExplorer
-            moves={moves}
-            currentPath={currentPath}
-            onMoveClick={goToNode}
-            startColor={color}
-            practiceStartNodeId={practiceStartNodeId}
-          />
+
+      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Move annotation">
+        {nagButtons.map(({ nag, symbol, label }) => {
+          const active = currentNode.nags?.includes(nag)
+          return (
+            <button
+              type="button"
+              key={nag}
+              onClick={() => toggleNag(currentNode.id, nag)}
+              title={label}
+              aria-label={label}
+              aria-pressed={active}
+              className={cn(
+                'min-w-9 rounded-md px-2 py-1.5 text-xs font-bold transition-colors',
+                active ? 'bg-accent-warning text-zinc-950' : 'bg-surface-2 text-text-secondary hover:bg-surface-3'
+              )}
+            >
+              {symbol}
+            </button>
+          )
+        })}
+        {canSetEntry && (
+          <button
+            type="button"
+            onClick={() => toggleEntryPoint(currentNode.id)}
+            className={cn(
+              'ml-auto flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
+              practiceStartNodeId === currentNode.id
+                ? 'bg-accent-success/20 text-accent-success'
+                : 'bg-surface-2 text-text-secondary hover:bg-surface-3'
+            )}
+            title="Practice starts from this position; earlier moves become a single setup line"
+          >
+            <Flag className="h-3.5 w-3.5" />
+            {practiceStartNodeId === currentNode.id ? 'Entry point' : 'Set entry'}
+          </button>
         )}
       </div>
 
-      {/* Annotation Section */}
-      {currentNode && (
-        <div className="border-t border-border-subtle shrink-0">
-          {/* Entry Point - only show for nodes on the linear trunk */}
-          {(practiceStartNodeId === currentNode.id || isOnLinearTrunk(moves, currentNode.id)) && (
-            <div className={`${mobile ? 'p-2' : 'p-3'} border-b border-border-subtle`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Flag className="h-3.5 w-3.5 text-text-secondary" />
-                  <span className="text-xs text-text-secondary">Entry Point</span>
-                </div>
-                {practiceStartNodeId === currentNode.id ? (
-                  <button
-                    onClick={() => setPracticeStartNodeId(undefined)}
-                    className="flex items-center gap-1 text-xs text-accent-success hover:text-accent-success/80 transition-colors touch-target"
-                  >
-                    <Flag className="h-3 w-3" />
-                    Clear
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setPracticeStartNodeId(currentNode.id)}
-                    className="flex items-center gap-1 text-xs text-text-secondary hover:text-text-primary transition-colors touch-target"
-                  >
-                    <Flag className="h-3 w-3" />
-                    Set
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* NAGs & Move Info */}
-          <div className={`${mobile ? 'p-2' : 'p-3'} border-b border-border-subtle`}>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-text-secondary">
-                {currentNode.san}
-                {!isUserMove && <span className="ml-1 text-text-muted">(opponent)</span>}
-              </span>
-              {!currentNode.isMainLine && (
-                <button
-                  onClick={handlePromoteToMain}
-                  className="flex items-center gap-1 text-xs text-text-secondary hover:text-text-primary transition-colors touch-target"
-                  title="Promote to main line"
-                >
-                  <ArrowUpRight className="h-3 w-3" />
-                  Promote
-                </button>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {nagButtons.map(({ nag, symbol, label }) => {
-                const isActive = currentNode.nags?.includes(nag)
-                return (
-                  <button
-                    key={nag}
-                    onClick={() => toggleNag(nag)}
-                    title={label}
-                    aria-label={label}
-                    className={`px-2.5 py-1.5 rounded text-xs font-bold transition-colors touch-target ${isActive
-                      ? 'bg-yellow-500 text-black'
-                      : 'bg-surface-2 text-text-secondary hover:bg-surface-3'
-                      }`}
-                  >
-                    {symbol}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Comment */}
-          <div className={`${mobile ? 'p-2' : 'p-3'}`}>
-            <div className="flex items-center gap-2 mb-2">
-              <MessageSquare className="h-3.5 w-3.5 text-text-secondary" />
-              <span className="text-xs text-text-secondary">Comment</span>
-              {currentNode.comment && isUserMove && (
-                <span className="text-xs text-accent-success">●</span>
-              )}
-            </div>
-            {isUserMove ? (
-              <>
-                <textarea
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  onFocus={() => setEditingComment(true)}
-                  placeholder="Add commentary..."
-                  rows={2}
-                  className="w-full rounded-lg bg-surface-2 border border-border-strong py-1.5 px-2 text-xs text-text-primary placeholder-text-muted focus:border-accent-blue focus:outline-none resize-none"
-                />
-                {editingComment && commentText !== (currentNode.comment || '') && (
-                  <div className="flex gap-2 mt-2">
-                    <button
-                      onClick={saveComment}
-                      className="flex-1 rounded-lg bg-accent-blue px-2 py-1.5 text-xs font-medium text-white hover:brightness-110 transition-colors touch-target"
-                    >
-                      Save
-                    </button>
-                    <button
-                      onClick={() => {
-                        setCommentText(currentNode.comment || '')
-                        setEditingComment(false)
-                      }}
-                      className="flex-1 rounded-lg bg-surface-2 px-2 py-1.5 text-xs font-medium text-text-primary hover:bg-surface-3 transition-colors touch-target"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                )}
-              </>
-            ) : (
-              <p className="text-xs text-text-muted">Only for your moves ({color})</p>
-            )}
-          </div>
-        </div>
-      )}
-    </>
-  )
-
-  // Settings content component (shared)
-  const renderSettingsContent = (mobile = false) => (
-    <>
-      {/* Opening Name */}
-      <div className={`${mobile ? 'p-3' : 'p-4'} border-b border-border-subtle`}>
-        <label className="block text-sm font-medium text-text-secondary mb-1.5">
-          Opening Name <span className="text-accent-danger">*</span>
-        </label>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="e.g., My Sicilian Repertoire"
-          className="w-full rounded-lg bg-surface-2 border border-border-strong py-2 px-3 text-sm text-text-primary placeholder-text-muted focus:border-accent-blue focus:outline-none"
-        />
-      </div>
-
-      {/* Description */}
-      <div className={`${mobile ? 'p-3' : 'p-4'} border-b border-border-subtle`}>
-        <label className="block text-sm font-medium text-text-secondary mb-1.5">
-          Description
+      <div>
+        <label htmlFor="move-comment" className="mb-1 flex items-center gap-1.5 text-xs text-text-secondary">
+          <MessageSquare className="h-3.5 w-3.5" />
+          {isUserMove ? 'Why play this move? (shown before you play it)' : 'Comment on the opponent’s move'}
         </label>
         <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Notes about this opening..."
+          id="move-comment"
+          value={draftText}
+          onChange={e => setCommentDraft({ nodeId: currentNode.id, text: e.target.value })}
+          onBlur={() => {
+            if (commentChanged) saveComment(currentNode.id, draftText)
+            setCommentDraft(null)
+          }}
+          onKeyDown={e => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) (e.target as HTMLTextAreaElement).blur()
+          }}
+          placeholder="Plans, ideas, traps… (saved when you leave the field)"
           rows={2}
-          className="w-full rounded-lg bg-surface-2 border border-border-strong py-2 px-3 text-sm text-text-primary placeholder-text-muted focus:border-accent-blue focus:outline-none resize-none"
+          className="w-full resize-none rounded-lg border border-border-strong bg-surface-2 px-2.5 py-2 text-sm text-text-primary placeholder-text-muted focus:border-accent-blue focus:outline-none"
         />
       </div>
+    </div>
+  ) : (
+    <div className="border-t border-border-subtle p-3 text-xs text-text-muted">
+      Play moves on the board to build your repertoire. Playing a different move from the same position creates a variation.
+    </div>
+  )
 
-      {/* Playing as */}
-      <div className={`${mobile ? 'p-3' : 'p-4'}`}>
-        <label className="block text-sm font-medium text-text-secondary mb-1.5">
-          Playing as
+  const movesTab = (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex items-center justify-between border-b border-border-subtle px-3 py-2">
+        <div className="flex gap-0.5 rounded-lg bg-surface-2 p-0.5" role="group" aria-label="Move view">
+          {([['list', List, 'Compact list'], ['tree', GitBranch, 'Variation tree']] as const).map(([id, Icon, label]) => (
+            <button
+              type="button"
+              key={id}
+              onClick={() => setMoveView(id)}
+              aria-pressed={moveView === id}
+              title={label}
+              className={cn('rounded-md p-1.5 transition-colors', moveView === id ? 'bg-surface-3 text-text-primary' : 'text-text-secondary hover:text-text-primary')}
+            >
+              <Icon className="h-4 w-4" />
+            </button>
+          ))}
+        </div>
+        <span className="text-xs text-text-muted">{children.length > 1 ? `${children.length} continuations` : ''}</span>
+      </div>
+      <div className="min-h-[120px] flex-1 overflow-y-auto p-3 sidebar-scroll">
+        {moveView === 'list' ? (
+          <MoveList moves={moves} currentPath={path} onMoveClick={goToNode} practiceStartNodeId={practiceStartNodeId} />
+        ) : (
+          <VariationExplorer moves={moves} currentPath={path} onMoveClick={goToNode} practiceStartNodeId={practiceStartNodeId} />
+        )}
+      </div>
+      {annotationPanel}
+    </div>
+  )
+
+  const explorerTab = (
+    <OpeningStatsPanel
+      stats={stats}
+      isLoading={statsLoading}
+      error={statsError}
+      hasToken={!!lichessToken}
+      onRetry={refetch}
+      repertoireMoves={children.map(c => c.uci)}
+      sideToMove={turnColor}
+      onMoveHover={setHoveredUci}
+      onMoveClick={uci => {
+        setHoveredUci(null)
+        playUci(uci.slice(0, 2) as Key, uci.slice(2, 4) as Key, (uci[4] as PromotionPiece | undefined) || undefined)
+      }}
+    />
+  )
+
+  const detailsTab = (
+    <div className="space-y-4 p-4">
+      <div>
+        <label htmlFor="study-name" className="mb-1.5 block text-sm font-medium text-text-secondary">
+          Name <span className="text-accent-danger">*</span>
         </label>
+        <input
+          id="study-name"
+          type="text"
+          value={name}
+          onChange={e => setName(e.target.value)}
+          placeholder="e.g. My Caro-Kann"
+          className="w-full rounded-lg border border-border-strong bg-surface-2 px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:border-accent-blue focus:outline-none"
+        />
+      </div>
+      <div>
+        <label htmlFor="study-description" className="mb-1.5 block text-sm font-medium text-text-secondary">Description</label>
+        <textarea
+          id="study-description"
+          value={description}
+          onChange={e => setDescription(e.target.value)}
+          placeholder="Notes about this opening…"
+          rows={2}
+          className="w-full resize-none rounded-lg border border-border-strong bg-surface-2 px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:border-accent-blue focus:outline-none"
+        />
+      </div>
+      <div>
+        <span className="mb-1.5 block text-sm font-medium text-text-secondary">You play as</span>
         <div className="flex gap-2">
-          <button
-            onClick={() => setColor('white')}
-            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors touch-target ${color === 'white'
-              ? 'bg-zinc-200 text-zinc-900'
-              : 'bg-surface-2 text-text-secondary hover:text-text-primary'
-              }`}
-          >
-            White
-          </button>
-          <button
-            onClick={() => setColor('black')}
-            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors touch-target ${color === 'black'
-              ? 'bg-surface-3 text-text-primary border border-border-strong'
-              : 'bg-surface-2 text-text-secondary hover:text-text-primary'
-              }`}
-          >
-            Black
-          </button>
+          {(['white', 'black'] as const).map(side => (
+            <button
+              type="button"
+              key={side}
+              onClick={() => setColor(side)}
+              aria-pressed={color === side}
+              className={cn(
+                'flex-1 rounded-lg py-2.5 text-sm font-medium capitalize transition-colors',
+                color === side
+                  ? side === 'white' ? 'bg-zinc-100 text-zinc-900' : 'bg-zinc-950 text-zinc-100 ring-1 ring-border-strong'
+                  : 'bg-surface-2 text-text-secondary hover:text-text-primary'
+              )}
+            >
+              {side === 'white' ? '♔' : '♚'} {side}
+            </button>
+          ))}
         </div>
       </div>
-    </>
+      <PgnPanel
+        moves={moves}
+        studyName={name}
+        rootFen={editor.rootFen}
+        onImport={(imported, mode) => {
+          commit(imported, { path: [], practiceStartNodeId: mode === 'replace' ? null : undefined })
+          setTab('moves')
+          addToast(mode === 'replace' ? 'PGN imported' : 'PGN merged into your repertoire', 'success')
+        }}
+      />
+    </div>
+  )
+
+  const tabBar = (
+    <div className="grid shrink-0 grid-cols-3 border-b border-border-subtle" role="tablist">
+      {tabs.map(({ id, label, icon: Icon }) => (
+        <button
+          type="button"
+          role="tab"
+          key={id}
+          aria-selected={tab === id}
+          onClick={() => setTab(id)}
+          className={cn(
+            'flex items-center justify-center gap-1.5 border-b-2 py-2.5 text-xs font-medium transition-colors',
+            tab === id ? 'border-accent-blue text-text-primary' : 'border-transparent text-text-secondary hover:text-text-primary'
+          )}
+        >
+          <Icon className="h-3.5 w-3.5" />
+          {label}
+        </button>
+      ))}
+    </div>
+  )
+
+  const tabContent = tab === 'moves' ? movesTab : tab === 'explorer' ? explorerTab : detailsTab
+
+  const saveButtons = (
+    <div className="flex gap-2">
+      <ActionButton onClick={onCancel} className="flex-1">Close</ActionButton>
+      <ActionButton tone="primary" icon={Save} onClick={handleSave} className="flex-[2]" disabled={!isDirty && !!initialStudy.moves.length}>
+        {isDirty ? 'Save changes' : 'Saved'}
+      </ActionButton>
+    </div>
   )
 
   return (
-    <div className="min-h-screen bg-surface-0">
-      {sharedDialogs}
+    <>
+      <ConfirmDialog
+        isOpen={confirmDelete && !!currentNode}
+        title="Delete move"
+        message={`Delete ${currentNode?.san ?? 'this move'} and all its continuations? You can undo with Ctrl+Z.`}
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={() => {
+          if (currentNode) deleteMove(currentNode.id)
+          setConfirmDelete(false)
+        }}
+        onCancel={() => setConfirmDelete(false)}
+      />
 
-      {/* Mobile Layout */}
-      <div className="lg:hidden flex flex-col min-h-[calc(100vh-3.5rem)] safe-bottom">
-        {/* Top Bar with Name Input and Actions */}
-        <div className="flex items-center gap-2 px-3 py-2 bg-surface-1 border-b border-border-subtle">
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Opening name..."
-            className="flex-1 min-w-0 rounded-lg bg-surface-2 border border-border-strong py-1.5 px-2.5 text-sm text-text-primary placeholder-text-muted focus:border-accent-blue focus:outline-none"
-          />
-          <button
-            onClick={onCancel}
-            className="p-2 rounded-lg bg-surface-2 text-text-secondary hover:text-text-primary transition-colors touch-target"
-          >
-            <X className="h-4 w-4" />
-          </button>
-          <button
-            onClick={handleSave}
-            className="p-2 rounded-lg bg-accent-blue text-white hover:brightness-110 transition-colors touch-target"
-          >
-            <Save className="h-4 w-4" />
-          </button>
-        </div>
+      {pendingPromotion && (
+        <PromotionDialog
+          color={turnColor}
+          onSelect={piece => {
+            playUci(pendingPromotion.from, pendingPromotion.to, piece)
+            setPendingPromotion(null)
+          }}
+          onCancel={() => setPendingPromotion(null)}
+        />
+      )}
 
-        {/* Chessboard */}
-        <div className="flex items-center justify-center p-2 bg-surface-0">
-          <div className="chess-board-container board-wrapper">
-            <Chessground ref={chessgroundRef} config={config} onMove={handleMove} />
+      <Dialog open={showGraph} onOpenChange={setShowGraph}>
+        <DialogContent className="flex h-[85vh] flex-col gap-3 border-border-subtle bg-surface-1 p-3 text-text-primary sm:max-w-[min(1200px,95vw)] md:p-4">
+          <DialogTitle className="text-base">Opening tree</DialogTitle>
+          <p className="-mt-2 text-xs text-text-muted">Click a move to jump to it · right-click for annotations and actions</p>
+          <div className="min-h-0 flex-1 overflow-hidden rounded-lg">
+            <Suspense fallback={<div className="flex h-full items-center justify-center text-sm text-text-muted">Loading graph…</div>}>
+            <OpeningTree
+              moves={moves}
+              currentPath={path}
+              onNodeClick={nodeId => (nodeId === 'start' ? goToStart() : goToNode(nodeId))}
+              onSetPracticeStart={toggleEntryPoint}
+              onDeleteVariation={deleteMove}
+              onPromoteToMain={nodeId => commit(promoteToMainLine(moves, nodeId))}
+              onUpdateComment={(nodeId, comment) => commit(updateNodeComment(moves, nodeId, comment))}
+              onToggleNag={toggleNag}
+              getNodeData={nodeId => findNodeById(moves, nodeId) || undefined}
+              startColor={color}
+              practiceStartNodeId={practiceStartNodeId}
+            />
+            </Suspense>
           </div>
-        </div>
+        </DialogContent>
+      </Dialog>
 
-        {/* Navigation Bar */}
-        <div className="flex items-center justify-center gap-1 px-3 py-1.5 bg-surface-1 border-y border-border-subtle">
-          {renderNavigationButtons(true)}
-          <div className="w-px h-5 bg-border-strong mx-2" />
-          <button
-            onClick={undo}
-            disabled={historyIndex === 0}
-            className="p-2.5 rounded-lg hover:bg-surface-2 transition-colors text-text-secondary hover:text-text-primary disabled:opacity-30 touch-target"
-            title="Undo"
-          >
-            <Undo2 className="h-4 w-4" />
-          </button>
-          <button
-            onClick={redo}
-            disabled={historyIndex >= history.length - 1}
-            className="p-2.5 rounded-lg hover:bg-surface-2 transition-colors text-text-secondary hover:text-text-primary disabled:opacity-30 touch-target"
-            title="Redo"
-          >
-            <Redo2 className="h-4 w-4" />
-          </button>
-        </div>
-
-        {/* Tab Content */}
-        <div className="flex-1 flex flex-col min-h-0 bg-surface-1">
-          {/* Tab Headers */}
-          <div className="flex border-b border-border-subtle shrink-0">
-            <button
-              onClick={() => setMobileTab('moves')}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors ${mobileTab === 'moves'
-                ? 'text-text-primary border-b-2 border-accent-blue'
-                : 'text-text-secondary'
-                }`}
-            >
-              <List className="h-3.5 w-3.5" />
-              Moves
-            </button>
-            <button
-              onClick={() => setMobileTab('explorer')}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors ${mobileTab === 'explorer'
-                ? 'text-text-primary border-b-2 border-accent-blue'
-                : 'text-text-secondary'
-                }`}
-            >
-              <BarChart3 className="h-3.5 w-3.5" />
-              Explorer
-            </button>
-            <button
-              onClick={() => setMobileTab('settings')}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors ${mobileTab === 'settings'
-                ? 'text-text-primary border-b-2 border-accent-blue'
-                : 'text-text-secondary'
-                }`}
-            >
-              <Settings className="h-3.5 w-3.5" />
-              Settings
-            </button>
-          </div>
-
-          {/* Tab Content Area */}
-          <div className="flex-1 overflow-y-auto min-h-0">
-            {mobileTab === 'moves' && (
-              <div className="flex flex-col h-full">
-                {renderMovesContent(true)}
-              </div>
-            )}
-            {mobileTab === 'explorer' && (
-              <OpeningStatsPanel
-                stats={stats}
-                isLoading={statsLoading}
-                error={statsError}
-                repertoireMoves={repertoireMoves}
-                sideToMove={turnColor}
-                onMoveHover={setHoveredMoveUci}
-                onMoveClick={(uci) => {
-                  const from = uci.slice(0, 2) as Key
-                  const to = uci.slice(2, 4) as Key
-                  const promotion = uci.length > 4 ? uci[4] as PromotionPiece : undefined
-                  handleMove(from, to, promotion)
-                }}
-              />
-            )}
-            {mobileTab === 'settings' && (
-              renderSettingsContent(true)
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Desktop Layout */}
-      <div className="hidden lg:block p-4">
-        <div className="mx-auto max-w-[1100px]">
-          <div className="flex gap-6">
-            {/* Left Column: Board + Controls */}
-            <div className="flex flex-col gap-3">
-              {/* Chessboard */}
-              <div className="h-[560px] w-[560px] shrink-0 board-wrapper">
-                <Chessground ref={chessgroundRef} config={config} onMove={handleMove} />
-              </div>
-
-              {/* Navigation Bar */}
-              <div className="flex items-center gap-2 bg-surface-1 rounded-xl p-2 border border-border-subtle">
-                {renderNavigationButtons()}
-
-                <div className="flex-1" />
-
-                <button
-                  onClick={() => setShowGraphModal(true)}
-                  className="p-2 rounded-lg hover:bg-surface-2 transition-colors text-text-secondary hover:text-text-primary flex items-center gap-1.5"
-                  title="Open tree graph"
-                >
-                  <Network className="h-5 w-5" />
-                  <span className="text-sm">Tree Graph</span>
-                </button>
-              </div>
+      <GameLayout
+        board={<Chessground config={config} onMove={handleBoardMove} />}
+        belowBoard={navigationBar}
+        mobileTopBar={
+          <div className="flex items-center gap-2 border-b border-border-subtle bg-surface-1 px-3 py-2">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-text-primary">{name || 'Untitled study'}</p>
+              <p className="text-[11px] text-text-muted">{isDirty ? 'Unsaved changes' : 'All changes saved'}</p>
             </div>
-
-            {/* Right Column: Editor Panel */}
-            <div className="flex-1 min-w-[380px] max-w-[450px]">
-              {/* Tabbed Interface */}
-              <Tabs defaultValue="moves" className="w-full h-[600px]">
-                <div className="rounded-xl bg-surface-1 border border-border-subtle overflow-hidden h-full flex flex-col">
-                  {/* Tabs Header */}
-                  <TabsList className="w-full grid grid-cols-3 p-1 border-b border-border-subtle bg-transparent rounded-none shrink-0">
-                    <TabsTrigger value="moves" className="flex items-center gap-1.5 text-xs">
-                      <List className="h-3.5 w-3.5" />
-                      Moves
-                    </TabsTrigger>
-                    <TabsTrigger value="explorer" className="flex items-center gap-1.5 text-xs">
-                      <BarChart3 className="h-3.5 w-3.5" />
-                      Explorer
-                    </TabsTrigger>
-                    <TabsTrigger value="settings" className="flex items-center gap-1.5 text-xs">
-                      <Settings className="h-3.5 w-3.5" />
-                      Settings
-                    </TabsTrigger>
-                  </TabsList>
-
-                  {/* Moves Tab */}
-                  <TabsContent value="moves" className="mt-0 flex-1 overflow-hidden flex flex-col">
-                    {renderMovesContent()}
-                  </TabsContent>
-
-                  {/* Explorer Tab */}
-                  <TabsContent value="explorer" className="mt-0 flex-1 overflow-y-auto">
-                    <OpeningStatsPanel
-                      stats={stats}
-                      isLoading={statsLoading}
-                      error={statsError}
-                      repertoireMoves={repertoireMoves}
-                      sideToMove={turnColor}
-                      onMoveHover={setHoveredMoveUci}
-                      onMoveClick={(uci) => {
-                        // Add the move from explorer to the repertoire
-                        const from = uci.slice(0, 2) as Key
-                        const to = uci.slice(2, 4) as Key
-                        const promotion = uci.length > 4 ? uci[4] as PromotionPiece : undefined
-                        handleMove(from, to, promotion)
-                      }}
-                    />
-                  </TabsContent>
-
-                  {/* Settings Tab */}
-                  <TabsContent value="settings" className="mt-0 flex-1 overflow-y-auto">
-                    {renderSettingsContent()}
-                  </TabsContent>
-
-                  {/* Action Buttons - shown on all tabs */}
-                  <div className="p-4 flex gap-2 border-t border-border-subtle mt-auto shrink-0">
-                    <button
-                      onClick={onCancel}
-                      className="flex-1 rounded-lg bg-surface-2 px-4 py-2.5 text-sm font-medium text-text-primary hover:bg-surface-3 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleSave}
-                      className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-accent-blue px-4 py-2.5 text-sm font-medium text-white hover:brightness-110 transition-colors"
-                    >
-                      <Save className="h-4 w-4" />
-                      Save
-                    </button>
-                  </div>
-                </div>
-              </Tabs>
-            </div>
+            <ActionButton size="sm" tone="primary" icon={Save} onClick={handleSave} disabled={!isDirty && !!initialStudy.moves.length}>
+              Save
+            </ActionButton>
           </div>
-        </div>
-      </div>
-    </div>
+        }
+        mobileContent={
+          <div className="mt-2 flex flex-col border-t border-border-subtle bg-surface-1">
+            {tabBar}
+            {tabContent}
+          </div>
+        }
+        sidebar={
+          <>
+            {tabBar}
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto sidebar-scroll">{tabContent}</div>
+            <div className="shrink-0 border-t border-border-subtle p-3">
+              {isDirty && <p className="mb-2 text-center text-[11px] text-accent-warning">Unsaved changes · Ctrl+S to save</p>}
+              {saveButtons}
+            </div>
+          </>
+        }
+      />
+    </>
   )
 }

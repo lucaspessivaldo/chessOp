@@ -47,6 +47,8 @@ export interface OpeningStats {
 }
 
 export interface FetchOpeningStatsOptions {
+  /** Lichess personal API token (the explorer requires authentication) */
+  token?: string
   /** Rating ranges to include (default: [1600, 1800, 2000, 2200]) */
   ratings?: number[]
   /** Time controls to include (default: ['blitz', 'rapid', 'classical']) */
@@ -55,6 +57,8 @@ export interface FetchOpeningStatsOptions {
   moves?: number
   /** Maximum number of top games to return (default: 4) */
   topGames?: number
+  /** Abort signal */
+  signal?: AbortSignal
 }
 
 // Cache for API responses
@@ -69,8 +73,8 @@ const MIN_REQUEST_INTERVAL = 1000 // 1 second between requests
  * Generate cache key from FEN and options
  */
 function getCacheKey(fen: string, options?: FetchOpeningStatsOptions): string {
-  const ratings = options?.ratings?.sort().join(',') || 'default'
-  const speeds = options?.speeds?.sort().join(',') || 'default'
+  const ratings = options?.ratings ? [...options.ratings].sort().join(',') : 'default'
+  const speeds = options?.speeds ? [...options.speeds].sort().join(',') : 'default'
   return `${fen}:${ratings}:${speeds}`
 }
 
@@ -84,6 +88,18 @@ async function waitForRateLimit(): Promise<void> {
     await new Promise(resolve => setTimeout(resolve, MIN_REQUEST_INTERVAL - timeSinceLastRequest))
   }
   lastRequestTime = Date.now()
+}
+
+/**
+ * Error thrown by the explorer client. `kind` lets the UI show a helpful message.
+ */
+export class ExplorerError extends Error {
+  readonly kind: 'unauthorized' | 'rate-limited' | 'network' | 'server'
+  constructor(kind: ExplorerError['kind'], message: string) {
+    super(message)
+    this.name = 'ExplorerError'
+    this.kind = kind
+  }
 }
 
 /**
@@ -125,9 +141,24 @@ export async function fetchOpeningStats(
 
   const url = `https://explorer.lichess.ovh/lichess?${params.toString()}`
 
-  const response = await fetch(url)
+  let response: Response
+  try {
+    response = await fetch(url, {
+      headers: options?.token ? { Authorization: `Bearer ${options.token}` } : undefined,
+      signal: options?.signal,
+    })
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') throw e
+    throw new ExplorerError('network', 'Could not reach Lichess. Check your connection.')
+  }
+  if (response.status === 401) {
+    throw new ExplorerError('unauthorized', 'The Lichess explorer requires a valid API token.')
+  }
+  if (response.status === 429) {
+    throw new ExplorerError('rate-limited', 'Too many requests to Lichess. Wait a minute and try again.')
+  }
   if (!response.ok) {
-    throw new Error(`Lichess API error: ${response.status} ${response.statusText}`)
+    throw new ExplorerError('server', `Lichess explorer error (${response.status}).`)
   }
 
   const data = await response.json()

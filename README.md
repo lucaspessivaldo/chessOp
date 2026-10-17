@@ -1,73 +1,71 @@
-# React + TypeScript + Vite
+# ChessOp — Chess Opening Trainer
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Build your opening repertoire and actually remember it. ChessOp runs entirely in the browser:
+no account, no backend — your studies are stored in `localStorage`.
 
-Currently, two official plugins are available:
+## Training flow
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+1. **Build** a study — start from a starter repertoire, paste a PGN, or play moves in the editor
+   (with the Lichess opening explorer to see what real players choose).
+2. **Study** — walk through every line with arrows and your own comments explaining each move.
+3. **Practice** — play the lines from memory against automatic replies. Wrong moves get instant
+   feedback and progressive hints (piece → full move).
+4. **Mistakes** — every position you get wrong is scheduled with spaced repetition
+   (1h → 4h → 12h → 1d → 2d …). Clean answers push it further out; mistakes bring it back.
+5. **Speed drill** — all lines back to back in random order, against the clock, with personal bests.
 
-## React Compiler
+### Other features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- PGN import (merge or replace) and export, with variations, comments and annotations (`!`, `?!`, …)
+- Entry point: start practice from a given position (earlier moves become a single setup line)
+- Interactive tree graph of the repertoire, arrows/circles drawn on the board saved per move
+- Mastery per study (share of lines whose last practice was perfect)
+- Keyboard shortcuts: `H` hint, `R` retry, `Enter`/`→` next line, `L` lines list;
+  in the editor `←/→/Home/End`, `Ctrl+Z`/`Ctrl+Y`, `Ctrl+S`, `Del`
+- Responsive layout for phones and desktop, sound toggle
 
-## Expanding the ESLint configuration
+### Lichess explorer
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules: s
+The Lichess opening explorer API now requires authentication. In the editor's **Explorer** tab, create a
+free personal token on lichess.org (no scopes needed) and paste it — it is stored only in your browser.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Development
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+Requires [Bun](https://bun.sh).
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+bun install
+bun run dev       # start the dev server
+bun run build     # type-check and build to dist/
+bun run lint
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Stack
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Vite · React 19 · TypeScript · TanStack Router (file-based) · Tailwind CSS v4 ·
+[`@lichess-org/chessground`](https://github.com/lichess-org/chessground) (board) ·
+[`@jackstenglein/chess`](https://github.com/jackstenglein/chess) (rules, PGN with variations) ·
+React Flow + dagre (tree graph, lazy-loaded)
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Project structure
+
 ```
+src/
+  routes/               TanStack file routes (/, /openings)
+  components/
+    pages/              /openings page (lazy-loaded)
+    modes/              Study, Practice, Speed drill, Mistakes views + study page shell
+    opening/            Editor, selector, move lists, explorer panel, tree graph, PGN panel
+    training/           Shared training UI (buttons, progress, banners)
+    game-layout.tsx     Responsive board + sidebar layout (renders a single board)
+    chessground.tsx     React wrapper around Chessground
+  hooks/
+    use-line-player.ts  Core engine: plays a line, validates user moves, answers for the opponent
+    use-opening-*.ts    Mode hooks built on top of the line player
+  lib/                  PGN/tree utilities, storage (studies, progress, mistakes, settings), sounds
+  data/openings/        Starter repertoires
+```
+
+## License
+
+GPL-3.0

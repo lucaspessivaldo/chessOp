@@ -201,33 +201,6 @@ body {
   outline-offset: 2px;
 }
 
-/* Striped progress bar animation */
-@keyframes progress-stripes {
-  0% { background-position: 1rem 0; }
-  100% { background-position: 0 0; }
-}
-
-.progress-bar-striped {
-  background-image: linear-gradient(
-    45deg,
-    rgba(255, 255, 255, 0.1) 25%,
-    transparent 25%,
-    transparent 50%,
-    rgba(255, 255, 255, 0.1) 50%,
-    rgba(255, 255, 255, 0.1) 75%,
-    transparent 75%,
-    transparent
-  );
-  background-size: 1rem 1rem;
-  animation: progress-stripes 1s linear infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .progress-bar-striped {
-    animation: none;
-  }
-}
-
 /* ===== MOBILE RESPONSIVE UTILITIES ===== */
 
 /* Safe area padding for notched devices */
@@ -239,64 +212,10 @@ body {
   padding-top: env(safe-area-inset-top, 0);
 }
 
-/* Responsive chess board container */
-.chess-board-container {
-  width: 100%;
-  max-width: 600px;
-  aspect-ratio: 1;
-  margin: 0 auto;
-}
-
-@media (max-width: 1024px) {
-  .chess-board-container {
-    max-width: 100vw;
-  }
-}
-
-@media (min-width: 1024px) {
-  .chess-board-container {
-    max-width: min(calc(100vh - 120px), 600px);
-  }
-}
-
 /* Touch-friendly tap targets */
 .touch-target {
   min-height: 44px;
   min-width: 44px;
-}
-
-/* Mobile-first flex utilities */
-.mobile-stack {
-  display: flex;
-  flex-direction: column;
-}
-
-@media (min-width: 1024px) {
-  .mobile-stack {
-    flex-direction: row;
-  }
-}
-
-/* Hide on mobile, show on desktop */
-.desktop-only {
-  display: none;
-}
-
-@media (min-width: 768px) {
-  .desktop-only {
-    display: block;
-  }
-}
-
-/* Show on mobile, hide on desktop */
-.mobile-only {
-  display: block;
-}
-
-@media (min-width: 768px) {
-  .mobile-only {
-    display: none;
-  }
 }
 
 /* Scrollable horizontal tabs */
@@ -311,59 +230,55 @@ body {
   display: none;
 }
 
-/* Bottom sheet styles */
-.bottom-sheet {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: var(--surface-1);
-  border-top: 1px solid var(--border-subtle);
-  border-radius: 1rem 1rem 0 0;
-  padding-bottom: env(safe-area-inset-bottom, 0);
-  z-index: 40;
-}
-
-/* Collapsible panel animation */
-.collapsible-content {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 0.2s ease-out;
-}
-
-.collapsible-content[data-open="true"] {
-  grid-template-rows: 1fr;
-}
-
-.collapsible-content > div {
-  overflow: hidden;
-}
-
-/* Mobile card styles */
-.mobile-card {
-  background: var(--surface-1);
-  border: 1px solid var(--border-subtle);
-  border-radius: 0.75rem;
-  padding: 1rem;
-}
-
-/* Board styling */
-.board-wrapper {
-  border-radius: 0.5rem;
-  overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
-  border: 1px solid oklch(1 0 0 / 6%);
+/* Board styling (in the components layer so ring-* utilities can override the shadow) */
+@layer components {
+  .board-wrapper {
+    border-radius: 0.5rem;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
+    border: 1px solid oklch(1 0 0 / 6%);
+  }
 }
 
 /* ===== GameLayout responsive board sizing ===== */
-.game-board {
-  --board-size: min(calc(100vh - 160px), calc(100vw - 520px), 600px);
-  width: var(--board-size);
-  height: var(--board-size);
+.game-layout {
+  /* Mobile: full width, but leave room for the top bar and sticky footer */
+  --board-size: min(100vw, calc(100dvh - 15rem), 40rem);
 }
 
-.game-sidebar {
-  height: var(--board-size, auto);
+.game-layout.has-below-board {
+  --board-size: min(100vw, calc(100dvh - 18rem), 40rem);
+}
+
+@media (min-width: 1024px) {
+  .game-layout {
+    --board-size: min(calc(100dvh - 8rem), calc(100vw - 30rem), 42rem);
+  }
+
+  .game-layout.has-below-board {
+    --board-size: min(calc(100dvh - 12rem), calc(100vw - 30rem), 42rem);
+  }
+}
+
+.game-board {
+  width: var(--board-size);
+  height: var(--board-size);
+  flex-shrink: 0;
+}
+
+.game-board-width {
+  width: var(--board-size);
+  max-width: 100%;
+}
+
+@media (max-width: 1023px) {
+  @layer components {
+    .game-board.board-wrapper {
+      border-radius: 0;
+      border-left: 0;
+      border-right: 0;
+    }
+  }
 }
 
 /* Chess grid pattern for hero */

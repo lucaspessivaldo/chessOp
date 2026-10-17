@@ -5,6 +5,7 @@ import moveSound from '@/assets/audios/move-self.mp3'
 import promoteSound from '@/assets/audios/promote.mp3'
 import correctSound from '@/assets/audios/correct2.mp3'
 import wrongSound from '@/assets/audios/wrong.mp3'
+import { getSettings } from '@/lib/settings'
 
 export type SoundType = 'move' | 'capture' | 'castle' | 'check' | 'promote' | 'correct' | 'wrong'
 
@@ -36,6 +37,7 @@ function getAudio(type: SoundType): HTMLAudioElement {
  * Play a chess sound effect
  */
 export function playSound(type: SoundType): void {
+  if (!getSettings().soundEnabled) return
   const audio = getAudio(type)
   audio.currentTime = 0
   audio.play().catch(() => {

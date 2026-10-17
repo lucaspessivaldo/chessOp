@@ -1,681 +1,182 @@
-import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
-import { Chess } from '@jackstenglein/chess'
-import type { Square } from '@jackstenglein/chess'
-import type { Config } from '@lichess-org/chessground/config'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import type { Key } from '@lichess-org/chessground/types'
-import type { OpeningStudy, OpeningMoveNode } from '@/types/opening'
-import type { PendingPromotion, PromotionPiece, HintLevel } from '@/types/chess'
-import {
-  createChess,
-  getLegalDests,
-  getTurnColor,
-  toChessgroundFen,
-  isCheck,
-  parseUci,
-  isPromotionMove as checkIsPromotionMove,
-} from '@/chess/chess-utils'
-import { playSound, getMoveSound } from '@/lib/sounds'
-import { shuffleArray, findNodeById, getPathToNode } from '@/lib/opening-utils'
-import { loadPracticeProgress, savePracticeProgress, clearPracticeProgress } from '@/lib/practice-storage'
-import { recordMistake } from '@/hooks/use-mistakes-review'
+import type { DrawShape } from '@lichess-org/chessground/draw'
+import type { OpeningStudy } from '@/types/opening'
+import type { HintLevel } from '@/types/chess'
+import { extractStudyLines, shuffleArray, type StudyLine } from '@/lib/opening-utils'
+import { loadPracticeProgress, recordLineCompletion, resetPracticeRound, type PracticeProgress } from '@/lib/practice-storage'
+import { recordMistake } from '@/lib/mistakes-storage'
+import { playSound } from '@/lib/sounds'
+import { buildBoardConfig, useLinePlayer } from '@/hooks/use-line-player'
 
-export type PracticeStatus = 'playing' | 'line-complete'
+export type PracticeStatus = 'playing' | 'line-complete' | 'round-complete'
 
-export interface UseOpeningPracticeOptions {
-  study: OpeningStudy
-  randomOrder?: boolean
-  selectedLineIndices?: number[] // For practicing specific variations
-  onLineComplete?: () => void
-  onAllLinesComplete?: () => void
-  onMistake?: () => void
+const EMPTY_LINE: StudyLine = { key: 'empty', nodes: [], uci: [], startFen: '', isSetup: false, label: '' }
+
+function pickFirstLine(order: string[], completed: string[]): string | undefined {
+  return order.find(key => !completed.includes(key)) ?? order[0]
 }
 
 /**
- * Extract all lines from opening tree as arrays of UCI moves
+ * Practice mode: play your lines from memory. Wrong moves are recorded for spaced repetition.
  */
-function extractAllLines(nodes: OpeningMoveNode[]): string[][] {
-  const lines: string[][] = []
+export function useOpeningPractice({ study, onMistake }: { study: OpeningStudy; onMistake?: () => void }) {
+  const allLines = useMemo(() => extractStudyLines(study, true), [study])
+  const lineByKey = useMemo(() => new Map(allLines.map(line => [line.key, line])), [allLines])
 
-  function traverse(node: OpeningMoveNode, currentLine: string[]) {
-    const newLine = [...currentLine, node.uci]
-
-    if (node.children.length === 0) {
-      lines.push(newLine)
-    } else {
-      for (const child of node.children) {
-        traverse(child, newLine)
-      }
-    }
-  }
-
-  for (const root of nodes) {
-    traverse(root, [])
-  }
-
-  return lines
-}
-
-/**
- * Get node info for a line
- */
-function getLineNodes(nodes: OpeningMoveNode[]): OpeningMoveNode[][] {
-  const lines: OpeningMoveNode[][] = []
-
-  function traverse(node: OpeningMoveNode, currentLine: OpeningMoveNode[]) {
-    const newLine = [...currentLine, node]
-
-    if (node.children.length === 0) {
-      lines.push(newLine)
-    } else {
-      for (const child of node.children) {
-        traverse(child, newLine)
-      }
-    }
-  }
-
-  for (const root of nodes) {
-    traverse(root, [])
-  }
-
-  return lines
-}
-
-/**
- * Extract lines with practice start marker support
- * Returns: { lines: UCI[][], nodes: Node[][], isSetupLine: boolean[], startFens: string[] }
- */
-function extractLinesWithStartMarker(
-  nodes: OpeningMoveNode[],
-  practiceStartNodeId?: string,
-  rootFen?: string
-): { lines: string[][], nodes: OpeningMoveNode[][], isSetupLine: boolean[], startFens: string[] } {
-  const defaultFen = rootFen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
-
-  // If no start marker, use default behavior
-  if (!practiceStartNodeId) {
-    const lines = extractAllLines(nodes)
-    const nodeLines = getLineNodes(nodes)
-    return {
-      lines,
-      nodes: nodeLines,
-      isSetupLine: lines.map(() => false),
-      startFens: lines.map(() => defaultFen),
-    }
-  }
-
-  // Find the start node
-  const startNode = findNodeById(nodes, practiceStartNodeId)
-  if (!startNode) {
-    // Start node not found, fall back to default
-    const lines = extractAllLines(nodes)
-    const nodeLines = getLineNodes(nodes)
-    return {
-      lines,
-      nodes: nodeLines,
-      isSetupLine: lines.map(() => false),
-      startFens: lines.map(() => defaultFen),
-    }
-  }
-
-  // Get path to start node (the setup line)
-  const pathToStart = getPathToNode(nodes, practiceStartNodeId)
-
-  // Build the setup line
-  const setupLineNodes: OpeningMoveNode[] = []
-  const setupLineUci: string[] = []
-
-  let currentNodes = nodes
-  for (const nodeId of pathToStart) {
-    const node = currentNodes.find(n => n.id === nodeId)
-    if (node) {
-      setupLineNodes.push(node)
-      setupLineUci.push(node.uci)
-      currentNodes = node.children
-    }
-  }
-
-  // The FEN after the practice start position (for variation lines)
-  const variationStartFen = startNode.fen
-
-  // Get all lines starting FROM the start node
-  const variationLines: string[][] = []
-  const variationNodes: OpeningMoveNode[][] = []
-
-  function traverseFromStart(node: OpeningMoveNode, currentLine: string[], currentNodes: OpeningMoveNode[]) {
-    const newLine = [...currentLine, node.uci]
-    const newNodes = [...currentNodes, node]
-
-    if (node.children.length === 0) {
-      variationLines.push(newLine)
-      variationNodes.push(newNodes)
-    } else {
-      for (const child of node.children) {
-        traverseFromStart(child, newLine, newNodes)
-      }
-    }
-  }
-
-  // Start from children of the start node
-  if (startNode.children.length > 0) {
-    for (const child of startNode.children) {
-      traverseFromStart(child, [], [])
-    }
-  }
-
-  // Combine: setup line first, then variation lines
-  const allLines: string[][] = [setupLineUci, ...variationLines]
-  const allNodes: OpeningMoveNode[][] = [setupLineNodes, ...variationNodes]
-  const isSetupLine: boolean[] = [true, ...variationLines.map(() => false)]
-  // Setup line starts from root, variation lines start from practice start position
-  const startFens: string[] = [defaultFen, ...variationLines.map(() => variationStartFen)]
-
-  return { lines: allLines, nodes: allNodes, isSetupLine, startFens }
-}
-
-export function useOpeningPractice(options: UseOpeningPracticeOptions) {
-  const { study, randomOrder = false, selectedLineIndices, onLineComplete, onAllLinesComplete, onMistake } = options
-
-  // Load saved progress
-  const savedProgress = useMemo(() => loadPracticeProgress(study.id), [study.id])
-
-  // Extract all lines with practice start marker support
-  const extractedData = useMemo(
-    () => extractLinesWithStartMarker(study.moves, study.practiceStartNodeId, study.rootFen),
-    [study.moves, study.practiceStartNodeId, study.rootFen]
+  const [progress, setProgress] = useState<PracticeProgress>(() => {
+    const saved = loadPracticeProgress(study.id)
+    // A finished round starts over when practice is opened again (lifetime stats are kept)
+    const finished = allLines.length > 0 && allLines.every(line => saved.completedLineKeys.includes(line.key))
+    return finished ? resetPracticeRound(study.id) : saved
+  })
+  const [randomOrder, setRandomOrderState] = useState(false)
+  const [selectedKeys, setSelectedKeys] = useState<string[] | null>(null)
+  const [order, setOrder] = useState<string[]>(() => allLines.map(line => line.key))
+  const [currentKey, setCurrentKey] = useState<string | undefined>(
+    () => pickFirstLine(allLines.map(line => line.key), progress.completedLineKeys)
   )
 
-  // Filter to selected lines if specified
-  const filteredLines = useMemo(() => {
-    if (!selectedLineIndices || selectedLineIndices.length === 0) {
-      return extractedData
-    }
-    return {
-      lines: selectedLineIndices.map(i => extractedData.lines[i]).filter(Boolean),
-      nodes: selectedLineIndices.map(i => extractedData.nodes[i]).filter(Boolean),
-      isSetupLine: selectedLineIndices.map(i => extractedData.isSetupLine[i]).filter(v => v !== undefined),
-      startFens: selectedLineIndices.map(i => extractedData.startFens[i]).filter(Boolean),
-    }
-  }, [extractedData, selectedLineIndices])
-
-  // Apply random order if enabled
-  const [lineOrder, setLineOrder] = useState<number[]>(() => {
-    const indices = Array.from({ length: filteredLines.lines.length }, (_, i) => i)
-    return randomOrder ? shuffleArray(indices) : indices
-  })
-
-  // Re-shuffle when randomOrder or lines change
-  useEffect(() => {
-    const indices = Array.from({ length: filteredLines.lines.length }, (_, i) => i)
-    setLineOrder(randomOrder ? shuffleArray(indices) : indices)
-  }, [randomOrder, filteredLines.lines.length])
-
-  const allLines = useMemo(() => lineOrder.map(i => filteredLines.lines[i]), [lineOrder, filteredLines.lines])
-  const allLineNodes = useMemo(() => lineOrder.map(i => filteredLines.nodes[i]), [lineOrder, filteredLines.nodes])
-  const allIsSetupLine = useMemo(() => lineOrder.map(i => filteredLines.isSetupLine[i]), [lineOrder, filteredLines.isSetupLine])
-  const allStartFens = useMemo(() => lineOrder.map(i => filteredLines.startFens[i]), [lineOrder, filteredLines.startFens])
-
-  // Compute initial line index (for saved progress)
-  const initialLineIndex = useMemo(() => {
-    if (savedProgress && savedProgress.currentLineIndex < filteredLines.lines.length) {
-      return savedProgress.currentLineIndex
-    }
-    return 0
-  }, [savedProgress, filteredLines.lines.length])
-
-  // Compute initial starting FEN based on the initial line index
-  // This is computed synchronously so it's available for ref/state initialization
-  const computedInitialStartFen = useMemo(() => {
-    const startFens = lineOrder.map(i => filteredLines.startFens[i])
-    return startFens[initialLineIndex] || study.rootFen
-  }, [lineOrder, filteredLines.startFens, initialLineIndex, study.rootFen])
-
-  // Current line index - restore from saved progress if available
-  const [currentLineIndex, setCurrentLineIndex] = useState(() => initialLineIndex)
-  const currentLineIndexRef = useRef(currentLineIndex)
-  currentLineIndexRef.current = currentLineIndex // Always keep ref in sync
-
-  // Current line (array of UCI moves)
-  const moves = useMemo(() => allLines[currentLineIndex] || [], [allLines, currentLineIndex])
-  const movesRef = useRef(moves)
-  movesRef.current = moves // Always keep ref in sync
-  const currentLineNodes = useMemo(() => allLineNodes[currentLineIndex] || [], [allLineNodes, currentLineIndex])
-
-  // Chess state - initialize with the correct starting FEN for the current line
-  const chessRef = useRef<Chess>(createChess(computedInitialStartFen))
-  const [fen, setFen] = useState(() => toChessgroundFen(chessRef.current))
-  const [turnColor, setTurnColor] = useState(() => getTurnColor(chessRef.current))
-  const [lastMove, setLastMove] = useState<[Key, Key] | undefined>()
-  const [inCheck, setInCheck] = useState(() => isCheck(chessRef.current))
-  const [pendingPromotion, setPendingPromotion] = useState<PendingPromotion | null>(null)
-  const [moveIndex, setMoveIndex] = useState(0)
-  const moveIndexRef = useRef(0)
-  const [boardKey, setBoardKey] = useState(0)
-  const [isComplete, setIsComplete] = useState(false)
-
-  // Practice-specific state - restore from saved progress if available
-  const [completedLines, setCompletedLines] = useState<Set<number>>(() => {
-    if (savedProgress) {
-      return new Set(savedProgress.completedLines)
-    }
-    return new Set()
-  })
-  const [skippedLines, setSkippedLines] = useState<Set<number>>(() => {
-    if (savedProgress) {
-      return new Set(savedProgress.skippedLines)
-    }
-    return new Set()
-  })
-  const [totalWrongAttempts, setTotalWrongAttempts] = useState(() => savedProgress?.wrongAttempts || 0)
+  // Per-attempt state
   const [wrongAttempts, setWrongAttempts] = useState(0)
-  const [hintLevel, setHintLevel] = useState<HintLevel>(0) // Progressive hints
+  const [hintLevel, setHintLevel] = useState<HintLevel>(0)
   const [showWrongMove, setShowWrongMove] = useState(false)
-  const [status, setStatus] = useState<PracticeStatus>('playing')
+  const [lineDone, setLineDone] = useState(false)
+  const attemptRef = useRef({ wrong: 0, hints: 0 })
+  const wrongTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Save progress whenever it changes
-  useEffect(() => {
-    savePracticeProgress({
-      studyId: study.id,
-      completedLines: Array.from(completedLines),
-      skippedLines: Array.from(skippedLines),
-      currentLineIndex,
-      totalAttempts: 0, // Not tracking this yet
-      wrongAttempts: totalWrongAttempts,
-      lastPracticedAt: Date.now(),
-    })
-  }, [study.id, completedLines, skippedLines, currentLineIndex, totalWrongAttempts])
+  const currentLine = (currentKey && lineByKey.get(currentKey)) || EMPTY_LINE
+  const activeKeys = order
+  const completedInRound = activeKeys.filter(key => progress.completedLineKeys.includes(key))
+  const roundComplete = activeKeys.length > 0 && completedInRound.length === activeKeys.length
 
-  // User color and orientation
-  const userColor = study.color
-  const orientation = userColor
+  const player = useLinePlayer({
+    initialLine: { uci: currentLine.uci, startFen: currentLine.startFen || study.rootFen },
+    userColor: study.color,
+    onWrong: (index) => {
+      const node = currentLine.nodes[index]
+      if (node) recordMistake(study.id, node.id, node.uci)
+      onMistake?.()
 
-  // Legal destinations
-  const legalDests = useMemo(() => getLegalDests(chessRef.current), [fen])
-
-  // Check if it's user's turn
-  const isUserTurn = useCallback(() => {
-    return getTurnColor(chessRef.current) === userColor
-  }, [userColor])
-
-  // Play machine move at given index
-  const playMachineMove = useCallback((index: number) => {
-    const chess = chessRef.current
-    const currentMoves = movesRef.current
-    const uciMove = currentMoves[index]
-    if (!uciMove) return
-
-    const { from, to, promotion } = parseUci(uciMove)
-    const move = chess.move({ from, to, promotion })
-
-    if (move) {
-      setFen(toChessgroundFen(chess))
-      setTurnColor(getTurnColor(chess))
-      setLastMove([from as Key, to as Key])
-
-      const checkAfterMove = isCheck(chess)
-      setInCheck(checkAfterMove)
-
-      const soundType = getMoveSound({
-        isCapture: !!move.captured,
-        isCastle: move.san === 'O-O' || move.san === 'O-O-O',
-        isCheck: checkAfterMove,
-        isPromotion: !!move.promotion,
-      })
-      playSound(soundType)
-
-      const nextIndex = index + 1
-      moveIndexRef.current = nextIndex
-      setMoveIndex(nextIndex)
-
-      if (nextIndex >= currentMoves.length) {
-        setIsComplete(true)
-        return
-      }
-
-      // If still not user's turn, play next machine move
-      if (getTurnColor(chess) !== userColor) {
-        setTimeout(() => playMachineMove(nextIndex), 400)
-      }
-    }
-  }, [userColor])
-
-  // Play first machine move if opponent starts
-  useEffect(() => {
-    if (moveIndexRef.current === 0 && moves.length > 0 && status === 'playing') {
-      const timeout = setTimeout(() => {
-        if (!isUserTurn()) {
-          playMachineMove(0)
-        }
-      }, 500)
-      return () => clearTimeout(timeout)
-    }
-  }, [currentLineIndex, moves, status, isUserTurn, playMachineMove])
-
-  // Execute user move
-  const executeMove = useCallback((from: Key, to: Key, promotion?: PromotionPiece) => {
-    const chess = chessRef.current
-    const currentIndex = moveIndexRef.current
-    const currentMoves = movesRef.current
-    const currentNodes = allLineNodes[currentLineIndexRef.current] || []
-    const expectedUci = currentMoves[currentIndex]
-
-    if (!expectedUci) return false
-
-    const userUci = `${from}${to}${promotion || ''}`
-
-    // Check if move is correct
-    if (userUci !== expectedUci) {
-      // Wrong move - play wrong sound
-      playSound('wrong')
-      setWrongAttempts(prev => prev + 1)
-      setTotalWrongAttempts(prev => prev + 1)
+      attemptRef.current.wrong++
+      setWrongAttempts(attemptRef.current.wrong)
+      // Progressive hints: first mistake shows the piece, the next one the full move
+      setHintLevel(level => (Math.max(level, attemptRef.current.wrong >= 2 ? 2 : 1) as HintLevel))
       setShowWrongMove(true)
+      if (wrongTimerRef.current) clearTimeout(wrongTimerRef.current)
+      wrongTimerRef.current = setTimeout(() => setShowWrongMove(false), 700)
+    },
+    onCorrect: () => setHintLevel(0),
+    onComplete: () => {
+      const perfect = attemptRef.current.wrong === 0 && attemptRef.current.hints === 0
+      setProgress(recordLineCompletion(study.id, currentLine.key, perfect))
+      setLineDone(true)
+      playSound('correct')
+    },
+  })
+  const { load } = player
 
-      // Record mistake for spaced repetition review
-      const currentNode = currentNodes[currentIndex]
-      if (currentNode) {
-        recordMistake(study.id, currentNode.id, expectedUci)
-        onMistake?.()
-      }
-
-      // Progressive hints: increase hint level after wrong attempts
-      if (wrongAttempts >= 1) {
-        setHintLevel(2) // Full arrow
-      } else {
-        setHintLevel(1) // Piece to move
-      }
-
-      // Reset wrong move indicator after delay
-      setTimeout(() => setShowWrongMove(false), 500)
-
-      // Shake the board or give visual feedback
-      setBoardKey(k => k + 1)
-      return false
-    }
-
-    // Correct move
-    const move = chess.move({ from: from as Square, to: to as Square, promotion })
-
-    if (move) {
-      setFen(toChessgroundFen(chess))
-      setTurnColor(getTurnColor(chess))
-      setLastMove([from, to])
-      setShowWrongMove(false)
-      setHintLevel(0) // Reset hint level
-
-      const checkAfterMove = isCheck(chess)
-      setInCheck(checkAfterMove)
-
-      const soundType = getMoveSound({
-        isCapture: !!move.captured,
-        isCastle: move.san === 'O-O' || move.san === 'O-O-O',
-        isCheck: checkAfterMove,
-        isPromotion: !!move.promotion,
-      })
-      playSound(soundType)
-
-      const nextIndex = currentIndex + 1
-      moveIndexRef.current = nextIndex
-      setMoveIndex(nextIndex)
-
-      if (nextIndex >= currentMoves.length) {
-        setIsComplete(true)
-        setStatus('line-complete')
-        setCompletedLines(prev => new Set([...prev, currentLineIndexRef.current]))
-        onLineComplete?.()
-
-        // Check if all lines are complete
-        const newCompletedCount = completedLines.size + 1
-        if (newCompletedCount >= allLines.length) {
-          onAllLinesComplete?.()
-        }
-        return true
-      }
-
-      // Play machine's next move
-      setTimeout(() => playMachineMove(nextIndex), 400)
-
-      return true
-    }
-
-    return false
-  }, [playMachineMove, wrongAttempts, currentLineIndex, completedLines.size, allLines.length, onLineComplete, onAllLinesComplete])
-
-  // Handle move from chessground
-  const makeMove = useCallback((from: Key, to: Key) => {
-    if (isComplete) return false
-
-    if (checkIsPromotionMove(chessRef.current, from, to)) {
-      setPendingPromotion({ from, to })
-      setBoardKey(k => k + 1)
-      return false
-    }
-
-    return executeMove(from, to)
-  }, [isComplete, executeMove])
-
-  // Complete promotion
-  const completePromotion = useCallback((piece: PromotionPiece) => {
-    if (!pendingPromotion) return
-    executeMove(pendingPromotion.from, pendingPromotion.to, piece)
-    setPendingPromotion(null)
-  }, [pendingPromotion, executeMove])
-
-  // Cancel promotion
-  const cancelPromotion = useCallback(() => {
-    setPendingPromotion(null)
-    setFen(toChessgroundFen(chessRef.current))
-  }, [])
-
-  // Reset / Go to start (resetLine)
-  const resetLine = useCallback(() => {
-    // Get the starting FEN for the current line
-    const startFen = allStartFens[currentLineIndex] || study.rootFen
-    chessRef.current = createChess(startFen)
-    setFen(toChessgroundFen(chessRef.current))
-    setTurnColor(getTurnColor(chessRef.current))
-    setLastMove(undefined)
-    setInCheck(isCheck(chessRef.current))
-    setIsComplete(false)
+  const startLine = useCallback((key: string | undefined) => {
+    const line = key ? lineByKey.get(key) : undefined
+    setCurrentKey(key)
+    attemptRef.current = { wrong: 0, hints: 0 }
     setWrongAttempts(0)
     setHintLevel(0)
     setShowWrongMove(false)
-    setStatus('playing')
-    moveIndexRef.current = 0
-    setMoveIndex(0)
-    setPendingPromotion(null)
+    setLineDone(false)
+    load({ uci: line?.uci ?? [], startFen: line?.startFen ?? study.rootFen })
+  }, [lineByKey, load, study.rootFen])
 
-    setTimeout(() => {
-      if (!isUserTurn()) {
-        playMachineMove(0)
-      }
-    }, 500)
-  }, [allStartFens, currentLineIndex, study.rootFen, isUserTurn, playMachineMove])
+  const buildOrder = useCallback((keys: string[] | null, random: boolean) => {
+    const base = allLines.map(line => line.key).filter(key => !keys || keys.includes(key))
+    return random ? shuffleArray(base) : base
+  }, [allLines])
 
-  // Select a specific line
-  const selectLine = useCallback((lineIndex: number) => {
-    if (lineIndex < 0 || lineIndex >= allLines.length) return
+  /** Restart the round with a new line order / selection */
+  const applyOrder = useCallback((keys: string[] | null, random: boolean) => {
+    const newOrder = buildOrder(keys, random)
+    setOrder(newOrder)
+    startLine(pickFirstLine(newOrder, progress.completedLineKeys))
+  }, [buildOrder, startLine, progress.completedLineKeys])
 
-    // Get the starting FEN for this line
-    const startFen = allStartFens[lineIndex] || study.rootFen
-    chessRef.current = createChess(startFen)
-    setFen(toChessgroundFen(chessRef.current))
-    setTurnColor(getTurnColor(chessRef.current))
-    setLastMove(undefined)
-    setInCheck(isCheck(chessRef.current))
-    setIsComplete(false)
-    setWrongAttempts(0)
-    setHintLevel(0)
-    setShowWrongMove(false)
-    setStatus('playing')
-    moveIndexRef.current = 0
-    setMoveIndex(0)
-    setPendingPromotion(null)
+  const setRandomOrder = useCallback((random: boolean) => {
+    setRandomOrderState(random)
+    applyOrder(selectedKeys, random)
+  }, [applyOrder, selectedKeys])
 
-    setCurrentLineIndex(lineIndex)
-  }, [allLines.length, allStartFens, study.rootFen])
+  const selectLines = useCallback((keys: string[] | null) => {
+    const normalized = keys && keys.length < allLines.length ? keys : null
+    setSelectedKeys(normalized)
+    applyOrder(normalized, randomOrder)
+  }, [allLines.length, applyOrder, randomOrder])
 
-  // Go to next line
   const nextLine = useCallback(() => {
-    if (currentLineIndex < allLines.length - 1) {
-      selectLine(currentLineIndex + 1)
-    }
-  }, [currentLineIndex, allLines.length, selectLine])
+    const start = order.indexOf(currentKey ?? '')
+    const rotated = [...order.slice(start + 1), ...order.slice(0, start + 1)]
+    const next = rotated.find(key => !progress.completedLineKeys.includes(key))
+    if (next) startLine(next)
+  }, [order, currentKey, progress.completedLineKeys, startLine])
 
-  // Skip current line
-  const skipLine = useCallback(() => {
-    setSkippedLines(prev => new Set([...prev, currentLineIndex]))
-    if (currentLineIndex < allLines.length - 1) {
-      selectLine(currentLineIndex + 1)
-    }
-  }, [currentLineIndex, allLines.length, selectLine])
+  const retryLine = useCallback(() => startLine(currentKey), [startLine, currentKey])
 
-  // Reset all progress and start from scratch
-  const resetProgress = useCallback(() => {
-    // Clear from storage
-    clearPracticeProgress(study.id)
+  const resetRound = useCallback(() => {
+    const fresh = resetPracticeRound(study.id)
+    setProgress(fresh)
+    const newOrder = buildOrder(selectedKeys, randomOrder)
+    setOrder(newOrder)
+    startLine(newOrder[0])
+  }, [study.id, buildOrder, selectedKeys, randomOrder, startLine])
 
-    // Reset all state
-    setCompletedLines(new Set())
-    setSkippedLines(new Set())
-    setTotalWrongAttempts(0)
-    setWrongAttempts(0)
-    setHintLevel(0)
-    setShowWrongMove(false)
-    setStatus('playing')
-    setIsComplete(false)
-
-    // Go back to first line
-    selectLine(0)
-  }, [study.id, selectLine])
-
-  // Increase hint level manually
   const increaseHint = useCallback(() => {
-    setHintLevel(prev => Math.min(prev + 1, 2) as HintLevel)
-  }, [])
+    if (!player.isUserTurn) return
+    attemptRef.current.hints++
+    setHintLevel(level => Math.min(level + 1, 2) as HintLevel)
+  }, [player.isUserTurn])
 
-  // Reset hint level
-  const resetHint = useCallback(() => {
-    setHintLevel(0)
-  }, [])
+  const hintShapes = useMemo((): DrawShape[] => {
+    if (hintLevel === 0 || !player.expectedUci) return []
+    const from = player.expectedUci.slice(0, 2) as Key
+    const to = player.expectedUci.slice(2, 4) as Key
+    return hintLevel >= 2 ? [{ orig: from, dest: to, brush: 'green' }] : [{ orig: from, brush: 'yellow' }]
+  }, [hintLevel, player.expectedUci])
 
-  // Progressive hint shapes based on hint level
-  const hintShapes = useMemo(() => {
-    if (hintLevel === 0 || isComplete || !isUserTurn()) return []
+  const chessgroundConfig = useMemo(
+    () => buildBoardConfig(player.state, { orientation: study.color, autoShapes: hintShapes }),
+    [player.state, study.color, hintShapes]
+  )
 
-    const expectedUci = moves[moveIndexRef.current]
-    if (!expectedUci) return []
-
-    const from = expectedUci.slice(0, 2) as Key
-    const to = expectedUci.slice(2, 4) as Key
-
-    const shapes: Array<{ orig: Key; dest?: Key; brush: string }> = []
-
-    if (hintLevel >= 1) {
-      // Level 1: Highlight piece to move (circle)
-      shapes.push({ orig: from, brush: 'yellow' })
-    }
-    if (hintLevel >= 2) {
-      // Level 2: Full arrow
-      shapes.push({ orig: from, dest: to, brush: 'green' })
-    }
-
-    return shapes
-  }, [hintLevel, moves, moveIndex, isComplete, isUserTurn])
-
-  // Combined shapes (only hints - no saved shapes or NAGs in practice mode to avoid revealing answers)
-  const allShapes = useMemo(() => {
-    return [...hintShapes]
-  }, [hintShapes])
-
-  // Progress info
-  const progressInfo = useMemo(() => ({
-    completedLines: completedLines.size,
-    totalLines: allLines.length,
-    currentMove: moveIndex,
-    totalMoves: moves.length,
-  }), [completedLines.size, allLines.length, moveIndex, moves.length])
-
-  // Chessground config - allow all legal moves in practice mode
-  const chessgroundConfig: Config = useMemo(() => ({
-    fen,
-    orientation,
-    turnColor,
-    lastMove,
-    check: inCheck,
-    movable: {
-      free: false,
-      color: status === 'playing' && isUserTurn() ? userColor : undefined,
-      dests: status === 'playing' && isUserTurn() ? legalDests : new Map(),
-      showDests: true,
-    },
-    premovable: { enabled: false },
-    drawable: {
-      enabled: true,
-      autoShapes: allShapes,
-    },
-    highlight: {
-      lastMove: true,
-      check: true,
-    },
-    animation: { enabled: true, duration: 200 },
-  }), [fen, orientation, turnColor, lastMove, inCheck, legalDests, allShapes, status, isUserTurn, userColor])
-
-  // Check if current line is a setup line
-  const isCurrentLineSetup = allIsSetupLine[currentLineIndex] ?? false
+  const status: PracticeStatus = lineDone ? (roundComplete ? 'round-complete' : 'line-complete') : 'playing'
+  const orderedLines = order.map(key => lineByKey.get(key)).filter((line): line is StudyLine => !!line)
 
   return {
-    // Status
     status,
-
-    // State
-    fen,
-    turnColor,
-    lastMove,
-    inCheck,
-    isComplete,
-    orientation,
-
-    // User info
-    userColor,
-
-    // Progress
-    progressInfo,
-    completedLines,
-    skippedLines,
-
-    // Line info
-    currentLine: currentLineNodes,
-    currentLineIndex,
-    allLines: allLineNodes,
-    totalLinesCount: filteredLines.lines.length,
-    isCurrentLineSetup,
-    hasPracticeStartMarker: !!study.practiceStartNodeId,
-    selectLine,
-    nextLine,
-    skipLine,
-    resetProgress,
-
-    // Practice state
+    allLines,
+    orderedLines,
+    currentLine,
+    currentLineNumber: order.indexOf(currentKey ?? '') + 1,
+    moveIndex: player.moveIndex,
+    isUserTurn: player.isUserTurn,
+    progress,
+    completedCount: completedInRound.length,
+    totalCount: activeKeys.length,
+    isSelectionActive: selectedKeys !== null,
+    selectedKeys,
+    randomOrder,
     wrongAttempts,
     hintLevel,
-    increaseHint,
-    resetHint,
     showWrongMove,
-
-    // Actions
-    makeMove,
-    resetLine,
-
-    // Promotion
-    pendingPromotion,
-    completePromotion,
-    cancelPromotion,
-
-    // Config
+    hasEntryPoint: !!study.practiceStartNodeId,
+    makeMove: player.handleBoardMove,
+    pendingPromotion: player.pendingPromotion,
+    completePromotion: player.completePromotion,
+    cancelPromotion: player.cancelPromotion,
     chessgroundConfig,
-    boardKey,
-
-    // UI helpers
-    isUserTurn: isUserTurn(),
+    startLine,
+    nextLine,
+    retryLine,
+    resetRound,
+    increaseHint,
+    setRandomOrder,
+    selectLines,
   }
 }

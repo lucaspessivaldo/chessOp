@@ -114,10 +114,10 @@ function HomePage() {
                   <div className="w-10 h-10 rounded-lg bg-[oklch(0.65_0.15_170)]/15 flex items-center justify-center mb-4">
                     <GitBranch className="w-5 h-5 text-[oklch(0.65_0.15_170)]" />
                   </div>
-                  <h3 className="text-xl font-bold mb-2">Variation Explorer</h3>
+                  <h3 className="text-xl font-bold mb-2">Repertoire Editor</h3>
                   <p className="text-text-secondary text-sm leading-relaxed mb-6">
-                    Visualize your repertoire as an interactive tree.
-                    See where lines branch, find transpositions, and spot gaps.
+                    Build lines on the board, check what real players choose with the Lichess explorer,
+                    and see your whole repertoire as an interactive tree.
                   </p>
                   {/* Mini tree diagram */}
                   <div className="mt-auto relative h-40 w-full rounded-xl bg-surface-0 border border-border-subtle overflow-hidden">
@@ -149,7 +149,7 @@ function HomePage() {
                   </div>
                   <h3 className="text-xl font-bold mb-2">Practice Mode</h3>
                   <p className="text-text-secondary text-sm leading-relaxed">
-                    Play through your lines from memory. Wrong moves get instant feedback with progressive hints.
+                    Play your lines from memory against automatic replies. Wrong moves get instant feedback and progressive hints.
                   </p>
                 </div>
               </div>
@@ -163,7 +163,7 @@ function HomePage() {
                   </div>
                   <h3 className="text-xl font-bold mb-2">Speed Drill</h3>
                   <p className="text-text-secondary text-sm leading-relaxed">
-                    Race against the clock. Blitz through all your lines and track accuracy and time per move.
+                    Race against the clock through every line in random order and beat your personal best.
                   </p>
                 </div>
               </div>
@@ -178,8 +178,8 @@ function HomePage() {
                     </div>
                     <h3 className="text-xl font-bold mb-2">Progress Tracking</h3>
                     <p className="text-text-secondary text-sm leading-relaxed max-w-lg">
-                      See completion rates per line, accuracy stats, and review schedules at a glance.
-                      Everything is saved locally in your browser.
+                      See which lines you've mastered, which positions are due for review, and import or export
+                      everything as PGN. No account — your data stays in your browser.
                     </p>
                   </div>
                   {/* Mini progress bars */}
@@ -217,7 +217,7 @@ function HomePage() {
                 <span className="text-accent-blue">repertoire?</span>
               </h2>
               <p className="text-lg text-text-secondary mb-10 max-w-xl mx-auto">
-                Start creating your opening studies now. No account needed — everything runs in your browser.
+                Pick a starter repertoire or import your own PGN. No account needed — everything runs in your browser.
               </p>
               <Link
                 to="/openings"
@@ -248,7 +248,7 @@ function HomePage() {
               <div className="flex items-center gap-6 text-sm text-text-muted">
                 <Link to="/openings" className="hover:text-text-secondary transition-colors">Openings</Link>
                 <a
-                  href="https://github.com"
+                  href="https://github.com/lucaspessivaldo/chessOp"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1.5 hover:text-text-secondary transition-colors"

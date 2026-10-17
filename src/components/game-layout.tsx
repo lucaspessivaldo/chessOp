@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react'
+import { cn } from '@/lib/utils'
 
 interface GameLayoutProps {
-  /** The chessboard element */
+  /** The chessboard element (rendered exactly once) */
   board: ReactNode
-  /** Content below the board (e.g., navigation bar in editor) */
+  /** Content right below the board (all screen sizes) */
   belowBoard?: ReactNode
   /** Sidebar content for desktop */
   sidebar: ReactNode
@@ -18,12 +19,10 @@ interface GameLayoutProps {
 }
 
 /**
- * Shared responsive layout for all chess game modes (Study, Practice, Speed, Mistakes).
+ * Shared responsive layout for all chess game modes (Study, Practice, Speed, Mistakes, Editor).
  *
- * Desktop: side-by-side board + sidebar, responsive board sizing with CSS min().
- * Mobile: stacked column with optional sticky footer.
- *
- * The sidebar is height-matched to the board via CSS custom property --board-size.
+ * Mobile: stacked column (top bar, board, content, sticky footer).
+ * Desktop: board + sidebar side by side; the sidebar is height-matched to the board column.
  */
 export function GameLayout({
   board,
@@ -35,44 +34,33 @@ export function GameLayout({
   boardClassName,
 }: GameLayoutProps) {
   return (
-    <>
-      {/* ===== Mobile Layout ===== */}
-      <div className="lg:hidden flex flex-col min-h-full">
-        {mobileTopBar}
+    <div
+      className={cn(
+        'game-layout flex min-h-full flex-1 flex-col lg:flex-row lg:items-stretch lg:justify-center lg:gap-6 lg:p-6',
+        belowBoard && 'has-below-board'
+      )}
+    >
+      {mobileTopBar && <div className="lg:hidden">{mobileTopBar}</div>}
 
-        {/* Board */}
-        <div className="flex items-start justify-center">
-          <div className={`chess-board-container board-wrapper ${boardClassName ?? ''}`}>
-            {board}
-          </div>
+      <div className="flex shrink-0 flex-col items-center gap-3">
+        <div className={cn('game-board board-wrapper transition-shadow duration-200', boardClassName)}>
+          {board}
         </div>
-
-        {mobileContent}
-
-        {mobileFooter && (
-          <div className="sticky bottom-0 lg:hidden px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] bg-surface-1 border-t border-border-subtle mt-auto">
-            {mobileFooter}
-          </div>
-        )}
+        {belowBoard && <div className="w-full game-board-width">{belowBoard}</div>}
       </div>
 
-      {/* ===== Desktop Layout ===== */}
-      <div className="hidden lg:flex justify-center gap-6 p-4">
-        <div className="game-layout-root flex gap-6 max-w-[1100px] w-full justify-center">
-          {/* Board column */}
-          <div className="flex flex-col gap-3 shrink-0">
-            <div className={`game-board shrink-0 board-wrapper ${boardClassName ?? ''}`}>
-              {board}
-            </div>
-            {belowBoard}
-          </div>
+      {mobileContent && <div className="lg:hidden">{mobileContent}</div>}
 
-          {/* Sidebar */}
-          <div className="game-sidebar min-w-[320px] max-w-[400px] flex-1 rounded-xl bg-surface-1 border border-border-subtle overflow-hidden flex flex-col">
-            {sidebar}
-          </div>
+      {/* The inner absolute wrapper keeps the sidebar exactly as tall as the board column */}
+      <aside className="relative hidden lg:block w-[360px] xl:w-[380px] min-h-[420px] shrink-0 overflow-hidden rounded-xl border border-border-subtle bg-surface-1">
+        <div className="absolute inset-0 flex flex-col overflow-y-auto sidebar-scroll">{sidebar}</div>
+      </aside>
+
+      {mobileFooter && (
+        <div className="sticky bottom-0 z-10 mt-auto border-t border-border-subtle bg-surface-1/95 px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur lg:hidden">
+          {mobileFooter}
         </div>
-      </div>
-    </>
+      )}
+    </div>
   )
 }

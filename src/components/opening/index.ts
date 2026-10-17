@@ -1,7 +1,5 @@
 export { MoveList, CompactMoveList } from './move-list'
 export { OpeningSelector } from './opening-selector'
 export { OpeningEditor } from './opening-editor'
-export { VariationSelector } from './variation-selector'
 export { VariationExplorer } from './variation-explorer'
 export { OpeningStatsPanel } from './opening-stats'
-export { OpeningTree } from './opening-tree'

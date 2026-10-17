@@ -1,6 +1,8 @@
 import { Chess } from '@jackstenglein/chess'
 import type { Move as ChessMove } from '@jackstenglein/chess'
 import type { OpeningMoveNode, OpeningStudy, BoardShape } from '@/types/opening'
+import { NAG_SYMBOLS } from '@/types/opening'
+import { readJson, writeJson } from '@/lib/storage'
 
 const STORAGE_KEY = 'chessop-openings'
 
@@ -17,167 +19,143 @@ export function generateNodeId(): string {
 export const INITIAL_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
 
 /**
- * Convert a Chess.js move to UCI format
+ * Ply (half-move) count of a FEN: 0 for the initial position, 1 after 1.e4, ...
  */
-function moveToUci(move: ChessMove): string {
-  let uci = move.from + move.to
-  if (move.promotion) {
-    uci += move.promotion
-  }
-  return uci
+export function fenPly(fen: string): number {
+  const parts = fen.split(' ')
+  const turn = parts[1] === 'b' ? 1 : 0
+  const fullMove = parseInt(parts[5] ?? '1', 10) || 1
+  return (fullMove - 1) * 2 + turn
 }
 
 /**
- * Parse a PGN string into an opening tree structure
- * Uses @jackstenglein/chess which supports variations
+ * Convert a Chess.js move to UCI format
  */
-export function parsePgnToTree(pgn: string, startFen?: string): OpeningMoveNode[] {
-  const chess = new Chess({ fen: startFen })
+function moveToUci(move: ChessMove): string {
+  return move.from + move.to + (move.promotion ?? '')
+}
+
+/**
+ * Result of parsing a PGN into an opening tree
+ */
+export interface ParsedPgn {
+  moves: OpeningMoveNode[]
+  headers: Record<string, string>
+}
+
+/**
+ * Parse a PGN string (with variations, comments and NAGs) into an opening tree.
+ * Throws an Error with a friendly message when the PGN is invalid.
+ */
+export function parsePgn(pgn: string): ParsedPgn {
+  const chess = new Chess()
 
   try {
-    chess.loadPgn(pgn)
+    chess.loadPgn(pgn.trim())
   } catch (e) {
-    console.error('Failed to parse PGN:', e)
-    return []
+    const detail = e instanceof Error ? e.message : String(e)
+    throw new Error(`Could not read this PGN: ${detail}`)
   }
 
-  // Get the root move (first move in the game)
-  const firstMove = chess.firstMove()
-  if (!firstMove) {
-    return []
+  const headers = chess.header().valueMap()
+
+  if (chess.setUpFen() !== INITIAL_FEN) {
+    throw new Error('Only PGNs starting from the initial position are supported.')
   }
 
-  // Recursively build the tree from the chess moves
-  function buildTree(move: ChessMove | null, isMainLine: boolean): OpeningMoveNode | null {
-    if (!move) return null
-
-    const node: OpeningMoveNode = {
+  function buildNode(move: ChessMove, isMainLine: boolean): OpeningMoveNode {
+    return {
       id: generateNodeId(),
       san: move.san,
       uci: moveToUci(move),
       fen: move.after,
-      comment: move.commentAfter || undefined,
+      comment: move.commentAfter?.trim() || undefined,
       nags: move.nags && move.nags.length > 0 ? [...move.nags] : undefined,
-      children: [],
+      children: buildSiblings(move.next, isMainLine),
       isMainLine,
     }
-
-    // Add main continuation
-    const next = move.next
-    if (next) {
-      const nextNode = buildTree(next, isMainLine)
-      if (nextNode) {
-        node.children.push(nextNode)
-      }
-    }
-
-    // Add variations (alternatives to the next move)
-    // variations is Move[][] - each element is an array of moves representing a variation line
-    if (move.variations && move.variations.length > 0) {
-      for (const variationLine of move.variations) {
-        if (variationLine.length > 0) {
-          const varNode = buildTree(variationLine[0], false)
-          if (varNode) {
-            node.children.push(varNode)
-          }
-        }
-      }
-    }
-
-    return node
   }
 
-  // Build tree starting from first move
-  const rootNode = buildTree(firstMove, true)
-  if (!rootNode) {
-    return []
-  }
-
-  // Handle variations at the first move level
-  const result: OpeningMoveNode[] = [rootNode]
-
-  // Check for variations on the first move itself
-  if (firstMove.variations && firstMove.variations.length > 0) {
-    for (const variationLine of firstMove.variations) {
-      if (variationLine.length > 0) {
-        const varNode = buildTree(variationLine[0], false)
-        if (varNode) {
-          result.push(varNode)
-        }
-      }
+  // `move.variations` holds the alternatives to `move` itself (its siblings)
+  function buildSiblings(first: ChessMove | null, parentIsMain: boolean): OpeningMoveNode[] {
+    if (!first) return []
+    const siblings = [buildNode(first, parentIsMain)]
+    for (const variation of first.variations ?? []) {
+      if (variation.length > 0) siblings.push(buildNode(variation[0], false))
     }
+    return siblings
   }
 
-  return result
+  const moves = buildSiblings(chess.firstMove(), true)
+  if (moves.length === 0) {
+    throw new Error('The PGN does not contain any moves.')
+  }
+  return { moves, headers }
 }
 
 /**
- * Export opening tree to PGN format
+ * Parse a PGN string into an opening tree, returning [] when invalid
  */
-export function exportTreeToPgn(nodes: OpeningMoveNode[], headers?: Record<string, string>): string {
-  if (nodes.length === 0) return ''
+export function parsePgnToTree(pgn: string): OpeningMoveNode[] {
+  try {
+    return parsePgn(pgn).moves
+  } catch (e) {
+    console.error('Failed to parse PGN:', e)
+    return []
+  }
+}
 
-  const chess = new Chess()
+function escapeComment(comment: string): string {
+  return comment.replace(/[{}]/g, '')
+}
 
-  // Set headers if provided
-  if (headers) {
-    for (const [key, value] of Object.entries(headers)) {
-      chess.setHeader(key, value)
+/**
+ * Export an opening tree to PGN (variations, comments and NAGs included)
+ */
+export function exportTreeToPgn(
+  nodes: OpeningMoveNode[],
+  headers: Record<string, string> = {},
+  rootFen: string = INITIAL_FEN
+): string {
+  const startPly = fenPly(rootFen)
+
+  function moveText(node: OpeningMoveNode, ply: number, forceNumber: boolean): string {
+    const moveNumber = Math.floor(ply / 2) + 1
+    const isWhite = ply % 2 === 0
+    let text = isWhite ? `${moveNumber}. ${node.san}` : forceNumber ? `${moveNumber}... ${node.san}` : node.san
+    for (const nag of node.nags ?? []) {
+      text += nag.startsWith('$') ? ` ${nag}` : ` ${nag}`
     }
+    if (node.comment) text += ` {${escapeComment(node.comment)}}`
+    return text
   }
 
-  function addMovesToChess(node: OpeningMoveNode, parentMove: ChessMove | null): void {
-    // Navigate to parent position
-    if (parentMove) {
-      chess.seek(parentMove)
-    } else {
-      chess.seek(null) // Go to start
-    }
+  function renderSiblings(siblings: OpeningMoveNode[], ply: number, forceNumber: boolean): string {
+    if (siblings.length === 0) return ''
+    const main = siblings.find(n => n.isMainLine) ?? siblings[0]
+    const variations = siblings.filter(n => n !== main)
 
-    // Make the move
-    const move = chess.move(node.san)
-    if (!move) {
-      console.error('Failed to add move:', node.san)
-      return
-    }
-
-    // Add comment if present
-    if (node.comment) {
-      chess.setComment(node.comment)
-    }
-
-    // Add NAGs if present
-    if (node.nags && node.nags.length > 0) {
-      chess.setNags(node.nags)
-    }
-
-    // Process children
-    const mainChild = node.children.find(c => c.isMainLine)
-    const variations = node.children.filter(c => !c.isMainLine)
-
-    // Add main line continuation first
-    if (mainChild) {
-      addMovesToChess(mainChild, move)
-    }
-
-    // Add variations
+    const parts = [moveText(main, ply, forceNumber)]
     for (const variation of variations) {
-      addMovesToChess(variation, move)
+      const rest = renderSiblings(variation.children, ply + 1, !!variation.comment)
+      parts.push(`(${moveText(variation, ply, true)}${rest ? ` ${rest}` : ''})`)
     }
+    const continuation = renderSiblings(main.children, ply + 1, variations.length > 0 || !!main.comment)
+    if (continuation) parts.push(continuation)
+    return parts.join(' ')
   }
 
-  // Process all root moves
-  const mainRoot = nodes.find(n => n.isMainLine) || nodes[0]
-  addMovesToChess(mainRoot, null)
-
-  // Add variations at root level
-  for (const node of nodes) {
-    if (node !== mainRoot) {
-      addMovesToChess(node, null)
-    }
+  const allHeaders: Record<string, string> = { Event: '?', Result: '*', ...headers }
+  if (rootFen !== INITIAL_FEN) {
+    allHeaders.SetUp = '1'
+    allHeaders.FEN = rootFen
   }
+  const headerText = Object.entries(allHeaders)
+    .map(([key, value]) => `[${key} "${value.replace(/"/g, "'")}"]`)
+    .join('\n')
 
-  return chess.pgn.render()
+  const body = renderSiblings(nodes, startPly, true)
+  return `${headerText}\n\n${body ? `${body} ` : ''}*\n`
 }
 
 /**
@@ -195,49 +173,19 @@ export function findNodeById(nodes: OpeningMoveNode[], id: string): OpeningMoveN
 
 /**
  * Check if a node is on the linear trunk (before any variations start).
- * A node is on the trunk if:
- * 1. It's part of the main line
- * 2. All ancestors have exactly one child (no branching before this node)
- * 
  * Entry points should only be allowed on the trunk.
  */
 export function isOnLinearTrunk(nodes: OpeningMoveNode[], nodeId: string): boolean {
-  // Walk the main line and check if we reach the node before any branching
-  let current: OpeningMoveNode | undefined = nodes.find(n => n.isMainLine) || nodes[0]
+  if (nodes.length > 1) return false
+  let current: OpeningMoveNode | undefined = nodes[0]
 
   while (current) {
-    // If this is the node we're looking for, it's on the trunk
-    if (current.id === nodeId) {
-      return true
-    }
-
-    // If there's more than one child here, we've hit a branch point
-    // Any node after this (including this node's children) is not on the trunk
-    if (current.children.length > 1) {
-      return false
-    }
-
-    // Move to the next node (only child or main line child)
-    current = current.children.find(c => c.isMainLine) || current.children[0]
+    if (current.id === nodeId) return true
+    if (current.children.length > 1) return false
+    current = current.children[0]
   }
 
   return false
-}
-
-/**
- * Get the main line as a flat array of moves
- */
-export function getMainLine(nodes: OpeningMoveNode[]): OpeningMoveNode[] {
-  const result: OpeningMoveNode[] = []
-
-  let current = nodes.find(n => n.isMainLine) || nodes[0]
-  while (current) {
-    result.push(current)
-    current = current.children.find(c => c.isMainLine) || current.children[0]
-    if (!current) break
-  }
-
-  return result
 }
 
 /**
@@ -248,12 +196,9 @@ export function getAllLines(nodes: OpeningMoveNode[]): OpeningMoveNode[][] {
 
   function traverse(node: OpeningMoveNode, currentPath: OpeningMoveNode[]): void {
     const newPath = [...currentPath, node]
-
     if (node.children.length === 0) {
-      // Leaf node - complete line
       lines.push(newPath)
     } else {
-      // Continue traversing all children
       for (const child of node.children) {
         traverse(child, newPath)
       }
@@ -268,21 +213,120 @@ export function getAllLines(nodes: OpeningMoveNode[]): OpeningMoveNode[][] {
 }
 
 /**
+ * Count moves, lines and depth of a tree
+ */
+export function getTreeSummary(nodes: OpeningMoveNode[]): { moves: number; lines: number; depth: number } {
+  let moves = 0
+  let lines = 0
+  let depth = 0
+
+  function walk(list: OpeningMoveNode[], level: number) {
+    for (const node of list) {
+      moves++
+      depth = Math.max(depth, level)
+      if (node.children.length === 0) lines++
+      walk(node.children, level + 1)
+    }
+  }
+  walk(nodes, 1)
+  return { moves, lines, depth }
+}
+
+/**
+ * A single trainable line of a study
+ */
+export interface StudyLine {
+  /** Stable key: the id of the last node of the line */
+  key: string
+  /** Nodes of the line, in order */
+  nodes: OpeningMoveNode[]
+  /** UCI moves of the line, in order */
+  uci: string[]
+  /** FEN the line starts from */
+  startFen: string
+  /** Whether this is the setup line leading to the entry point */
+  isSetup: boolean
+  /** Short human-readable name that distinguishes the line from its siblings */
+  label: string
+}
+
+function toStudyLine(nodes: OpeningMoveNode[], startFen: string, isSetup: boolean): StudyLine {
+  return {
+    key: nodes[nodes.length - 1]?.id ?? 'empty',
+    nodes,
+    uci: nodes.map(n => n.uci),
+    startFen,
+    isSetup,
+    label: '',
+  }
+}
+
+/**
+ * Name each line by where it leaves the main line, adding the deepest branch point
+ * when that alone doesn't tell it apart from a sibling line.
+ */
+function labelLines(lines: StudyLine[]): StudyLine[] {
+  return lines.map(line => {
+    if (line.isSetup) return { ...line, label: 'Setup to entry point' }
+    if (line.nodes.length === 0) return { ...line, label: 'Empty line' }
+
+    const startPly = fenPly(line.startFen)
+    const firstBranch = line.nodes.findIndex(n => !n.isMainLine)
+    if (firstBranch === -1) return { ...line, label: 'Main line' }
+
+    // Deepest point where this line separates from any other line
+    let deepest = 0
+    for (const other of lines) {
+      if (other === line) continue
+      let common = 0
+      while (common < line.nodes.length && line.nodes[common]?.id === other.nodes[common]?.id) common++
+      deepest = Math.max(deepest, common)
+    }
+
+    const head = formatMoves(line.nodes.slice(firstBranch), startPly + firstBranch, 3)
+    if (deepest <= firstBranch + 2 || deepest >= line.nodes.length) {
+      return { ...line, label: formatMoves(line.nodes.slice(firstBranch), startPly + firstBranch, 4) }
+    }
+    const tail = formatMoves(line.nodes.slice(deepest), startPly + deepest, 2)
+    return { ...line, label: `${head.replace(/ …$/, '')} … ${tail}` }
+  })
+}
+
+/**
+ * Extract the trainable lines of a study.
+ * With `useEntryPoint`, the moves up to the entry point become a single setup line and
+ * every other line starts from the entry point position.
+ */
+export function extractStudyLines(study: OpeningStudy, useEntryPoint = false): StudyLine[] {
+  const rootFen = study.rootFen || INITIAL_FEN
+  const startNode = useEntryPoint && study.practiceStartNodeId
+    ? findNodeById(study.moves, study.practiceStartNodeId)
+    : null
+
+  if (!startNode) {
+    return labelLines(getAllLines(study.moves).map(nodes => toStudyLine(nodes, rootFen, false)))
+  }
+
+  const setupNodes = getPathToNode(study.moves, startNode.id)
+    .map(id => findNodeById(study.moves, id))
+    .filter((n): n is OpeningMoveNode => n !== null)
+
+  const variationLines = getAllLines(startNode.children).map(nodes => toStudyLine(nodes, startNode.fen, false))
+  return labelLines([toStudyLine(setupNodes, rootFen, true), ...variationLines])
+}
+
+/**
  * Get the path (array of node IDs) from root to a specific node
  */
 export function getPathToNode(nodes: OpeningMoveNode[], targetId: string): string[] {
   function findPath(node: OpeningMoveNode, currentPath: string[]): string[] | null {
     const newPath = [...currentPath, node.id]
-
-    if (node.id === targetId) {
-      return newPath
-    }
+    if (node.id === targetId) return newPath
 
     for (const child of node.children) {
       const found = findPath(child, newPath)
       if (found) return found
     }
-
     return null
   }
 
@@ -314,81 +358,24 @@ export function getNodeAtPath(nodes: OpeningMoveNode[], path: string[]): Opening
 }
 
 /**
- * Get parent node for a given node ID
+ * Get parent node for a given node ID (null for root-level nodes)
  */
 export function getParentNode(nodes: OpeningMoveNode[], targetId: string): OpeningMoveNode | null {
-  function findParent(node: OpeningMoveNode, parent: OpeningMoveNode | null): OpeningMoveNode | null {
-    if (node.id === targetId) {
-      return parent
-    }
-
-    for (const child of node.children) {
-      const found = findParent(child, node)
-      if (found !== undefined) return found
-    }
-
-    return null
-  }
-
-  for (const rootNode of nodes) {
-    if (rootNode.id === targetId) return null // Root has no parent
-    const parent = findParent(rootNode, null)
-    if (parent) return parent
-  }
-
-  return null
-}
-
-/**
- * Get the line (path of nodes) from root to a given node
- */
-export function getLineToNode(nodes: OpeningMoveNode[], targetId: string): OpeningMoveNode[] {
   const path = getPathToNode(nodes, targetId)
-  return path.map(id => findNodeById(nodes, id)).filter((n): n is OpeningMoveNode => n !== null)
+  if (path.length < 2) return null
+  return getNodeAtPath(nodes, path.slice(0, -1))
 }
 
-/**
- * Add a move to the tree at a specific position
- */
-export function addMoveToTree(
+function mapNode(
   nodes: OpeningMoveNode[],
-  parentId: string | null,
-  san: string,
-  uci: string,
-  fen: string,
-  isMainLine: boolean = false
+  nodeId: string,
+  update: (node: OpeningMoveNode) => OpeningMoveNode
 ): OpeningMoveNode[] {
-  const newNode: OpeningMoveNode = {
-    id: generateNodeId(),
-    san,
-    uci,
-    fen,
-    children: [],
-    isMainLine,
-  }
-
-  if (parentId === null) {
-    // Adding to root level
-    return [...nodes, newNode]
-  }
-
-  // Deep clone and add to parent
-  function addToParent(nodeList: OpeningMoveNode[]): OpeningMoveNode[] {
-    return nodeList.map(node => {
-      if (node.id === parentId) {
-        return {
-          ...node,
-          children: [...node.children, newNode],
-        }
-      }
-      return {
-        ...node,
-        children: addToParent(node.children),
-      }
-    })
-  }
-
-  return addToParent(nodes)
+  return nodes.map(node => {
+    if (node.id === nodeId) return update(node)
+    if (node.children.length === 0) return node
+    return { ...node, children: mapNode(node.children, nodeId, update) }
+  })
 }
 
 /**
@@ -399,126 +386,7 @@ export function updateNodeComment(
   nodeId: string,
   comment: string | undefined
 ): OpeningMoveNode[] {
-  function update(nodeList: OpeningMoveNode[]): OpeningMoveNode[] {
-    return nodeList.map(node => {
-      if (node.id === nodeId) {
-        return { ...node, comment }
-      }
-      return {
-        ...node,
-        children: update(node.children),
-      }
-    })
-  }
-
-  return update(nodes)
-}
-
-/**
- * Delete a node and all its descendants from the tree
- */
-export function deleteNode(nodes: OpeningMoveNode[], nodeId: string): OpeningMoveNode[] {
-  function remove(nodeList: OpeningMoveNode[]): OpeningMoveNode[] {
-    return nodeList
-      .filter(node => node.id !== nodeId)
-      .map(node => ({
-        ...node,
-        children: remove(node.children),
-      }))
-  }
-
-  return remove(nodes)
-}
-
-/**
- * Save an opening study to localStorage
- */
-export function saveOpeningStudy(study: OpeningStudy): void {
-  const studies = loadOpeningStudies()
-  const existingIndex = studies.findIndex(s => s.id === study.id)
-
-  if (existingIndex >= 0) {
-    studies[existingIndex] = { ...study, updatedAt: Date.now() }
-  } else {
-    studies.push(study)
-  }
-
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(studies))
-}
-
-/**
- * Load all opening studies from localStorage
- */
-export function loadOpeningStudies(): OpeningStudy[] {
-  const data = localStorage.getItem(STORAGE_KEY)
-  if (!data) return []
-
-  try {
-    return JSON.parse(data)
-  } catch {
-    return []
-  }
-}
-
-/**
- * Delete an opening study from localStorage
- */
-export function deleteOpeningStudy(id: string): void {
-  const studies = loadOpeningStudies()
-  const filtered = studies.filter(s => s.id !== id)
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered))
-}
-
-/**
- * Load a single opening study by ID
- */
-export function loadOpeningStudyById(id: string): OpeningStudy | null {
-  const studies = loadOpeningStudies()
-  return studies.find(s => s.id === id) || null
-}
-
-/**
- * Get FEN at a specific position in the tree
- * If path is empty, returns the root FEN
- */
-export function getFenAtPath(nodes: OpeningMoveNode[], path: string[], rootFen: string): string {
-  if (path.length === 0) return rootFen
-
-  const node = getNodeAtPath(nodes, path)
-  return node?.fen || rootFen
-}
-
-/**
- * Check if a move exists as a child of the current position
- */
-export function findChildByMove(
-  nodes: OpeningMoveNode[],
-  parentPath: string[],
-  uci: string
-): OpeningMoveNode | null {
-  if (parentPath.length === 0) {
-    // Looking at root level
-    return nodes.find(n => n.uci === uci) || null
-  }
-
-  const parent = getNodeAtPath(nodes, parentPath)
-  if (!parent) return null
-
-  return parent.children.find(c => c.uci === uci) || null
-}
-
-/**
- * Get siblings (alternative moves) at a position
- */
-export function getSiblings(nodes: OpeningMoveNode[], nodeId: string): OpeningMoveNode[] {
-  const parent = getParentNode(nodes, nodeId)
-
-  if (!parent) {
-    // Node is at root level
-    return nodes.filter(n => n.id !== nodeId)
-  }
-
-  return parent.children.filter(c => c.id !== nodeId)
+  return mapNode(nodes, nodeId, node => ({ ...node, comment: comment?.trim() || undefined }))
 }
 
 /**
@@ -529,19 +397,7 @@ export function updateNodeNags(
   nodeId: string,
   nags: string[] | undefined
 ): OpeningMoveNode[] {
-  function update(nodeList: OpeningMoveNode[]): OpeningMoveNode[] {
-    return nodeList.map(node => {
-      if (node.id === nodeId) {
-        return { ...node, nags }
-      }
-      return {
-        ...node,
-        children: update(node.children),
-      }
-    })
-  }
-
-  return update(nodes)
+  return mapNode(nodes, nodeId, node => ({ ...node, nags: nags && nags.length > 0 ? nags : undefined }))
 }
 
 /**
@@ -552,82 +408,119 @@ export function updateNodeShapes(
   nodeId: string,
   shapes: BoardShape[] | undefined
 ): OpeningMoveNode[] {
-  function update(nodeList: OpeningMoveNode[]): OpeningMoveNode[] {
-    return nodeList.map(node => {
-      if (node.id === nodeId) {
-        return { ...node, shapes: shapes && shapes.length > 0 ? shapes : undefined }
-      }
-      return {
-        ...node,
-        children: update(node.children),
-      }
-    })
-  }
-
-  return update(nodes)
+  return mapNode(nodes, nodeId, node => ({ ...node, shapes: shapes && shapes.length > 0 ? shapes : undefined }))
 }
 
 /**
- * Promote a variation to main line (swap isMainLine flags)
+ * Add a child node under `parentId` (or at root level when null)
  */
-export function promoteToMainLine(
+export function addChildNode(
   nodes: OpeningMoveNode[],
-  nodeId: string
+  parentId: string | null,
+  child: OpeningMoveNode
 ): OpeningMoveNode[] {
-  const node = findNodeById(nodes, nodeId)
-  if (!node || node.isMainLine) return nodes
+  if (parentId === null) return [...nodes, child]
+  return mapNode(nodes, parentId, node => ({ ...node, children: [...node.children, child] }))
+}
 
-  const parent = getParentNode(nodes, nodeId)
-
-  function updateNode(nodeList: OpeningMoveNode[], parentId: string | null): OpeningMoveNode[] {
-    return nodeList.map(n => {
-      if (parentId === null && nodes.includes(n)) {
-        // Root level
-        if (n.id === nodeId) {
-          return { ...n, isMainLine: true, children: updateNode(n.children, n.id) }
-        }
-        if (n.isMainLine) {
-          return { ...n, isMainLine: false, children: updateNode(n.children, n.id) }
-        }
+/**
+ * Delete a node and all its descendants from the tree.
+ * When a main line move is deleted, its first remaining sibling becomes the main line.
+ */
+export function deleteNode(nodes: OpeningMoveNode[], nodeId: string): OpeningMoveNode[] {
+  function remove(list: OpeningMoveNode[]): OpeningMoveNode[] {
+    const target = list.find(n => n.id === nodeId)
+    if (target) {
+      const remaining = list.filter(n => n.id !== nodeId)
+      if (target.isMainLine && remaining.length > 0 && !remaining.some(n => n.isMainLine)) {
+        remaining[0] = { ...remaining[0], isMainLine: true }
       }
-
-      if (n.children.some(c => c.id === nodeId)) {
-        // Parent of target node
-        return {
-          ...n,
-          children: n.children.map(c => {
-            if (c.id === nodeId) {
-              return { ...c, isMainLine: true }
-            }
-            if (c.isMainLine) {
-              return { ...c, isMainLine: false }
-            }
-            return c
-          }),
-        }
-      }
-
-      return {
-        ...n,
-        children: updateNode(n.children, null),
-      }
-    })
+      return remaining
+    }
+    return list.map(node => (node.children.length > 0 ? { ...node, children: remove(node.children) } : node))
   }
 
-  // Handle root level promotion
-  if (!parent) {
-    return nodes.map(n => {
-      if (n.id === nodeId) {
-        return { ...n, isMainLine: true }
-      }
-      if (n.isMainLine) {
-        return { ...n, isMainLine: false }
-      }
-      return n
-    })
+  return remove(nodes)
+}
+
+/**
+ * Promote a variation to main line: it becomes the first sibling and the only main line move
+ */
+export function promoteToMainLine(nodes: OpeningMoveNode[], nodeId: string): OpeningMoveNode[] {
+  function promote(list: OpeningMoveNode[]): OpeningMoveNode[] {
+    const target = list.find(n => n.id === nodeId)
+    if (target) {
+      return [
+        { ...target, isMainLine: true },
+        ...list.filter(n => n.id !== nodeId).map(n => ({ ...n, isMainLine: false })),
+      ]
+    }
+    return list.map(node => (node.children.length > 0 ? { ...node, children: promote(node.children) } : node))
   }
 
-  return updateNode(nodes, null)
+  return promote(nodes)
+}
+
+/**
+ * Merge `incoming` moves into `base`, reusing nodes that already exist (same UCI at the same position)
+ */
+export function mergeTrees(base: OpeningMoveNode[], incoming: OpeningMoveNode[]): OpeningMoveNode[] {
+  const result = [...base]
+  for (const node of incoming) {
+    const index = result.findIndex(n => n.uci === node.uci)
+    if (index === -1) {
+      result.push({ ...node, isMainLine: result.length === 0 ? node.isMainLine : false })
+    } else {
+      const existing = result[index]
+      result[index] = {
+        ...existing,
+        comment: existing.comment ?? node.comment,
+        nags: existing.nags ?? node.nags,
+        children: mergeTrees(existing.children, node.children),
+      }
+    }
+  }
+  return result
+}
+
+// ===== Study persistence =====
+
+/**
+ * Load all opening studies from localStorage
+ */
+export function loadOpeningStudies(): OpeningStudy[] {
+  const studies = readJson<OpeningStudy[]>(STORAGE_KEY, [])
+  return Array.isArray(studies) ? studies : []
+}
+
+/**
+ * Save an opening study to localStorage. Returns false if storage is full/unavailable.
+ */
+export function saveOpeningStudy(study: OpeningStudy): boolean {
+  const studies = loadOpeningStudies()
+  const existingIndex = studies.findIndex(s => s.id === study.id)
+
+  if (existingIndex >= 0) {
+    studies[existingIndex] = { ...study, updatedAt: Date.now() }
+  } else {
+    studies.push(study)
+  }
+
+  return writeJson(STORAGE_KEY, studies)
+}
+
+/**
+ * Delete an opening study from localStorage
+ */
+export function deleteOpeningStudy(id: string): void {
+  writeJson(STORAGE_KEY, loadOpeningStudies().filter(s => s.id !== id))
+}
+
+/**
+ * Load a single opening study by ID
+ */
+export function loadOpeningStudyById(id: string): OpeningStudy | null {
+  return loadOpeningStudies().find(s => s.id === id) || null
 }
 
 /**
@@ -637,55 +530,53 @@ export function shuffleArray<T>(array: T[]): T[] {
   const shuffled = [...array]
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
-      ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
   }
   return shuffled
 }
 
 /**
- * Get all unique branch starting nodes (for selecting specific variations to practice)
+ * Format a sequence of nodes with move numbers, e.g. "3.e5 Bf5 4.Nf3"
  */
-export function getBranchPoints(nodes: OpeningMoveNode[]): { node: OpeningMoveNode; depth: number }[] {
-  const branchPoints: { node: OpeningMoveNode; depth: number }[] = []
-
-  function traverse(nodeList: OpeningMoveNode[], depth: number) {
-    for (const node of nodeList) {
-      // A branch point is a node with multiple children (variations)
-      if (node.children.length > 1) {
-        branchPoints.push({ node, depth })
-      }
-      traverse(node.children, depth + 1)
-    }
-  }
-
-  // Also consider root level if multiple starting moves
-  if (nodes.length > 1) {
-    nodes.forEach(n => branchPoints.push({ node: n, depth: 0 }))
-  }
-
-  traverse(nodes, 0)
-  return branchPoints
+export function formatMoves(nodes: { san: string; nags?: string[] }[], startPly: number, maxMoves = Infinity): string {
+  const parts: string[] = []
+  nodes.slice(0, maxMoves).forEach((node, i) => {
+    const ply = startPly + i
+    const nag = node.nags?.map(n => NAG_SYMBOLS[n] ?? '').join('') ?? ''
+    const number = ply % 2 === 0 ? `${Math.floor(ply / 2) + 1}.` : i === 0 ? `${Math.floor(ply / 2) + 1}...` : ''
+    parts.push(`${number}${node.san}${nag}`)
+  })
+  const text = parts.join(' ')
+  return nodes.length > maxMoves ? `${text} …` : text
 }
 
 /**
- * Filter lines to only include those starting with specific node IDs
+ * Display name of a line
  */
-export function filterLinesByNodes(
-  allLines: OpeningMoveNode[][],
-  includeNodeIds: Set<string>
-): OpeningMoveNode[][] {
-  if (includeNodeIds.size === 0) return allLines
-
-  return allLines.filter(line =>
-    line.some(node => includeNodeIds.has(node.id))
-  )
+export function getLineLabel(line: StudyLine): string {
+  return line.label || 'Line'
 }
 
 /**
- * Format a line name for display (first N moves)
+ * Create (and persist) a new study
  */
-export function getLineName(line: { san: string }[], index: number, maxMoves = 4): string {
-  if (line.length === 0) return `Line ${index + 1}`
-  const moves = line.slice(0, maxMoves).map(m => m.san).join(' ')
-  return line.length > maxMoves ? `${moves}...` : moves
+export function createStudy(data: {
+  name: string
+  color: 'white' | 'black'
+  description?: string
+  moves?: OpeningMoveNode[]
+}): OpeningStudy {
+  const now = Date.now()
+  const study: OpeningStudy = {
+    id: generateNodeId(),
+    name: data.name.trim() || 'Untitled study',
+    description: data.description?.trim() || undefined,
+    color: data.color,
+    rootFen: INITIAL_FEN,
+    moves: data.moves ?? [],
+    createdAt: now,
+    updatedAt: now,
+  }
+  saveOpeningStudy(study)
+  return study
 }
