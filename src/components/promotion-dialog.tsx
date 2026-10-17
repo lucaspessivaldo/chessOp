@@ -28,7 +28,7 @@ export function PromotionDialog({ color, onSelect, onCancel }: PromotionDialogPr
       onClick={onCancel}
     >
       <div
-        className="flex flex-col gap-2 rounded-xl bg-surface-1 p-4 shadow-2xl border border-border-subtle"
+        className="flex flex-col gap-2 rounded-lg bg-surface-1 p-4 shadow-2xl border border-border-subtle"
         onClick={(e) => e.stopPropagation()}
       >
         <p className="text-center text-sm font-medium text-text-secondary mb-2">

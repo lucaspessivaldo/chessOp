@@ -1,0 +1,70 @@
+/*
+ * Neutral slate board theme for Chessground (replaces chessground.brown.css).
+ * Same colors in light and dark mode so positions always look the same.
+ */
+:root {
+  --board-light: #dfe4e9;
+  --board-dark: #8fa3b3;
+  --board-last-move: rgba(255, 206, 84, 0.42);
+  --board-selected: rgba(40, 90, 150, 0.4);
+  --board-dest: rgba(30, 60, 90, 0.32);
+  --board-coord-on-light: rgba(70, 90, 110, 0.85);
+  --board-coord-on-dark: rgba(245, 248, 250, 0.9);
+}
+
+/* `.cg-wrap` raises specificity above chessground.base.css, which is loaded later */
+.cg-wrap cg-board {
+  background-color: var(--board-light);
+  /* 2×2 tile: a8 (top-left) light, b8 dark — repeats to 8×8 */
+  background-image: repeating-conic-gradient(var(--board-dark) 0 25%, var(--board-light) 0 50%);
+  background-size: 25% 25%;
+}
+
+cg-board square.move-dest {
+  background: radial-gradient(var(--board-dest) 19%, transparent 20%);
+}
+cg-board square.oc.move-dest {
+  background: radial-gradient(transparent 0%, transparent 79%, var(--board-dest) 80%);
+}
+cg-board square.move-dest:hover {
+  background: var(--board-dest);
+}
+cg-board square.premove-dest {
+  background: radial-gradient(rgba(20, 30, 85, 0.35) 19%, transparent 20%);
+}
+cg-board square.last-move {
+  background-color: var(--board-last-move);
+}
+cg-board square.selected {
+  background-color: var(--board-selected);
+}
+cg-board square.check {
+  background: radial-gradient(ellipse at center, rgba(220, 38, 38, 0.95) 0%, rgba(220, 38, 38, 0.6) 30%, rgba(220, 38, 38, 0) 80%);
+}
+cg-board square.current-premove {
+  background-color: rgba(20, 30, 85, 0.4);
+}
+
+/* Coordinates: dark text on light squares, light text on dark squares */
+.cg-wrap coords {
+  font-family: var(--font-sans);
+  font-weight: 600;
+}
+
+.orientation-white .ranks :nth-child(odd),
+.orientation-white .files :nth-child(even),
+.orientation-black .ranks :nth-child(even),
+.orientation-black .files :nth-child(odd),
+coords.squares:nth-of-type(odd) :nth-child(even),
+coords.squares:nth-of-type(even) :nth-child(odd) {
+  color: var(--board-coord-on-light);
+}
+
+.orientation-white .ranks :nth-child(even),
+.orientation-white .files :nth-child(odd),
+.orientation-black .ranks :nth-child(odd),
+.orientation-black .files :nth-child(even),
+coords.squares:nth-of-type(odd) :nth-child(odd),
+coords.squares:nth-of-type(even) :nth-child(even) {
+  color: var(--board-coord-on-dark);
+}

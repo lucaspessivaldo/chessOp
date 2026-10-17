@@ -77,7 +77,7 @@ export function ConfirmDialog({
     >
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 motion-reduce:animate-none"
+        className="absolute inset-0 bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-200 motion-reduce:animate-none"
         onClick={onCancel}
         aria-hidden="true"
       />
@@ -86,7 +86,7 @@ export function ConfirmDialog({
       <div
         ref={dialogRef}
         onKeyDown={handleKeyDown}
-        className="relative w-full max-w-md rounded-xl bg-surface-1 border border-border-subtle shadow-xl animate-in zoom-in-95 fade-in duration-200 motion-reduce:animate-none"
+        className="relative w-full max-w-md rounded-lg bg-surface-1 border border-border-subtle shadow-xl animate-in zoom-in-95 fade-in duration-200 motion-reduce:animate-none"
       >
         {/* Close button */}
         <button
@@ -117,8 +117,8 @@ export function ConfirmDialog({
             ref={confirmButtonRef}
             onClick={onConfirm}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${variant === 'danger'
-              ? 'bg-red-600 text-white hover:bg-red-500'
-              : 'bg-accent-blue text-white hover:bg-accent-blue/90'
+              ? 'border border-accent-danger/25 bg-accent-danger/10 text-accent-danger hover:bg-accent-danger/15'
+              : 'bg-ink text-ink-foreground hover:opacity-90'
               }`}
           >
             {confirmLabel}
@@ -185,7 +185,7 @@ export function AlertDialog({
     >
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 motion-reduce:animate-none"
+        className="absolute inset-0 bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-200 motion-reduce:animate-none"
         onClick={onClose}
         aria-hidden="true"
       />

@@ -46,7 +46,7 @@ function StudyRoute({ studyId, mode }: { studyId: string; mode: StudyMode }) {
         <Navbar />
         <div className="max-w-sm text-center">
           <SearchX className="mx-auto mb-4 h-12 w-12 text-text-muted" />
-          <h1 className="mb-2 text-xl font-bold text-text-primary">Study not found</h1>
+          <h1 className="mb-2 text-xl font-semibold text-text-primary">Study not found</h1>
           <p className="mb-6 text-sm text-text-secondary">
             It may have been deleted, or it was created in another browser — studies are stored locally.
           </p>

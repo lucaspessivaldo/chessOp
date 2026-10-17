@@ -51,7 +51,7 @@ function SpeedDrillContent({ study }: { study: OpeningStudy }) {
   const clock = (large: boolean) => (
     <div className={cn('flex items-center gap-2', large && 'flex-col gap-1')}>
       <Clock className={cn('text-accent-warning', large ? 'h-6 w-6' : 'h-5 w-5')} />
-      <span className={cn('font-mono font-bold tabular-nums text-text-primary', large ? 'text-5xl' : 'text-2xl')}>
+      <span className={cn('font-mono font-semibold tabular-nums text-text-primary', large ? 'text-5xl' : 'text-2xl')}>
         {formatTime(d.elapsedMs)}
       </span>
     </div>
@@ -71,7 +71,7 @@ function SpeedDrillContent({ study }: { study: OpeningStudy }) {
 
       <GameLayout
         board={<Chessground config={d.chessgroundConfig} onMove={d.makeMove} />}
-        boardClassName={cn(d.flashWrong && 'ring-4 ring-accent-danger animate-shake')}
+        boardClassName={cn(d.flashWrong && 'ring-2 ring-accent-danger animate-shake')}
         mobileTopBar={
           <div className="space-y-2 border-b border-border-subtle bg-surface-1 px-3 py-2.5">
             <div className="flex items-center justify-between">

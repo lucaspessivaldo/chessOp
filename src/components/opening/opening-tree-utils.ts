@@ -87,7 +87,7 @@ export function treeToFlow(
       target: node.id,
       type: 'smoothstep',
       style: {
-        stroke: node.isMainLine ? '#a1a1aa' : '#52525b',
+        stroke: node.isMainLine ? 'var(--text-muted)' : 'var(--border-strong)',
         strokeWidth: node.isMainLine ? 2 : 1,
       },
       animated: isInPath,

@@ -52,7 +52,7 @@ export function GameLayout({
       {mobileContent && <div className="lg:hidden">{mobileContent}</div>}
 
       {/* The inner absolute wrapper keeps the sidebar exactly as tall as the board column */}
-      <aside className="relative hidden lg:block w-[360px] xl:w-[380px] min-h-[420px] shrink-0 overflow-hidden rounded-xl border border-border-subtle bg-surface-1">
+      <aside className="relative hidden lg:block w-[360px] xl:w-[380px] min-h-[420px] shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-1">
         <div className="absolute inset-0 flex flex-col overflow-y-auto sidebar-scroll">{sidebar}</div>
       </aside>
 

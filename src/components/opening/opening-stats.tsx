@@ -39,8 +39,8 @@ export function LichessTokenForm({ invalid = false }: { invalid?: boolean }) {
       }}
     >
       <div className="flex items-start gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent-blue/15">
-          <KeyRound className="h-4 w-4 text-accent-blue" />
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-2">
+          <KeyRound className="h-4 w-4 text-text-secondary" />
         </div>
         <div>
           <p className="text-sm font-semibold text-text-primary">
@@ -142,7 +142,7 @@ export function OpeningStatsPanel({
 
       {totalGames > 0 && (
         <div>
-          <div className="flex h-5 overflow-hidden rounded-md text-[10px] font-semibold">
+          <div className="flex h-5 overflow-hidden rounded-md text-[10px] font-semibold ring-1 ring-border-strong">
             <div className="flex items-center justify-center bg-zinc-100 text-zinc-800" style={{ width: `${whitePercent}%` }}>
               {whitePercent >= 12 && `${whitePercent.toFixed(0)}%`}
             </div>
@@ -231,7 +231,7 @@ function MoveRow({ move, maxGames, sideToMove, isInRepertoire, onClick, onHover 
       </span>
       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-3" title={`${totalGames.toLocaleString()} games`}>
         <div
-          className={cn('h-full rounded-full', isInRepertoire ? 'bg-accent-success' : 'bg-accent-blue/70')}
+          className={cn('h-full rounded-full', isInRepertoire ? 'bg-accent-success' : 'bg-text-muted/50')}
           style={{ width: `${(totalGames / maxGames) * 100}%` }}
         />
       </div>

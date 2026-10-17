@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { FileText, Plus } from 'lucide-react'
 import type { OpeningStudy } from '@/types/opening'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
-import { ActionButton } from '@/components/training/training-ui'
+import { ActionButton, ColorBadge } from '@/components/training/training-ui'
 import { createStudy, parsePgn } from '@/lib/opening-utils'
 import { cn } from '@/lib/utils'
 
@@ -115,13 +115,11 @@ function NewStudyForm({ initialMode = 'empty', onCreated }: NewStudyDialogProps)
                   className={cn(
                     'flex flex-1 items-center justify-center gap-2 rounded-lg border py-2.5 text-sm font-medium capitalize transition-colors',
                     color === side
-                      ? 'border-accent-blue bg-accent-blue/10 text-text-primary'
+                      ? 'border-text-primary bg-surface-2 text-text-primary'
                       : 'border-border-subtle bg-surface-2 text-text-secondary hover:text-text-primary'
                   )}
                 >
-                  <span className={cn('flex h-5 w-5 items-center justify-center rounded text-xs', side === 'white' ? 'bg-zinc-100 text-zinc-900' : 'bg-zinc-950 text-zinc-100 ring-1 ring-border-strong')}>
-                    {side === 'white' ? '♔' : '♚'}
-                  </span>
+                  <ColorBadge color={side} className="h-5 w-5 text-xs" />
                   {side}
                 </button>
               ))}

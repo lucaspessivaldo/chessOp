@@ -15,6 +15,7 @@ import { MoveTreeNode } from './opening-tree-node'
 import { treeToFlow, layoutTree, getTreeStats, type MoveNode, type MoveNodeData } from './opening-tree-utils'
 import { Flag, Trash2, ArrowUpRight, Copy, MessageSquare } from 'lucide-react'
 import { isOnLinearTrunk } from '@/lib/opening-utils'
+import { useResolvedTheme } from '@/lib/settings'
 
 interface OpeningTreeProps {
   moves: OpeningMoveNode[]
@@ -56,6 +57,7 @@ export function OpeningTree({
   practiceStartNodeId,
   getNodeData,
 }: OpeningTreeProps) {
+  const theme = useResolvedTheme()
   const reactFlowInstance = useRef<ReactFlowInstance<MoveNode> | null>(null)
   const [contextNode, setContextNode] = useState<MoveNode | null>(null)
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null)
@@ -250,9 +252,10 @@ export function OpeningTree({
         nodesConnectable={false}
         elementsSelectable={false}
         proOptions={{ hideAttribution: true }}
+        colorMode={theme}
         className="bg-surface-0"
       >
-        <Background color="#3f3f46" gap={16} size={1} />
+        <Background color="var(--border-strong)" gap={16} size={1} />
         <Controls
           showInteractive={false}
           className="bg-surface-1! border-border-subtle! shadow-lg! [&>button]:bg-surface-2! [&>button]:border-border-subtle! [&>button]:hover:bg-surface-3! [&>button>svg]:fill-text-secondary!"
@@ -260,12 +263,12 @@ export function OpeningTree({
         <MiniMap
           nodeColor={(node) => {
             const data = node.data as MoveNodeData
-            if (data.isSelected) return '#2563eb'
-            if (data.isInPath) return '#52525b'
-            if (data.isMainLine) return '#3f3f46'
-            return '#27272a'
+            if (data.isSelected) return 'var(--ink)'
+            if (data.isInPath) return 'var(--text-muted)'
+            if (data.isMainLine) return 'var(--border-strong)'
+            return 'var(--surface-3)'
           }}
-          maskColor="rgba(0, 0, 0, 0.8)"
+          maskColor="color-mix(in oklch, var(--surface-0) 75%, transparent)"
           className="bg-surface-1! border-border-subtle!"
         />
       </ReactFlow>
@@ -274,7 +277,7 @@ export function OpeningTree({
       {contextMenuPos && contextNode && (
         <div
           data-context-menu
-          className="fixed z-50 min-w-56 rounded-xl border border-border-subtle bg-surface-1 p-1 text-text-primary shadow-lg"
+          className="fixed z-50 min-w-56 rounded-lg border border-border-subtle bg-surface-1 p-1 text-text-primary shadow-lg"
           style={{
             left: Math.min(contextMenuPos.x, window.innerWidth - 240),
             top: Math.min(contextMenuPos.y, window.innerHeight - 400)
@@ -283,7 +286,7 @@ export function OpeningTree({
         >
           {/* Move name header */}
           <div className="px-2 py-1.5 text-xs text-text-muted border-b border-border-subtle mb-1">
-            Move: <span className="text-accent-blue font-medium">{contextNode.data.san}</span>
+            Move: <span className="text-text-primary font-medium">{contextNode.data.san}</span>
           </div>
 
           {/* NAG Buttons - available for all moves */}
@@ -298,8 +301,8 @@ export function OpeningTree({
                       key={nag}
                       onClick={() => handleToggleNag(nag)}
                       title={label}
-                      className={`px-2 py-0.5 rounded text-xs font-bold transition-colors ${isActive
-                        ? 'bg-yellow-500 text-black'
+                      className={`px-2 py-0.5 rounded text-xs font-semibold transition-colors ${isActive
+                        ? 'bg-ink text-ink-foreground'
                         : 'bg-surface-2 text-text-secondary hover:bg-surface-3'
                         }`}
                     >
@@ -335,7 +338,7 @@ export function OpeningTree({
                   <div className="flex gap-1.5">
                     <button
                       onClick={handleSaveComment}
-                      className="flex-1 rounded-lg bg-accent-blue px-2 py-1 text-xs font-medium text-white hover:bg-accent-blue/90 transition-colors"
+                      className="flex-1 rounded-lg bg-ink px-2 py-1 text-xs font-medium text-ink-foreground hover:opacity-90 transition-colors"
                     >
                       Save
                     </button>

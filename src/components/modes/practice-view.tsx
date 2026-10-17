@@ -185,8 +185,8 @@ function PracticeViewContent({ study, onMistakeMade, onReviewMistakes }: Practic
       <GameLayout
         board={<Chessground config={p.chessgroundConfig} onMove={p.makeMove} />}
         boardClassName={cn(
-          p.showWrongMove && 'ring-4 ring-accent-danger animate-shake',
-          p.status !== 'playing' && !p.showWrongMove && 'ring-4 ring-accent-success/70 animate-correct'
+          p.showWrongMove && 'ring-2 ring-accent-danger animate-shake',
+          p.status !== 'playing' && !p.showWrongMove && 'ring-2 ring-accent-success'
         )}
         mobileTopBar={
           <div className="space-y-2 border-b border-border-subtle bg-surface-1 px-3 py-2.5">

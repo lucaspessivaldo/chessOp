@@ -29,7 +29,7 @@ export function LineList({ lines, currentKey, onSelect, statusOf, className }: L
         const isCurrent = line.key === currentKey
         const status = statusOf?.(line.key) ?? 'none'
         const { icon: Icon, className: iconClass } = isCurrent
-          ? { icon: CircleDot, className: 'text-accent-blue' }
+          ? { icon: CircleDot, className: 'text-text-primary' }
           : statusIcon[status]
 
         return (
@@ -40,7 +40,7 @@ export function LineList({ lines, currentKey, onSelect, statusOf, className }: L
               aria-current={isCurrent ? 'true' : undefined}
               className={cn(
                 'w-full rounded-lg px-3 py-2 text-left transition-colors flex items-start gap-2.5',
-                isCurrent ? 'bg-accent-blue/12 ring-1 ring-accent-blue/30' : 'hover:bg-surface-2'
+                isCurrent ? 'bg-surface-2 ring-1 ring-border-strong' : 'hover:bg-surface-2'
               )}
             >
               <Icon className={cn('mt-0.5 h-4 w-4 shrink-0', iconClass)} />

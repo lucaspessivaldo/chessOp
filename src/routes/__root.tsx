@@ -12,7 +12,7 @@ export const Route = createRootRoute({
     <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
       <p className="text-6xl font-extrabold text-text-muted">404</p>
       <p className="text-text-secondary">This page doesn't exist.</p>
-      <Link to="/openings" className="rounded-lg bg-accent-blue px-4 py-2 text-sm font-medium text-white hover:bg-accent-blue-hover">
+      <Link to="/openings" className="rounded-md bg-ink px-4 py-2 text-sm font-medium text-ink-foreground hover:opacity-90">
         Go to your repertoire
       </Link>
     </div>

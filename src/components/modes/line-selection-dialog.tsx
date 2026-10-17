@@ -77,10 +77,10 @@ function LineSelectionContent({ open, onOpenChange, lines, initialSelection, onC
                 onClick={() => toggle(line.key)}
                 className={cn(
                   'flex w-full items-start gap-2.5 rounded-lg px-3 py-2 text-left transition-colors',
-                  isSelected ? 'bg-accent-blue/10' : 'hover:bg-surface-2'
+                  isSelected ? 'bg-surface-2' : 'hover:bg-surface-2'
                 )}
               >
-                <Icon className={cn('mt-0.5 h-4 w-4 shrink-0', isSelected ? 'text-accent-blue' : 'text-text-muted')} />
+                <Icon className={cn('mt-0.5 h-4 w-4 shrink-0', isSelected ? 'text-text-primary' : 'text-text-muted')} />
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-medium text-text-primary">
                     <span className="text-text-muted tabular-nums">{index + 1}.</span> {getLineLabel(line)}

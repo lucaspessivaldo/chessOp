@@ -85,9 +85,9 @@ function MoveTree({
         <button
           onClick={() => onMoveClick(mainNode.id)}
           className={`px-1.5 py-0.5 rounded transition-colors inline-flex items-center gap-0.5 ${isCurrentMove
-            ? 'bg-accent-blue text-white'
+            ? 'bg-ink text-ink-foreground'
             : isInPath
-              ? 'bg-accent-blue/15 text-accent-blue hover:bg-accent-blue/20'
+              ? 'bg-surface-3 text-text-primary'
               : 'bg-surface-2/50 text-text-primary hover:bg-surface-2'
             } ${mainNode.isMainLine ? '' : 'text-text-secondary'} ${isPracticeStart ? 'ring-1 ring-accent-success' : ''}`}
         >
@@ -119,7 +119,7 @@ function MoveTree({
                 <button
                   onClick={() => onMoveClick(variation.id)}
                   className={`px-1 py-0.5 rounded transition-colors ${currentPath.includes(variation.id)
-                    ? 'bg-accent-blue/15 text-accent-blue hover:bg-accent-blue/20'
+                    ? 'bg-surface-3 text-text-primary'
                     : 'bg-surface-2/30 text-text-secondary hover:bg-surface-2/50'
                     } ${isVariationPracticeStart ? 'ring-1 ring-accent-success' : ''}`}
                 >
@@ -205,14 +205,14 @@ export function CompactMoveList({ line, currentMoveIndex, startPly = 0, hideFutu
             )}
             <span
               className={`px-1.5 py-0.5 rounded-md ${isLastPlayed
-                ? 'bg-accent-blue text-white font-semibold'
+                ? 'bg-ink text-ink-foreground font-medium'
                 : isPast
                   ? 'text-text-primary'
                   : 'text-text-muted'
                 }`}
             >
               {node.san}
-              {nag && <span className={isLastPlayed ? 'text-white/80' : 'text-accent-warning'}>{nag}</span>}
+              {nag && <span className={isLastPlayed ? 'text-ink-foreground/70' : 'text-accent-warning'}>{nag}</span>}
             </span>
           </li>
         )

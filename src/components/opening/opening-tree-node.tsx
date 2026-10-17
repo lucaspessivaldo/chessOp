@@ -26,21 +26,21 @@ export const MoveTreeNode = memo(function MoveTreeNode({ data, id }: MoveNodePro
 
   // Node styling based on state
   const getBgColor = () => {
-    if (isSelected) return 'bg-blue-600'
+    if (isSelected) return 'bg-ink'
     if (isInPath) return 'bg-surface-3'
     if (isMainLine) return 'bg-surface-2'
     return 'bg-surface-1'
   }
 
   const getBorderColor = () => {
-    if (isPracticeStart) return 'border-green-500 border-2'
-    if (isSelected) return 'border-blue-400 border-2'
+    if (isPracticeStart) return 'border-accent-success border-2'
+    if (isSelected) return 'border-ink border'
     if (isMainLine) return 'border-border-strong border'
     return 'border-border-subtle border'
   }
 
   const getTextColor = () => {
-    if (isSelected) return 'text-white'
+    if (isSelected) return 'text-ink-foreground'
     if (color === 'white') return 'text-text-primary'
     return 'text-text-secondary'
   }
@@ -53,7 +53,7 @@ export const MoveTreeNode = memo(function MoveTreeNode({ data, id }: MoveNodePro
             px-3 py-1.5 rounded-sm text-xs font-medium cursor-pointer
             bg-surface-2 border border-border-strong text-text-secondary
             hover:bg-surface-3 transition-colors
-            ${isSelected ? 'ring-2 ring-blue-500' : ''}
+            ${isSelected ? 'ring-2 ring-text-primary' : ''}
           `}
         >
           ●
@@ -78,7 +78,7 @@ export const MoveTreeNode = memo(function MoveTreeNode({ data, id }: MoveNodePro
         className={`
           relative px-2 py-1 rounded-sm text-xs font-medium cursor-pointer
           ${getBgColor()} ${getBorderColor()} ${getTextColor()}
-          hover:brightness-110 transition-all
+          hover:border-text-muted transition-colors
           flex items-center gap-1 min-w-10 justify-center
         `}
       >
@@ -94,19 +94,19 @@ export const MoveTreeNode = memo(function MoveTreeNode({ data, id }: MoveNodePro
 
         {/* NAG annotation */}
         {nagString && (
-          <span className="text-yellow-400 text-[10px]">{nagString}</span>
+          <span className="text-accent-warning text-[10px]">{nagString}</span>
         )}
 
         {/* Indicators */}
         <div className="absolute -top-1 -right-1 flex gap-0.5">
           {isPracticeStart && (
-            <div className="bg-green-500 rounded-full p-0.5" title="Practice starts here">
-              <Flag className="h-2 w-2 text-white" />
+            <div className="bg-accent-success rounded-full p-0.5" title="Practice starts here">
+              <Flag className="h-2 w-2 text-surface-1" />
             </div>
           )}
           {hasComment && (
-            <div className="bg-blue-500 rounded-full p-0.5" title="Has comment">
-              <MessageSquare className="h-2 w-2 text-white" />
+            <div className="bg-text-muted rounded-full p-0.5" title="Has comment">
+              <MessageSquare className="h-2 w-2 text-surface-1" />
             </div>
           )}
         </div>

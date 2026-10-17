@@ -82,7 +82,7 @@ export function MistakesReviewView({ study, onChanged, onPractice }: MistakesVie
           {r.queue.length > 0 ? (
             <>
               <Trophy className="mx-auto mb-4 h-14 w-14 text-accent-warning" />
-              <h2 className="mb-2 text-xl font-bold text-text-primary">Review finished</h2>
+              <h2 className="mb-2 text-xl font-semibold text-text-primary">Review finished</h2>
               <div className="my-5 grid grid-cols-3 gap-2">
                 <StatTile value={r.results.clean} label="First try" tone="success" />
                 <StatTile value={r.results.withErrors} label="With errors" tone="danger" />
@@ -95,7 +95,7 @@ export function MistakesReviewView({ study, onChanged, onPractice }: MistakesVie
           ) : totalTracked === 0 ? (
             <>
               <Target className="mx-auto mb-4 h-14 w-14 text-text-muted" />
-              <h2 className="mb-2 text-xl font-bold text-text-primary">No mistakes yet</h2>
+              <h2 className="mb-2 text-xl font-semibold text-text-primary">No mistakes yet</h2>
               <p className="mb-6 text-sm text-text-secondary">
                 Every wrong move you make in Practice or Speed drill is saved here and scheduled for review —
                 harder positions come back more often.
@@ -104,7 +104,7 @@ export function MistakesReviewView({ study, onChanged, onPractice }: MistakesVie
           ) : (
             <>
               <CheckCircle2 className="mx-auto mb-4 h-14 w-14 text-accent-success" />
-              <h2 className="mb-2 text-xl font-bold text-text-primary">All caught up!</h2>
+              <h2 className="mb-2 text-xl font-semibold text-text-primary">All caught up!</h2>
               <p className="mb-6 text-sm text-text-secondary">
                 {totalTracked} position{totalTracked === 1 ? '' : 's'} scheduled.
                 {nextReviewAt && <> Next review in <span className="text-text-primary">{formatRelative(nextReviewAt)}</span>.</>}
@@ -195,8 +195,8 @@ export function MistakesReviewView({ study, onChanged, onPractice }: MistakesVie
       <GameLayout
         board={<Chessground config={r.chessgroundConfig} onMove={r.makeMove} />}
         boardClassName={cn(
-          r.showWrongMove && 'ring-4 ring-accent-danger animate-shake',
-          r.solved && 'ring-4 ring-accent-success/70 animate-correct'
+          r.showWrongMove && 'ring-2 ring-accent-danger animate-shake',
+          r.solved && 'ring-2 ring-accent-success'
         )}
         mobileTopBar={
           <div className="space-y-2 border-b border-border-subtle bg-surface-1 px-3 py-2.5">

@@ -78,29 +78,22 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
   }, [toast.id, toast.duration, onRemove])
 
   const icons = {
-    success: <CheckCircle className="h-5 w-5 text-accent-success" />,
-    error: <AlertCircle className="h-5 w-5 text-accent-danger" />,
-    warning: <AlertTriangle className="h-5 w-5 text-accent-warning" />,
-    info: <Info className="h-5 w-5 text-accent-blue" />,
-  }
-
-  const bgColors = {
-    success: 'bg-green-900/90 border-green-700',
-    error: 'bg-red-900/90 border-red-700',
-    warning: 'bg-yellow-900/90 border-yellow-700',
-    info: 'bg-blue-900/90 border-blue-700',
+    success: <CheckCircle className="h-4 w-4 shrink-0 text-accent-success" />,
+    error: <AlertCircle className="h-4 w-4 shrink-0 text-accent-danger" />,
+    warning: <AlertTriangle className="h-4 w-4 shrink-0 text-accent-warning" />,
+    info: <Info className="h-4 w-4 shrink-0 text-text-muted" />,
   }
 
   return (
     <div
-      className={`pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg backdrop-blur-sm animate-in slide-in-from-right-full duration-300 motion-reduce:animate-none ${bgColors[toast.type]}`}
+      className="pointer-events-auto flex items-center gap-3 rounded-md border border-border-strong bg-surface-1 px-3.5 py-2.5 shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-200 motion-reduce:animate-none"
       role="alert"
     >
       {icons[toast.type]}
       <p className="text-sm text-text-primary">{toast.message}</p>
       <button
         onClick={() => onRemove(toast.id)}
-        className="ml-2 p-1 rounded-lg hover:bg-white/10 transition-colors"
+        className="ml-1 rounded p-1 transition-colors hover:bg-surface-2"
         aria-label="Dismiss"
       >
         <X className="h-4 w-4 text-text-secondary" />

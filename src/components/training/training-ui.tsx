@@ -5,11 +5,11 @@ import { cn } from '@/lib/utils'
 type Tone = 'neutral' | 'primary' | 'success' | 'warning' | 'danger'
 
 const buttonTones: Record<Tone, string> = {
-  neutral: 'bg-surface-2 text-text-primary hover:bg-surface-3 border-surface-0',
-  primary: 'bg-accent-blue text-white hover:bg-accent-blue-hover border-black/25',
-  success: 'bg-accent-success text-white hover:brightness-110 border-black/25',
-  warning: 'bg-accent-warning text-zinc-950 hover:brightness-110 border-black/25',
-  danger: 'bg-accent-danger text-white hover:brightness-110 border-black/25',
+  neutral: 'border-border-strong bg-surface-1 text-text-primary hover:bg-surface-2',
+  primary: 'border-transparent bg-ink text-ink-foreground hover:opacity-90',
+  success: 'border-accent-success/25 bg-accent-success/10 text-accent-success hover:bg-accent-success/15',
+  warning: 'border-accent-warning/30 bg-accent-warning/10 text-accent-warning hover:bg-accent-warning/15',
+  danger: 'border-accent-danger/25 bg-accent-danger/10 text-accent-danger hover:bg-accent-danger/15',
 }
 
 interface ActionButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -25,7 +25,7 @@ interface ActionButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 /**
- * Tactile button used across training modes
+ * Standard button used across the app
  */
 export function ActionButton({
   tone = 'neutral',
@@ -42,10 +42,10 @@ export function ActionButton({
     <button
       type="button"
       className={cn(
-        'group inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all select-none',
-        'border-b-4 active:border-b-0 active:translate-y-1 disabled:opacity-40 disabled:pointer-events-none',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue focus-visible:ring-offset-2 focus-visible:ring-offset-surface-1',
-        size === 'md' ? 'min-h-11 px-4 text-sm' : 'min-h-9 px-3 text-xs',
+        'group inline-flex items-center justify-center gap-2 rounded-md border font-medium transition-colors select-none',
+        'disabled:opacity-40 disabled:pointer-events-none',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue/60 focus-visible:ring-offset-1 focus-visible:ring-offset-surface-1',
+        size === 'md' ? 'h-10 px-4 text-sm' : 'h-8 px-3 text-xs',
         buttonTones[tone],
         className
       )}
@@ -55,7 +55,7 @@ export function ActionButton({
       {children && <span className={compactLabel ? 'sr-only sm:not-sr-only' : undefined}>{children}</span>}
       {TrailingIcon && <TrailingIcon className="h-4 w-4 shrink-0" />}
       {shortcut && (
-        <kbd className="hidden lg:inline-flex items-center rounded border border-current/25 px-1 font-mono text-[10px] leading-4 opacity-60">
+        <kbd className="hidden lg:inline-flex items-center rounded border border-current/20 px-1 font-mono text-[10px] leading-4 opacity-50">
           {shortcut}
         </kbd>
       )}
@@ -64,7 +64,7 @@ export function ActionButton({
 }
 
 const barTones: Record<Exclude<Tone, 'neutral'>, string> = {
-  primary: 'bg-accent-blue',
+  primary: 'bg-ink',
   success: 'bg-accent-success',
   warning: 'bg-accent-warning',
   danger: 'bg-accent-danger',
@@ -85,7 +85,7 @@ export function ProgressBar({
   const clamped = Math.max(0, Math.min(100, Number.isFinite(value) ? value : 0))
   return (
     <div
-      className={cn('w-full overflow-hidden rounded-full bg-surface-2', size === 'md' ? 'h-2' : 'h-1.5')}
+      className={cn('w-full overflow-hidden rounded-full bg-surface-3', size === 'md' ? 'h-1.5' : 'h-1')}
       role="progressbar"
       aria-valuenow={Math.round(clamped)}
       aria-valuemin={0}
@@ -97,16 +97,24 @@ export function ProgressBar({
   )
 }
 
-const bannerTones: Record<Tone, string> = {
-  neutral: 'bg-surface-2/60 border-border-subtle text-text-secondary',
-  primary: 'bg-accent-blue/10 border-accent-blue/25 text-accent-blue',
-  success: 'bg-accent-success/12 border-accent-success/25 text-accent-success',
-  warning: 'bg-accent-warning/10 border-accent-warning/25 text-accent-warning',
-  danger: 'bg-accent-danger/12 border-accent-danger/25 text-accent-danger',
+const iconTones: Record<Tone, string> = {
+  neutral: 'text-text-muted',
+  primary: 'text-accent-blue',
+  success: 'text-accent-success',
+  warning: 'text-accent-warning',
+  danger: 'text-accent-danger',
+}
+
+const edgeTones: Record<Tone, string> = {
+  neutral: '',
+  primary: 'border-l-2 border-l-accent-blue',
+  success: 'border-l-2 border-l-accent-success',
+  warning: 'border-l-2 border-l-accent-warning',
+  danger: 'border-l-2 border-l-accent-danger',
 }
 
 /**
- * Feedback banner (status, comments, results)
+ * Feedback banner (status, comments, results): quiet surface, the tone shows on the edge and icon
  */
 export function StatusBanner({
   tone = 'neutral',
@@ -125,11 +133,15 @@ export function StatusBanner({
     <div
       role="status"
       aria-live="polite"
-      className={cn('flex items-start gap-3 rounded-xl border px-4 py-3 animate-fade-in', bannerTones[tone], className)}
+      className={cn(
+        'flex items-start gap-3 rounded-md border border-border-subtle bg-surface-2/50 px-3.5 py-3 animate-fade-in',
+        edgeTones[tone],
+        className
+      )}
     >
-      {Icon && <Icon className="mt-0.5 h-5 w-5 shrink-0" />}
+      {Icon && <Icon className={cn('mt-0.5 h-4 w-4 shrink-0', iconTones[tone])} />}
       <div className="min-w-0 flex-1">
-        {title && <p className="text-sm font-semibold">{title}</p>}
+        {title && <p className="text-sm font-medium text-text-primary">{title}</p>}
         {children && (
           <div className={cn('text-sm leading-relaxed', title ? 'mt-0.5 text-text-secondary' : 'text-text-primary')}>
             {children}
@@ -158,7 +170,7 @@ export function SidebarSection({
     <section className={cn('border-b border-border-subtle p-4 last:border-b-0', className)}>
       {(title || action) && (
         <div className="mb-3 flex items-center justify-between gap-2">
-          {title && <h3 className="text-xs font-semibold uppercase tracking-wider text-text-muted">{title}</h3>}
+          {title && <h3 className="text-[11px] font-medium uppercase tracking-wider text-text-muted">{title}</h3>}
           {action}
         </div>
       )}
@@ -168,23 +180,17 @@ export function SidebarSection({
 }
 
 export function StatTile({ value, label, tone = 'neutral' }: { value: ReactNode; label: string; tone?: Tone }) {
-  const color = {
-    neutral: 'text-text-primary',
-    primary: 'text-accent-blue',
-    success: 'text-accent-success',
-    warning: 'text-accent-warning',
-    danger: 'text-accent-danger',
-  }[tone]
+  const color = tone === 'neutral' ? 'text-text-primary' : iconTones[tone]
   return (
-    <div className="rounded-lg bg-surface-2/50 px-2 py-2 text-center">
-      <p className={cn('text-lg font-bold tabular-nums leading-tight lg:text-xl', color)}>{value}</p>
-      <p className="text-[11px] text-text-muted">{label}</p>
+    <div className="rounded-md border border-border-subtle px-2 py-2 text-center">
+      <p className={cn('text-lg font-semibold tabular-nums leading-tight', color)}>{value}</p>
+      <p className="mt-0.5 text-[11px] text-text-muted">{label}</p>
     </div>
   )
 }
 
 /**
- * Small pill showing whose turn it is
+ * Small indicator showing whose turn it is
  */
 export function TurnIndicator({ isUserTurn, userColor }: { isUserTurn: boolean; userColor: 'white' | 'black' }) {
   const sideToMove = isUserTurn ? userColor : userColor === 'white' ? 'black' : 'white'
@@ -193,11 +199,29 @@ export function TurnIndicator({ isUserTurn, userColor }: { isUserTurn: boolean; 
       <span
         className={cn(
           'h-2.5 w-2.5 rounded-full border',
-          sideToMove === 'white' ? 'bg-zinc-100 border-zinc-300' : 'bg-zinc-900 border-zinc-500',
-          isUserTurn && 'ring-2 ring-accent-blue/60'
+          sideToMove === 'white' ? 'border-zinc-400 bg-white' : 'border-zinc-500 bg-zinc-900'
         )}
       />
       {isUserTurn ? 'Your move' : 'Opponent to move'}
+    </span>
+  )
+}
+
+/**
+ * King icon showing which side the user plays
+ */
+export function ColorBadge({ color, className }: { color: 'white' | 'black'; className?: string }) {
+  return (
+    <span
+      className={cn(
+        'flex shrink-0 items-center justify-center rounded-md border text-base leading-none',
+        color === 'white' ? 'border-border-strong bg-white text-zinc-900' : 'border-zinc-700 bg-zinc-900 text-zinc-100',
+        className
+      )}
+      aria-label={`Playing as ${color}`}
+      role="img"
+    >
+      {color === 'white' ? '♔' : '♚'}
     </span>
   )
 }

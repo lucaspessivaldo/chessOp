@@ -18,7 +18,7 @@ import { clearPracticeProgress, getStudyMastery, loadPracticeProgress } from '@/
 import { OPENING_TEMPLATES, type OpeningTemplate } from '@/data/openings/templates'
 import { ConfirmDialog } from '@/components/ui/custom-dialog'
 import { useToast } from '@/components/ui/toast'
-import { ActionButton, ProgressBar } from '@/components/training/training-ui'
+import { ActionButton, ColorBadge, ProgressBar } from '@/components/training/training-ui'
 import { cn } from '@/lib/utils'
 import { NewStudyDialog } from './new-study-dialog'
 
@@ -56,21 +56,6 @@ function formatAgo(timestamp: number): string {
   if (hours < 24) return `Practiced ${hours} h ago`
   const days = Math.round(hours / 24)
   return `Practiced ${days} day${days === 1 ? '' : 's'} ago`
-}
-
-function ColorBadge({ color, className }: { color: 'white' | 'black'; className?: string }) {
-  return (
-    <span
-      className={cn(
-        'flex shrink-0 items-center justify-center rounded-lg text-lg',
-        color === 'white' ? 'bg-zinc-100 text-zinc-900' : 'bg-zinc-950 text-zinc-100 ring-1 ring-border-strong',
-        className
-      )}
-      aria-label={`Playing as ${color}`}
-    >
-      {color === 'white' ? '♔' : '♚'}
-    </span>
-  )
 }
 
 export function OpeningSelector({ onOpen }: OpeningSelectorProps) {
@@ -139,7 +124,7 @@ export function OpeningSelector({ onOpen }: OpeningSelectorProps) {
       {/* Header */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-text-primary md:text-3xl">Your repertoire</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-text-primary">Your repertoire</h1>
           <p className="mt-1 text-sm text-text-secondary md:text-base">
             {studies.length === 0
               ? 'Start with a ready-made repertoire or build your own.'
@@ -190,7 +175,7 @@ export function OpeningSelector({ onOpen }: OpeningSelectorProps) {
           </div>
 
           {filtered.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border-subtle py-12 text-center">
+            <div className="rounded-lg border border-dashed border-border-subtle py-12 text-center">
               <Search className="mx-auto mb-3 h-7 w-7 text-text-muted" />
               <p className="font-medium text-text-secondary">No studies match your filters</p>
             </div>
@@ -233,7 +218,7 @@ export function OpeningSelector({ onOpen }: OpeningSelectorProps) {
             {OPENING_TEMPLATES.map(template => {
               const added = studies.some(s => s.name === template.name)
               return (
-                <li key={template.id} className="flex flex-col rounded-xl border border-border-subtle bg-surface-1 p-4">
+                <li key={template.id} className="flex flex-col rounded-lg border border-border-subtle bg-surface-1 p-4">
                   <div className="mb-2 flex items-start gap-3">
                     <ColorBadge color={template.color} className="h-9 w-9" />
                     <div className="min-w-0">
@@ -268,15 +253,15 @@ function StudyCard({
   const masteryPercent = Math.round(mastery * 100)
 
   return (
-    <li className="group relative flex flex-col rounded-xl border border-border-subtle bg-surface-1 transition-colors hover:border-border-strong">
+    <li className="group relative flex flex-col rounded-lg border border-border-subtle bg-surface-1 transition-colors hover:border-border-strong">
       <button
         type="button"
         onClick={() => onOpen('study')}
-        className="flex flex-1 items-start gap-3 rounded-t-xl p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-blue"
+        className="flex flex-1 items-start gap-3 rounded-t-lg p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-blue"
       >
         <ColorBadge color={study.color} className="mt-0.5 h-10 w-10" />
         <div className="min-w-0 flex-1 pr-6">
-          <h3 className="truncate font-semibold text-text-primary group-hover:text-accent-blue">{study.name}</h3>
+          <h3 className="truncate font-semibold text-text-primary group-hover:underline underline-offset-2">{study.name}</h3>
           <p className="mt-0.5 text-xs text-text-muted">
             {lines === 0 ? 'No lines yet' : `${lines} line${lines === 1 ? '' : 's'}`} · {formatAgo(lastPracticedAt)}
           </p>
@@ -306,7 +291,7 @@ function StudyCard({
         ) : (
           <>
             <QuickAction icon={BookOpen} label="Study" onClick={() => onOpen('study')} />
-            <QuickAction icon={Play} label="Practice" onClick={() => onOpen('practice')} className="text-accent-success" />
+            <QuickAction icon={Play} label="Practice" onClick={() => onOpen('practice')} />
             {mistakesDue > 0 && (
               <QuickAction
                 icon={AlertTriangle}

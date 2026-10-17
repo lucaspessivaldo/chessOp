@@ -115,9 +115,9 @@ function TreeNode({
         <button
           onClick={() => onMoveClick(node.id)}
           className={`px-1.5 py-0.5 rounded text-sm font-medium transition-colors ${isCurrentMove
-            ? 'bg-accent-blue text-white'
+            ? 'bg-ink text-ink-foreground'
             : isInPath
-              ? 'text-accent-blue hover:bg-surface-2'
+              ? 'font-medium text-text-primary hover:bg-surface-2'
               : node.isMainLine
                 ? 'text-text-primary hover:bg-surface-2'
                 : 'text-text-secondary hover:bg-surface-2'

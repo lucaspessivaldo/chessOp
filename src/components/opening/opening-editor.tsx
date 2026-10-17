@@ -314,7 +314,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel, onDirtyChange }:
   // ===== UI pieces =====
   const navButton = 'rounded-lg p-2.5 text-text-secondary transition-colors hover:bg-surface-2 hover:text-text-primary disabled:opacity-30 disabled:pointer-events-none'
   const navigationBar = (
-    <div className="flex items-center justify-center gap-0.5 border-y border-border-subtle bg-surface-1 px-2 py-1 lg:rounded-xl lg:border">
+    <div className="flex items-center justify-center gap-0.5 border-y border-border-subtle bg-surface-1 px-2 py-1 lg:rounded-lg lg:border">
       <button type="button" onClick={goToStart} disabled={path.length === 0} className={navButton} title="Start (Home)" aria-label="Go to start">
         <ChevronsLeft className="h-5 w-5" />
       </button>
@@ -390,8 +390,8 @@ export function OpeningEditor({ initialStudy, onSave, onCancel, onDirtyChange }:
               aria-label={label}
               aria-pressed={active}
               className={cn(
-                'min-w-9 rounded-md px-2 py-1.5 text-xs font-bold transition-colors',
-                active ? 'bg-accent-warning text-zinc-950' : 'bg-surface-2 text-text-secondary hover:bg-surface-3'
+                'min-w-9 rounded-md px-2 py-1.5 text-xs font-semibold transition-colors',
+                active ? 'bg-ink text-ink-foreground' : 'bg-surface-2 text-text-secondary hover:bg-surface-3'
               )}
             >
               {symbol}
@@ -529,7 +529,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel, onDirtyChange }:
               className={cn(
                 'flex-1 rounded-lg py-2.5 text-sm font-medium capitalize transition-colors',
                 color === side
-                  ? side === 'white' ? 'bg-zinc-100 text-zinc-900' : 'bg-zinc-950 text-zinc-100 ring-1 ring-border-strong'
+                  ? 'bg-surface-2 text-text-primary ring-1 ring-text-primary'
                   : 'bg-surface-2 text-text-secondary hover:text-text-primary'
               )}
             >
@@ -562,7 +562,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel, onDirtyChange }:
           onClick={() => setTab(id)}
           className={cn(
             'flex items-center justify-center gap-1.5 border-b-2 py-2.5 text-xs font-medium transition-colors',
-            tab === id ? 'border-accent-blue text-text-primary' : 'border-transparent text-text-secondary hover:text-text-primary'
+            tab === id ? 'border-text-primary text-text-primary' : 'border-transparent text-text-secondary hover:text-text-primary'
           )}
         >
           <Icon className="h-3.5 w-3.5" />
