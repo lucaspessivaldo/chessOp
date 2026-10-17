@@ -53,7 +53,7 @@ function LevelBars({ level }: { level: number }) {
 function HomePage() {
   return (
     <div className="min-h-full bg-surface-0 text-text-primary">
-      <Navbar />
+      <Navbar overlay />
 
       {/* Hero — always black, photo in the background */}
       <section className="relative isolate overflow-hidden bg-[#0b0b0b] text-white">
