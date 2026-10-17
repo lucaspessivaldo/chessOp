@@ -1,9 +1,9 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import type { Key } from '@lichess-org/chessground/types'
 import type { DrawShape } from '@lichess-org/chessground/draw'
-import type { OpeningStudy } from '@/types/opening'
 import type { HintLevel } from '@/types/chess'
-import { extractStudyLines, shuffleArray, type StudyLine } from '@/lib/opening-utils'
+import { INITIAL_FEN, shuffleArray } from '@/lib/opening-utils'
+import type { PracticeLine, PracticeSource } from '@/lib/trainings'
 import { loadPracticeProgress, recordLineCompletion, resetPracticeRound, type PracticeProgress } from '@/lib/practice-storage'
 import { recordMistake } from '@/lib/mistakes-storage'
 import { playSound } from '@/lib/sounds'
@@ -11,7 +11,10 @@ import { buildBoardConfig, useLinePlayer } from '@/hooks/use-line-player'
 
 export type PracticeStatus = 'playing' | 'line-complete' | 'round-complete'
 
-const EMPTY_LINE: StudyLine = { key: 'empty', nodes: [], uci: [], startFen: '', isSetup: false, label: '' }
+const EMPTY_LINE: PracticeLine = {
+  key: 'empty', nodes: [], uci: [], startFen: INITIAL_FEN, isSetup: false, label: '',
+  studyId: '', studyName: '', color: 'white',
+}
 
 function pickFirstLine(order: string[], completed: string[]): string | undefined {
   return order.find(key => !completed.includes(key)) ?? order[0]
@@ -19,23 +22,25 @@ function pickFirstLine(order: string[], completed: string[]): string | undefined
 
 /**
  * Practice mode: play your lines from memory. Wrong moves are recorded for spaced repetition.
+ * Works on a single study or on a custom training mixing several studies (each line keeps its side).
  */
-export function useOpeningPractice({ study, onMistake }: { study: OpeningStudy; onMistake?: () => void }) {
-  const allLines = useMemo(() => extractStudyLines(study, true), [study])
+export function useOpeningPractice({ source, onMistake }: { source: PracticeSource; onMistake?: () => void }) {
+  const allLines = source.lines
   const lineByKey = useMemo(() => new Map(allLines.map(line => [line.key, line])), [allLines])
 
   const [progress, setProgress] = useState<PracticeProgress>(() => {
-    const saved = loadPracticeProgress(study.id)
+    const saved = loadPracticeProgress(source.id)
     // A finished round starts over when practice is opened again (lifetime stats are kept)
     const finished = allLines.length > 0 && allLines.every(line => saved.completedLineKeys.includes(line.key))
-    return finished ? resetPracticeRound(study.id) : saved
+    return finished ? resetPracticeRound(source.id) : saved
   })
-  const [randomOrder, setRandomOrderState] = useState(false)
+  const [randomOrder, setRandomOrderState] = useState(!!source.shuffle)
   const [selectedKeys, setSelectedKeys] = useState<string[] | null>(null)
-  const [order, setOrder] = useState<string[]>(() => allLines.map(line => line.key))
-  const [currentKey, setCurrentKey] = useState<string | undefined>(
-    () => pickFirstLine(allLines.map(line => line.key), progress.completedLineKeys)
-  )
+  const [order, setOrder] = useState<string[]>(() => {
+    const keys = allLines.map(line => line.key)
+    return source.shuffle ? shuffleArray(keys) : keys
+  })
+  const [currentKey, setCurrentKey] = useState<string | undefined>(() => pickFirstLine(order, progress.completedLineKeys))
 
   // Per-attempt state
   const [wrongAttempts, setWrongAttempts] = useState(0)
@@ -51,11 +56,11 @@ export function useOpeningPractice({ study, onMistake }: { study: OpeningStudy; 
   const roundComplete = activeKeys.length > 0 && completedInRound.length === activeKeys.length
 
   const player = useLinePlayer({
-    initialLine: { uci: currentLine.uci, startFen: currentLine.startFen || study.rootFen },
-    userColor: study.color,
+    initialLine: { uci: currentLine.uci, startFen: currentLine.startFen, userColor: currentLine.color },
+    userColor: currentLine.color,
     onWrong: (index) => {
       const node = currentLine.nodes[index]
-      if (node) recordMistake(study.id, node.id, node.uci)
+      if (node) recordMistake(currentLine.studyId, node.id, node.uci)
       onMistake?.()
 
       attemptRef.current.wrong++
@@ -69,7 +74,7 @@ export function useOpeningPractice({ study, onMistake }: { study: OpeningStudy; 
     onCorrect: () => setHintLevel(0),
     onComplete: () => {
       const perfect = attemptRef.current.wrong === 0 && attemptRef.current.hints === 0
-      setProgress(recordLineCompletion(study.id, currentLine.key, perfect))
+      setProgress(recordLineCompletion(source.id, currentLine.key, perfect))
       setLineDone(true)
       playSound('correct')
     },
@@ -84,8 +89,8 @@ export function useOpeningPractice({ study, onMistake }: { study: OpeningStudy; 
     setHintLevel(0)
     setShowWrongMove(false)
     setLineDone(false)
-    load({ uci: line?.uci ?? [], startFen: line?.startFen ?? study.rootFen })
-  }, [lineByKey, load, study.rootFen])
+    load({ uci: line?.uci ?? [], startFen: line?.startFen ?? INITIAL_FEN, userColor: line?.color })
+  }, [lineByKey, load])
 
   const buildOrder = useCallback((keys: string[] | null, random: boolean) => {
     const base = allLines.map(line => line.key).filter(key => !keys || keys.includes(key))
@@ -120,12 +125,12 @@ export function useOpeningPractice({ study, onMistake }: { study: OpeningStudy; 
   const retryLine = useCallback(() => startLine(currentKey), [startLine, currentKey])
 
   const resetRound = useCallback(() => {
-    const fresh = resetPracticeRound(study.id)
+    const fresh = resetPracticeRound(source.id)
     setProgress(fresh)
     const newOrder = buildOrder(selectedKeys, randomOrder)
     setOrder(newOrder)
     startLine(newOrder[0])
-  }, [study.id, buildOrder, selectedKeys, randomOrder, startLine])
+  }, [source.id, buildOrder, selectedKeys, randomOrder, startLine])
 
   const increaseHint = useCallback(() => {
     if (!player.isUserTurn) return
@@ -141,12 +146,12 @@ export function useOpeningPractice({ study, onMistake }: { study: OpeningStudy; 
   }, [hintLevel, player.expectedUci])
 
   const chessgroundConfig = useMemo(
-    () => buildBoardConfig(player.state, { orientation: study.color, autoShapes: hintShapes }),
-    [player.state, study.color, hintShapes]
+    () => buildBoardConfig(player.state, { orientation: currentLine.color, autoShapes: hintShapes }),
+    [player.state, currentLine.color, hintShapes]
   )
 
   const status: PracticeStatus = lineDone ? (roundComplete ? 'round-complete' : 'line-complete') : 'playing'
-  const orderedLines = order.map(key => lineByKey.get(key)).filter((line): line is StudyLine => !!line)
+  const orderedLines = order.map(key => lineByKey.get(key)).filter((line): line is PracticeLine => !!line)
 
   return {
     status,
@@ -165,7 +170,8 @@ export function useOpeningPractice({ study, onMistake }: { study: OpeningStudy; 
     wrongAttempts,
     hintLevel,
     showWrongMove,
-    hasEntryPoint: !!study.practiceStartNodeId,
+    userColor: currentLine.color,
+    mixed: source.mixed,
     makeMove: player.handleBoardMove,
     pendingPromotion: player.pendingPromotion,
     completePromotion: player.completePromotion,

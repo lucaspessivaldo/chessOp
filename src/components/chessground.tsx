@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useImperativeHandle, forwardRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useImperativeHandle, forwardRef, useState } from 'react'
+import { useSettings } from '@/lib/settings'
 import { Chessground as ChessgroundApi } from '@lichess-org/chessground'
 import type { Api } from '@lichess-org/chessground/api'
 import type { Config } from '@lichess-org/chessground/config'
@@ -26,7 +27,18 @@ export interface ChessgroundProps {
  * rejected by the parent (wrong move, pending promotion) snaps back automatically.
  */
 export const Chessground = forwardRef<ChessgroundRef, ChessgroundProps>(
-  ({ config, className, onMove }, ref) => {
+  ({ config: rawConfig, className, onMove }, ref) => {
+    const { showCoordinates, showLegalMoves } = useSettings()
+    // Board preferences from the user area apply to every board (explicit config wins for coordinates)
+    const config = useMemo((): Config | undefined => {
+      if (!rawConfig) return undefined
+      const merged: Config = { ...rawConfig, coordinates: rawConfig.coordinates === false ? false : showCoordinates }
+      // Only touch `movable` when present: an explicit undefined would wipe Chessground's defaults
+      if (rawConfig.movable) {
+        merged.movable = { ...rawConfig.movable, showDests: showLegalMoves && rawConfig.movable.showDests !== false }
+      }
+      return merged
+    }, [rawConfig, showCoordinates, showLegalMoves])
     const containerRef = useRef<HTMLDivElement>(null)
     const apiRef = useRef<Api | null>(null)
     const configRef = useRef(config)
@@ -55,8 +67,8 @@ export const Chessground = forwardRef<ChessgroundRef, ChessgroundProps>(
         const { drawable, ...rest } = configRef.current ?? {}
         apiRef.current = ChessgroundApi(container, {
           ...rest,
-          // Shapes are applied once the board has its final dimensions
-          drawable: drawable ? { ...drawable, autoShapes: [], shapes: [] } : undefined,
+          // Shapes are applied once the board has its final dimensions (never pass an explicit undefined)
+          ...(drawable ? { drawable: { ...drawable, autoShapes: [], shapes: [] } } : {}),
           events: {
             ...configRef.current?.events,
             move: (orig, dest) => {
@@ -98,6 +110,11 @@ export const Chessground = forwardRef<ChessgroundRef, ChessgroundProps>(
         apiRef.current.set(config)
       }
     }, [config, isReady])
+
+    // Coordinates are drawn when the board is built: redraw when the preference changes
+    useEffect(() => {
+      if (apiRef.current && isReady) apiRef.current.redrawAll()
+    }, [showCoordinates, isReady])
 
     return (
       <div

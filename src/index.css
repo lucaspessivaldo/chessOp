@@ -8,12 +8,13 @@
 @theme inline {
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-display: 'Anton', 'Inter', ui-sans-serif, sans-serif;
 
-  --radius-sm: calc(var(--radius) - 2px);
+  --radius-sm: 0px;
   --radius-md: var(--radius);
-  --radius-lg: calc(var(--radius) + 2px);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-lg: calc(var(--radius) + 1px);
+  --radius-xl: calc(var(--radius) + 2px);
+  --radius-2xl: calc(var(--radius) + 4px);
 
   /* shadcn tokens, mapped onto the app palette */
   --color-background: var(--surface-0);
@@ -33,7 +34,7 @@
   --color-destructive: var(--accent-danger);
   --color-border: var(--border-subtle);
   --color-input: var(--border-strong);
-  --color-ring: var(--accent-blue);
+  --color-ring: var(--action);
 
   /* App palette */
   --color-surface-0: var(--surface-0);
@@ -47,57 +48,62 @@
   --color-border-strong: var(--border-strong);
   --color-ink: var(--ink);
   --color-ink-foreground: var(--ink-foreground);
-  --color-accent-blue: var(--accent-blue);
-  --color-accent-blue-hover: var(--accent-blue-hover);
+  --color-action: var(--action);
+  --color-action-hover: var(--action-hover);
+  --color-action-foreground: var(--action-foreground);
+  --color-accent-blue: var(--action);
+  --color-accent-blue-hover: var(--action-hover);
   --color-accent-success: var(--accent-success);
   --color-accent-danger: var(--accent-danger);
   --color-accent-warning: var(--accent-warning);
 }
 
-/* ===== Light theme (default) ===== */
+/* ===== Light theme (default): pure black on white ===== */
 :root {
   color-scheme: light;
-  --radius: 0.375rem;
+  --radius: 0.125rem;
 
-  --surface-0: oklch(0.985 0.001 260);   /* page */
+  --surface-0: oklch(1 0 0);             /* page */
   --surface-1: oklch(1 0 0);             /* panels, cards */
-  --surface-2: oklch(0.963 0.003 260);   /* controls */
-  --surface-3: oklch(0.925 0.005 260);   /* hover */
-  --text-primary: oklch(0.21 0.008 260);
-  --text-secondary: oklch(0.43 0.012 260);
-  --text-muted: oklch(0.55 0.012 260);
-  --border-subtle: oklch(0.92 0.004 260);
-  --border-strong: oklch(0.86 0.006 260);
-  --ink: oklch(0.21 0.008 260);          /* primary actions */
-  --ink-foreground: oklch(0.985 0 0);
-  --accent-blue: oklch(0.52 0.13 255);
-  --accent-blue-hover: oklch(0.46 0.13 255);
-  --accent-success: oklch(0.53 0.12 155);
-  --accent-danger: oklch(0.55 0.18 25);
-  --accent-warning: oklch(0.6 0.13 65);
-  --shadow-color: 220 15% 20%;
+  --surface-2: oklch(0.965 0 0);         /* controls */
+  --surface-3: oklch(0.925 0 0);         /* hover */
+  --text-primary: oklch(0.145 0 0);
+  --text-secondary: oklch(0.4 0 0);
+  --text-muted: oklch(0.56 0 0);
+  --border-subtle: oklch(0.9 0 0);
+  --border-strong: oklch(0.8 0 0);
+  --ink: oklch(0.145 0 0);               /* black blocks and secondary actions */
+  --ink-foreground: oklch(1 0 0);
+  --action: oklch(0.57 0.16 145);        /* chess green: primary actions */
+  --action-hover: oklch(0.51 0.16 145);
+  --action-foreground: oklch(1 0 0);
+  --accent-success: oklch(0.55 0.15 145);
+  --accent-danger: oklch(0.55 0.2 27);
+  --accent-warning: oklch(0.62 0.14 70);
+  --shadow-color: 0 0% 0%;
 }
 
-/* ===== Dark theme ===== */
+/* ===== Dark theme: white on black ===== */
 [data-theme="dark"] {
   color-scheme: dark;
 
-  --surface-0: oklch(0.155 0.003 260);
-  --surface-1: oklch(0.19 0.004 260);
-  --surface-2: oklch(0.23 0.005 260);
-  --surface-3: oklch(0.275 0.006 260);
-  --text-primary: oklch(0.96 0.002 260);
-  --text-secondary: oklch(0.74 0.008 260);
-  --text-muted: oklch(0.58 0.01 260);
-  --border-subtle: oklch(1 0 0 / 7%);
-  --border-strong: oklch(1 0 0 / 13%);
-  --ink: oklch(0.96 0.002 260);
-  --ink-foreground: oklch(0.17 0.004 260);
-  --accent-blue: oklch(0.72 0.1 250);
-  --accent-blue-hover: oklch(0.78 0.1 250);
-  --accent-success: oklch(0.72 0.12 155);
-  --accent-danger: oklch(0.7 0.15 25);
-  --accent-warning: oklch(0.8 0.12 80);
+  --surface-0: oklch(0.13 0 0);
+  --surface-1: oklch(0.165 0 0);
+  --surface-2: oklch(0.21 0 0);
+  --surface-3: oklch(0.26 0 0);
+  --text-primary: oklch(0.98 0 0);
+  --text-secondary: oklch(0.74 0 0);
+  --text-muted: oklch(0.56 0 0);
+  --border-subtle: oklch(1 0 0 / 9%);
+  --border-strong: oklch(1 0 0 / 18%);
+  --ink: oklch(0.98 0 0);
+  --ink-foreground: oklch(0.13 0 0);
+  --action: oklch(0.72 0.18 145);
+  --action-hover: oklch(0.78 0.18 145);
+  --action-foreground: oklch(0.15 0 0);
+  --accent-success: oklch(0.74 0.16 145);
+  --accent-danger: oklch(0.7 0.17 27);
+  --accent-warning: oklch(0.8 0.13 80);
   --shadow-color: 0 0% 0%;
 }
 
@@ -123,8 +129,18 @@
     flex-direction: column;
   }
   ::selection {
-    background: color-mix(in oklch, var(--accent-blue) 25%, transparent);
+    background: var(--ink);
+    color: var(--ink-foreground);
   }
+}
+
+/* Condensed uppercase display type (headlines) */
+@utility font-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  line-height: 0.95;
 }
 
 /* Reduced motion support */

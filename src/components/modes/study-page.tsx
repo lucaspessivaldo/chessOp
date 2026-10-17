@@ -1,8 +1,9 @@
-import { lazy, Suspense, useCallback, useState } from 'react'
+import { lazy, Suspense, useCallback, useMemo, useState } from 'react'
 import { AlertTriangle, BookOpen, ChevronLeft, Edit, Play, Volume2, VolumeX, Zap, type LucideIcon } from 'lucide-react'
 import type { OpeningStudy } from '@/types/opening'
 import { ConfirmDialog } from '@/components/ui/custom-dialog'
 import { getMistakesDue } from '@/lib/mistakes-storage'
+import { studyPracticeSource } from '@/lib/trainings'
 import { updateSettings, useSettings } from '@/lib/settings'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/theme-toggle'
@@ -38,6 +39,7 @@ export function StudyPage({ study, mode, onModeChange, onBack, onStudyUpdate }: 
   const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null)
 
   const refreshMistakes = useCallback(() => setMistakesDue(getMistakesDue(study).length), [study])
+  const practiceSource = useMemo(() => studyPracticeSource(study), [study])
 
   // Leaving the editor with unsaved changes asks for confirmation
   const guarded = (action: () => void) => {
@@ -132,7 +134,7 @@ export function StudyPage({ study, mode, onModeChange, onBack, onStudyUpdate }: 
         )}
         {mode === 'practice' && (
           <PracticeView
-            study={study}
+            source={practiceSource}
             onMistakeMade={refreshMistakes}
             onEdit={() => goToMode('edit')}
             onReviewMistakes={() => goToMode('mistakes')}

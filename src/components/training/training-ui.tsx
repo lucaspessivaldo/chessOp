@@ -2,11 +2,12 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-type Tone = 'neutral' | 'primary' | 'success' | 'warning' | 'danger'
+type Tone = 'neutral' | 'primary' | 'ink' | 'success' | 'warning' | 'danger'
 
 const buttonTones: Record<Tone, string> = {
-  neutral: 'border-border-strong bg-surface-1 text-text-primary hover:bg-surface-2',
-  primary: 'border-transparent bg-ink text-ink-foreground hover:opacity-90',
+  neutral: 'border-border-strong bg-surface-1 text-text-primary hover:border-text-primary',
+  primary: 'border-transparent bg-action text-action-foreground hover:bg-action-hover',
+  ink: 'border-transparent bg-ink text-ink-foreground hover:opacity-85',
   success: 'border-accent-success/25 bg-accent-success/10 text-accent-success hover:bg-accent-success/15',
   warning: 'border-accent-warning/30 bg-accent-warning/10 text-accent-warning hover:bg-accent-warning/15',
   danger: 'border-accent-danger/25 bg-accent-danger/10 text-accent-danger hover:bg-accent-danger/15',
@@ -44,7 +45,7 @@ export function ActionButton({
       className={cn(
         'group inline-flex items-center justify-center gap-2 rounded-md border font-medium transition-colors select-none',
         'disabled:opacity-40 disabled:pointer-events-none',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue/60 focus-visible:ring-offset-1 focus-visible:ring-offset-surface-1',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface-1',
         size === 'md' ? 'h-10 px-4 text-sm' : 'h-8 px-3 text-xs',
         buttonTones[tone],
         className
@@ -65,6 +66,7 @@ export function ActionButton({
 
 const barTones: Record<Exclude<Tone, 'neutral'>, string> = {
   primary: 'bg-ink',
+  ink: 'bg-ink',
   success: 'bg-accent-success',
   warning: 'bg-accent-warning',
   danger: 'bg-accent-danger',
@@ -85,21 +87,22 @@ export function ProgressBar({
   const clamped = Math.max(0, Math.min(100, Number.isFinite(value) ? value : 0))
   return (
     <div
-      className={cn('w-full overflow-hidden rounded-full bg-surface-3', size === 'md' ? 'h-1.5' : 'h-1')}
+      className={cn('w-full overflow-hidden bg-surface-3', size === 'md' ? 'h-1.5' : 'h-1')}
       role="progressbar"
       aria-valuenow={Math.round(clamped)}
       aria-valuemin={0}
       aria-valuemax={100}
       aria-label={label}
     >
-      <div className={cn('h-full rounded-full transition-all duration-300', barTones[tone])} style={{ width: `${clamped}%` }} />
+      <div className={cn('h-full transition-all duration-300', barTones[tone])} style={{ width: `${clamped}%` }} />
     </div>
   )
 }
 
 const iconTones: Record<Tone, string> = {
   neutral: 'text-text-muted',
-  primary: 'text-accent-blue',
+  primary: 'text-action',
+  ink: 'text-text-primary',
   success: 'text-accent-success',
   warning: 'text-accent-warning',
   danger: 'text-accent-danger',
@@ -107,7 +110,8 @@ const iconTones: Record<Tone, string> = {
 
 const edgeTones: Record<Tone, string> = {
   neutral: '',
-  primary: 'border-l-2 border-l-accent-blue',
+  primary: 'border-l-2 border-l-action',
+  ink: 'border-l-2 border-l-ink',
   success: 'border-l-2 border-l-accent-success',
   warning: 'border-l-2 border-l-accent-warning',
   danger: 'border-l-2 border-l-accent-danger',
@@ -223,5 +227,38 @@ export function ColorBadge({ color, className }: { color: 'white' | 'black'; cla
     >
       {color === 'white' ? '♔' : '♚'}
     </span>
+  )
+}
+
+/**
+ * On/off switch (green when on)
+ */
+export function Switch({
+  checked,
+  onChange,
+  label,
+  description,
+}: {
+  checked: boolean
+  onChange: (checked: boolean) => void
+  label: string
+  description?: string
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className="flex w-full items-center gap-4 py-3 text-left"
+    >
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-medium text-text-primary">{label}</span>
+        {description && <span className="mt-0.5 block text-xs text-text-secondary">{description}</span>}
+      </span>
+      <span className={cn('relative h-5 w-9 shrink-0 transition-colors', checked ? 'bg-action' : 'bg-surface-3')}>
+        <span className={cn('absolute top-0.5 h-4 w-4 bg-surface-1 shadow-sm transition-all', checked ? 'left-[18px]' : 'left-0.5')} />
+      </span>
+    </button>
   )
 }

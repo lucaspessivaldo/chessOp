@@ -1,15 +1,15 @@
 /*
- * Neutral slate board theme for Chessground (replaces chessground.brown.css).
- * Same colors in light and dark mode so positions always look the same.
+ * Board theme for Chessground (replaces chessground.brown.css).
+ * Colors come from CSS variables set by lib/board-themes.ts (user setting); these are the defaults.
  */
 :root {
-  --board-light: #dfe4e9;
-  --board-dark: #8fa3b3;
-  --board-last-move: rgba(255, 206, 84, 0.42);
+  --board-light: #ebecd0;
+  --board-dark: #739552;
+  --board-last-move: rgba(255, 255, 51, 0.45);
   --board-selected: rgba(40, 90, 150, 0.4);
   --board-dest: rgba(30, 60, 90, 0.32);
-  --board-coord-on-light: rgba(70, 90, 110, 0.85);
-  --board-coord-on-dark: rgba(245, 248, 250, 0.9);
+  --board-coord-on-light: #739552;
+  --board-coord-on-dark: #ebecd0;
 }
 
 /* `.cg-wrap` raises specificity above chessground.base.css, which is loaded later */

@@ -5,7 +5,9 @@ import { cn } from '@/lib/utils'
 export type LineStatus = 'none' | 'done' | 'perfect' | 'mistakes'
 
 interface LineListProps {
-  lines: StudyLine[]
+  lines: (StudyLine & { studyName?: string; color?: 'white' | 'black' })[]
+  /** Show the study each line belongs to (custom trainings) */
+  showStudy?: boolean
   currentKey?: string
   onSelect: (key: string) => void
   statusOf?: (key: string) => LineStatus
@@ -22,7 +24,7 @@ const statusIcon = {
 /**
  * Selectable list of lines with their status
  */
-export function LineList({ lines, currentKey, onSelect, statusOf, className }: LineListProps) {
+export function LineList({ lines, currentKey, onSelect, statusOf, className, showStudy = false }: LineListProps) {
   return (
     <ul className={cn('space-y-1', className)}>
       {lines.map((line, index) => {
@@ -50,6 +52,11 @@ export function LineList({ lines, currentKey, onSelect, statusOf, className }: L
                   <span className="truncate">{getLineLabel(line)}</span>
                   {line.isSetup && <Flag className="h-3 w-3 shrink-0 text-accent-success" />}
                 </span>
+                {showStudy && line.studyName && (
+                  <span className="block truncate text-[11px] font-medium uppercase tracking-wide text-text-secondary">
+                    {line.color === 'black' ? '♚' : '♔'} {line.studyName}
+                  </span>
+                )}
                 <span className="block truncate font-mono text-[11px] text-text-muted">
                   {formatMoves(line.nodes, fenPly(line.startFen), 8)}
                 </span>

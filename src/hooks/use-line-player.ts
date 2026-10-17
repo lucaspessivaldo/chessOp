@@ -19,6 +19,8 @@ export type Color = 'white' | 'black'
 export interface LineSource {
   uci: string[]
   startFen: string
+  /** Side the user plays in this line (defaults to the player's userColor) */
+  userColor?: Color
 }
 
 /** Snapshot of the board, safe to read during render */
@@ -87,6 +89,10 @@ class LineEngine {
     this.chess = createChess(line.startFen)
   }
 
+  private get userColor(): Color {
+    return this.line.userColor ?? this.config.userColor
+  }
+
   setCallbacks(callbacks: LineCallbacks) {
     this.callbacks = callbacks
   }
@@ -98,7 +104,7 @@ class LineEngine {
   snapshot(): LineState {
     const isComplete = this.index >= this.line.uci.length
     const turnColor = getTurnColor(this.chess)
-    const isUserTurn = !isComplete && turnColor === this.config.userColor
+    const isUserTurn = !isComplete && turnColor === this.userColor
     const expectedUci = isUserTurn ? this.line.uci[this.index] : null
 
     let dests = new Map<Key, Key[]>()
@@ -202,7 +208,7 @@ class LineEngine {
 
   private scheduleMachine(delay: number) {
     if (this.index >= this.line.uci.length) return
-    if (getTurnColor(this.chess) === this.config.userColor) return
+    if (getTurnColor(this.chess) === this.userColor) return
 
     const id = setTimeout(() => {
       this.timers.delete(id)

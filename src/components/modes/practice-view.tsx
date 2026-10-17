@@ -11,7 +11,7 @@ import {
   Trophy,
   XCircle,
 } from 'lucide-react'
-import type { OpeningStudy } from '@/types/opening'
+import type { PracticeSource } from '@/lib/trainings'
 import { Chessground } from '@/components/chessground'
 import { PromotionDialog } from '@/components/promotion-dialog'
 import { GameLayout } from '@/components/game-layout'
@@ -27,24 +27,25 @@ import { LineSelectionDialog } from './line-selection-dialog'
 import { EmptyStudy } from './empty-study'
 
 interface PracticeViewProps {
-  study: OpeningStudy
+  source: PracticeSource
   onMistakeMade?: () => void
   onEdit: () => void
-  onReviewMistakes: () => void
+  /** Shown after a round with mistakes (single studies only) */
+  onReviewMistakes?: () => void
 }
 
 /**
- * Practice mode: play the lines from memory
+ * Practice mode: play the lines from memory (one study or a custom training)
  */
 export function PracticeView(props: PracticeViewProps) {
-  if (props.study.moves.length === 0) return <EmptyStudy onEdit={props.onEdit} />
+  if (props.source.lines.length === 0) return <EmptyStudy onEdit={props.onEdit} />
   return <PracticeViewContent {...props} />
 }
 
-function PracticeViewContent({ study, onMistakeMade, onReviewMistakes }: PracticeViewProps) {
+function PracticeViewContent({ source, onMistakeMade, onReviewMistakes }: PracticeViewProps) {
   const [showLines, setShowLines] = useState(false)
   const [showSelection, setShowSelection] = useState(false)
-  const p = useOpeningPractice({ study, onMistake: onMistakeMade })
+  const p = useOpeningPractice({ source, onMistake: onMistakeMade })
 
   const progress = (p.completedCount / Math.max(p.totalCount, 1)) * 100
   const startPly = fenPly(p.currentLine.startFen)
@@ -108,7 +109,7 @@ function PracticeViewContent({ study, onMistakeMade, onReviewMistakes }: Practic
         </ActionButton>
       ) : p.status === 'round-complete' ? (
         <>
-          {perfectRound < p.totalCount && (
+          {perfectRound < p.totalCount && onReviewMistakes && (
             <ActionButton tone="danger" onClick={onReviewMistakes} className="flex-1" compactLabel icon={XCircle}>
               Mistakes
             </ActionButton>
@@ -146,6 +147,7 @@ function PracticeViewContent({ study, onMistakeMade, onReviewMistakes }: Practic
   const lineList = (onPicked?: () => void) => (
     <LineList
       lines={p.orderedLines}
+      showStudy={p.mixed}
       currentKey={p.currentLine.key}
       onSelect={key => {
         p.startLine(key)
@@ -158,7 +160,7 @@ function PracticeViewContent({ study, onMistakeMade, onReviewMistakes }: Practic
   return (
     <>
       {p.pendingPromotion && (
-        <PromotionDialog color={study.color} onSelect={p.completePromotion} onCancel={p.cancelPromotion} />
+        <PromotionDialog color={p.userColor} onSelect={p.completePromotion} onCancel={p.cancelPromotion} />
       )}
 
       <LinesDialog
@@ -201,7 +203,7 @@ function PracticeViewContent({ study, onMistakeMade, onReviewMistakes }: Practic
                   {p.completedCount}/{p.totalCount} · {getLineLabel(p.currentLine)}
                 </span>
               </button>
-              {playing && <TurnIndicator isUserTurn={p.isUserTurn} userColor={study.color} />}
+              {playing && <TurnIndicator isUserTurn={p.isUserTurn} userColor={p.userColor} />}
             </div>
             <ProgressBar value={progress} tone="success" size="sm" label="Practice progress" />
           </div>
@@ -232,7 +234,7 @@ function PracticeViewContent({ study, onMistakeMade, onReviewMistakes }: Practic
 
             <SidebarSection
               title={`Line ${p.currentLineNumber}`}
-              action={playing && <TurnIndicator isUserTurn={p.isUserTurn} userColor={study.color} />}
+              action={playing && <TurnIndicator isUserTurn={p.isUserTurn} userColor={p.userColor} />}
             >
               <p className="mb-2 text-sm font-medium text-text-primary">
                 {p.status === 'playing' ? 'Moves so far' : getLineLabel(p.currentLine)}

@@ -1,31 +1,43 @@
 import { useMemo, useState } from 'react'
 import {
   AlertTriangle,
+  ArrowRight,
   BookOpen,
-  ChevronDown,
-  FileUp,
-  Library,
+  Dumbbell,
+  Layers,
+  Pencil,
   Play,
   Plus,
   Search,
-  Sparkles,
   Trash2,
 } from 'lucide-react'
 import type { OpeningStudy } from '@/types/opening'
 import { createStudy, deleteOpeningStudy, extractStudyLines, loadOpeningStudies, parsePgn } from '@/lib/opening-utils'
 import { clearMistakes, getMistakesDue } from '@/lib/mistakes-storage'
 import { clearPracticeProgress, getStudyMastery, loadPracticeProgress } from '@/lib/practice-storage'
+import {
+  deleteTraining,
+  loadTrainings,
+  removeStudyFromTrainings,
+  trainingPracticeSource,
+  type CustomTraining,
+} from '@/lib/trainings'
 import { OPENING_TEMPLATES, type OpeningTemplate } from '@/data/openings/templates'
 import { ConfirmDialog } from '@/components/ui/custom-dialog'
 import { useToast } from '@/components/ui/toast'
 import { ActionButton, ColorBadge, ProgressBar } from '@/components/training/training-ui'
+import { TrainingBuilder } from '@/components/trainings/training-builder'
 import { cn } from '@/lib/utils'
-import { NewStudyDialog } from './new-study-dialog'
+import { CreateChoices, NewStudyDialog } from './new-study-dialog'
 
 type StudyMode = 'study' | 'practice' | 'mistakes' | 'edit'
+export type HubTab = 'mine' | 'trainings' | 'library'
 
 interface OpeningSelectorProps {
+  tab: HubTab
+  onTabChange: (tab: HubTab) => void
   onOpen: (study: OpeningStudy, mode?: StudyMode) => void
+  onOpenTraining: (training: CustomTraining) => void
 }
 
 interface StudySummary {
@@ -58,185 +70,287 @@ function formatAgo(timestamp: number): string {
   return `Practiced ${days} day${days === 1 ? '' : 's'} ago`
 }
 
-export function OpeningSelector({ onOpen }: OpeningSelectorProps) {
+/**
+ * Repertoire hub: the user's openings, custom trainings and the starter library
+ */
+export function OpeningSelector({ tab, onTabChange, onOpen, onOpenTraining }: OpeningSelectorProps) {
   const { addToast } = useToast()
   const [studies, setStudies] = useState<OpeningStudy[]>(() => loadOpeningStudies())
-  const [searchQuery, setSearchQuery] = useState('')
-  const [colorFilter, setColorFilter] = useState<'all' | 'white' | 'black'>('all')
-  const [newDialog, setNewDialog] = useState<'empty' | 'pgn' | null>(null)
-  const [deleteId, setDeleteId] = useState<string | null>(null)
-  const [showTemplates, setShowTemplates] = useState(false)
+  const [trainings, setTrainings] = useState<CustomTraining[]>(() => loadTrainings())
+  const [newDialog, setNewDialog] = useState<'choose' | 'empty' | 'pgn' | null>(null)
+  const [deleteStudyId, setDeleteStudyId] = useState<string | null>(null)
+  const [deleteTrainingId, setDeleteTrainingId] = useState<string | null>(null)
+  const [builder, setBuilder] = useState<{ training: CustomTraining | null } | null>(null)
 
   const summaries = useMemo(
     () => studies.map(summarize).sort((a, b) => b.study.updatedAt - a.study.updatedAt),
     [studies]
   )
-  const filtered = summaries.filter(({ study }) => {
-    if (colorFilter !== 'all' && study.color !== colorFilter) return false
-    if (searchQuery && !study.name.toLowerCase().includes(searchQuery.toLowerCase())) return false
-    return true
-  })
+  const totalLines = summaries.reduce((sum, s) => sum + s.lines, 0)
   const totalDue = summaries.reduce((sum, s) => sum + s.mistakesDue, 0)
-  const studyToDelete = studies.find(s => s.id === deleteId)
-  const templatesOpen = studies.length === 0 || showTemplates
+  const masteredLines = summaries.reduce((sum, s) => sum + Math.round(s.mastery * s.lines), 0)
 
   const addTemplate = (template: OpeningTemplate) => {
     try {
       const { moves } = parsePgn(template.pgn)
       const study = createStudy({ name: template.name, color: template.color, description: template.description, moves })
-      addToast(`${template.name} added to your studies`, 'success')
+      addToast(`${template.name} added to your openings`, 'success')
       onOpen(study, 'study')
     } catch {
-      addToast('Could not load this template', 'error')
+      addToast('Could not load this opening', 'error')
     }
   }
+
+  const tabs: { id: HubTab; label: string; count?: number }[] = [
+    { id: 'mine', label: 'My openings', count: studies.length },
+    { id: 'trainings', label: 'Trainings', count: trainings.length },
+    { id: 'library', label: 'Library', count: OPENING_TEMPLATES.length },
+  ]
 
   return (
     <div className="w-full">
       <NewStudyDialog
         open={newDialog !== null}
-        initialMode={newDialog ?? 'empty'}
+        initialStep={newDialog ?? 'choose'}
         onOpenChange={open => !open && setNewDialog(null)}
+        onPickLibrary={() => {
+          setNewDialog(null)
+          onTabChange('library')
+        }}
         onCreated={(study, source) => {
           setNewDialog(null)
           onOpen(study, source === 'empty' ? 'edit' : 'study')
         }}
       />
 
+      <TrainingBuilder
+        open={builder !== null}
+        onOpenChange={open => !open && setBuilder(null)}
+        studies={studies}
+        training={builder?.training}
+        onSaved={training => {
+          setBuilder(null)
+          setTrainings(loadTrainings())
+          addToast(`Training “${training.name}” saved`, 'success')
+        }}
+      />
+
       <ConfirmDialog
-        isOpen={!!studyToDelete}
-        title="Delete study?"
-        message={`“${studyToDelete?.name ?? ''}” will be deleted together with its practice progress and mistakes. This cannot be undone.`}
+        isOpen={!!deleteStudyId}
+        title="Delete opening?"
+        message={`“${studies.find(s => s.id === deleteStudyId)?.name ?? ''}” will be deleted with its practice progress and mistakes. This cannot be undone.`}
         confirmLabel="Delete"
         variant="danger"
         onConfirm={() => {
-          if (deleteId) {
-            deleteOpeningStudy(deleteId)
-            clearPracticeProgress(deleteId)
-            clearMistakes(deleteId)
+          if (deleteStudyId) {
+            deleteOpeningStudy(deleteStudyId)
+            clearPracticeProgress(deleteStudyId)
+            clearMistakes(deleteStudyId)
+            removeStudyFromTrainings(deleteStudyId)
             setStudies(loadOpeningStudies())
+            setTrainings(loadTrainings())
           }
-          setDeleteId(null)
+          setDeleteStudyId(null)
         }}
-        onCancel={() => setDeleteId(null)}
+        onCancel={() => setDeleteStudyId(null)}
+      />
+
+      <ConfirmDialog
+        isOpen={!!deleteTrainingId}
+        title="Delete training?"
+        message="The training is removed. Your openings are not affected."
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={() => {
+          if (deleteTrainingId) {
+            deleteTraining(deleteTrainingId)
+            clearPracticeProgress(`training:${deleteTrainingId}`)
+            setTrainings(loadTrainings())
+          }
+          setDeleteTrainingId(null)
+        }}
+        onCancel={() => setDeleteTrainingId(null)}
       />
 
       {/* Header */}
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mb-8 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-text-primary">Your repertoire</h1>
-          <p className="mt-1 text-sm text-text-secondary md:text-base">
-            {studies.length === 0
-              ? 'Start with a ready-made repertoire or build your own.'
-              : `${studies.length} stud${studies.length === 1 ? 'y' : 'ies'}${totalDue > 0 ? ` · ${totalDue} position${totalDue === 1 ? '' : 's'} due for review` : ''}`}
-          </p>
+          <p className="mb-2 text-xs font-medium uppercase tracking-[0.2em] text-text-muted">Repertoire</p>
+          <h1 className="font-display text-5xl md:text-6xl">Your openings</h1>
         </div>
-        <div className="flex gap-2">
-          <ActionButton icon={FileUp} onClick={() => setNewDialog('pgn')} className="flex-1 sm:flex-none">
-            Import PGN
-          </ActionButton>
-          <ActionButton tone="primary" icon={Plus} onClick={() => setNewDialog('empty')} className="flex-1 sm:flex-none">
-            New study
-          </ActionButton>
-        </div>
+        {studies.length > 0 && (
+          <dl className="grid grid-cols-3 border border-text-primary">
+            {[
+              { label: 'Lines', value: totalLines },
+              { label: 'Mastered', value: totalLines ? `${Math.round((masteredLines / totalLines) * 100)}%` : '0%' },
+              { label: 'To review', value: totalDue },
+            ].map((stat, i) => (
+              <div key={stat.label} className={cn('px-4 py-2.5', i > 0 && 'border-l border-text-primary', i === 2 && totalDue > 0 && 'bg-ink text-ink-foreground')}>
+                <dt className="text-[10px] font-medium uppercase tracking-wider opacity-70">{stat.label}</dt>
+                <dd className="font-display text-2xl tabular-nums">{stat.value}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
       </div>
 
-      {/* Studies */}
-      {studies.length > 0 && (
-        <>
-          <div className="mb-4 flex flex-col gap-2 sm:flex-row">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-              <input
-                type="search"
-                placeholder="Search studies…"
-                aria-label="Search studies"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full rounded-lg border border-border-subtle bg-surface-1 py-2.5 pl-10 pr-4 text-sm text-text-primary placeholder-text-muted focus:border-accent-blue focus:outline-none"
-              />
-            </div>
-            <div className="flex rounded-lg border border-border-subtle bg-surface-1 p-1" role="group" aria-label="Filter by color">
-              {(['all', 'white', 'black'] as const).map(value => (
-                <button
-                  type="button"
-                  key={value}
-                  onClick={() => setColorFilter(value)}
-                  aria-pressed={colorFilter === value}
-                  className={cn(
-                    'flex-1 rounded-md px-3 py-1.5 text-xs font-medium capitalize transition-colors sm:flex-none',
-                    colorFilter === value ? 'bg-surface-3 text-text-primary' : 'text-text-secondary hover:text-text-primary'
-                  )}
-                >
-                  {value}
-                </button>
-              ))}
-            </div>
-          </div>
+      {/* Tabs */}
+      <div className="mb-6 flex items-center gap-6 border-b border-border-strong" role="tablist">
+        {tabs.map(t => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.id}
+            onClick={() => onTabChange(t.id)}
+            className={cn(
+              '-mb-px flex items-center gap-2 border-b-2 py-3 text-xs font-semibold uppercase tracking-wider transition-colors',
+              tab === t.id ? 'border-text-primary text-text-primary' : 'border-transparent text-text-muted hover:text-text-primary'
+            )}
+          >
+            {t.label}
+            {t.count !== undefined && <span className="font-mono text-[11px] font-normal opacity-60">{t.count}</span>}
+          </button>
+        ))}
+      </div>
 
-          {filtered.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-border-subtle py-12 text-center">
-              <Search className="mx-auto mb-3 h-7 w-7 text-text-muted" />
-              <p className="font-medium text-text-secondary">No studies match your filters</p>
-            </div>
-          ) : (
-            <ul className="grid gap-3 md:grid-cols-2">
-              {filtered.map(summary => (
-                <StudyCard
-                  key={summary.study.id}
-                  summary={summary}
-                  onOpen={mode => onOpen(summary.study, mode)}
-                  onDelete={() => setDeleteId(summary.study.id)}
-                />
-              ))}
-            </ul>
-          )}
-        </>
+      {tab === 'mine' && (
+        <MyOpenings
+          summaries={summaries}
+          onNew={() => setNewDialog('choose')}
+          onImport={() => setNewDialog('pgn')}
+          onBrowseLibrary={() => onTabChange('library')}
+          onOpen={onOpen}
+          onDelete={setDeleteStudyId}
+        />
       )}
 
-      {/* Starter repertoires */}
-      <section className={cn(studies.length > 0 && 'mt-10')}>
-        {studies.length > 0 ? (
-          <button
-            type="button"
-            onClick={() => setShowTemplates(!showTemplates)}
-            aria-expanded={templatesOpen}
-            className="mb-3 flex items-center gap-2 text-sm font-semibold text-text-secondary hover:text-text-primary"
-          >
-            <Library className="h-4 w-4" />
-            Starter repertoires
-            <ChevronDown className={cn('h-4 w-4 transition-transform', templatesOpen && 'rotate-180')} />
-          </button>
-        ) : (
-          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-text-muted">
-            <Sparkles className="h-4 w-4 text-accent-warning" /> Starter repertoires
-          </h2>
-        )}
+      {tab === 'trainings' && (
+        <TrainingsTab
+          trainings={trainings}
+          studies={studies}
+          onNew={() => setBuilder({ training: null })}
+          onEdit={training => setBuilder({ training })}
+          onDelete={setDeleteTrainingId}
+          onOpen={onOpenTraining}
+          onGoToOpenings={() => onTabChange('mine')}
+        />
+      )}
 
-        {templatesOpen && (
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {OPENING_TEMPLATES.map(template => {
-              const added = studies.some(s => s.name === template.name)
-              return (
-                <li key={template.id} className="flex flex-col rounded-lg border border-border-subtle bg-surface-1 p-4">
-                  <div className="mb-2 flex items-start gap-3">
-                    <ColorBadge color={template.color} className="h-9 w-9" />
-                    <div className="min-w-0">
-                      <h3 className="font-semibold text-text-primary">{template.name}</h3>
-                      <p className="text-xs text-text-muted">{template.eco} · as {template.color}</p>
-                    </div>
-                  </div>
-                  <p className="mb-4 flex-1 text-sm leading-relaxed text-text-secondary">{template.description}</p>
-                  <ActionButton size="sm" tone={added ? 'neutral' : 'primary'} icon={Plus} onClick={() => addTemplate(template)}>
-                    {added ? 'Add another copy' : 'Add to my studies'}
-                  </ActionButton>
-                </li>
-              )
-            })}
-          </ul>
-        )}
-      </section>
+      {tab === 'library' && (
+        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {OPENING_TEMPLATES.map(template => {
+            const added = studies.some(s => s.name === template.name)
+            return (
+              <li key={template.id} className="flex flex-col border border-border-strong bg-surface-1 p-5 transition-colors hover:border-text-primary">
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <ColorBadge color={template.color} className="h-9 w-9 text-lg" />
+                  <span className="font-mono text-[11px] text-text-muted">{template.eco}</span>
+                </div>
+                <h3 className="font-display text-2xl">{template.name}</h3>
+                <p className="mt-1 text-[11px] font-medium uppercase tracking-wider text-text-muted">
+                  As {template.color} · {template.level}
+                </p>
+                <p className="mb-5 mt-3 flex-1 text-sm leading-relaxed text-text-secondary">{template.description}</p>
+                <ActionButton size="sm" tone={added ? 'neutral' : 'ink'} trailingIcon={added ? undefined : ArrowRight} icon={added ? Plus : undefined} onClick={() => addTemplate(template)}>
+                  {added ? 'Add another copy' : 'Add to my openings'}
+                </ActionButton>
+              </li>
+            )
+          })}
+        </ul>
+      )}
     </div>
+  )
+}
+
+// ===== My openings =====
+
+function MyOpenings({
+  summaries,
+  onNew,
+  onImport,
+  onBrowseLibrary,
+  onOpen,
+  onDelete,
+}: {
+  summaries: StudySummary[]
+  onNew: () => void
+  onImport: () => void
+  onBrowseLibrary: () => void
+  onOpen: (study: OpeningStudy, mode?: StudyMode) => void
+  onDelete: (id: string) => void
+}) {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [colorFilter, setColorFilter] = useState<'all' | 'white' | 'black'>('all')
+
+  if (summaries.length === 0) {
+    return (
+      <div className="max-w-2xl">
+        <p className="mb-4 text-sm text-text-secondary">You don't have any openings yet. How do you want to start?</p>
+        <CreateChoices onScratch={onNew} onPgn={onImport} onLibrary={onBrowseLibrary} />
+      </div>
+    )
+  }
+
+  const filtered = summaries.filter(({ study }) => {
+    if (colorFilter !== 'all' && study.color !== colorFilter) return false
+    if (searchQuery && !study.name.toLowerCase().includes(searchQuery.toLowerCase())) return false
+    return true
+  })
+
+  return (
+    <>
+      <div className="mb-5 flex flex-col gap-2 sm:flex-row">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+          <input
+            type="search"
+            placeholder="Search openings…"
+            aria-label="Search openings"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="h-10 w-full border border-border-strong bg-surface-1 pl-10 pr-4 text-sm text-text-primary placeholder-text-muted focus:border-text-primary focus:outline-none"
+          />
+        </div>
+        <div className="flex border border-border-strong" role="group" aria-label="Filter by color">
+          {(['all', 'white', 'black'] as const).map(value => (
+            <button
+              type="button"
+              key={value}
+              onClick={() => setColorFilter(value)}
+              aria-pressed={colorFilter === value}
+              className={cn(
+                'flex-1 px-4 text-xs font-semibold uppercase tracking-wider transition-colors sm:flex-none',
+                colorFilter === value ? 'bg-ink text-ink-foreground' : 'text-text-secondary hover:text-text-primary'
+              )}
+            >
+              {value}
+            </button>
+          ))}
+        </div>
+        <ActionButton tone="primary" icon={Plus} onClick={onNew}>
+          New opening
+        </ActionButton>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="border border-dashed border-border-strong py-12 text-center">
+          <p className="text-sm text-text-secondary">No openings match your filters</p>
+        </div>
+      ) : (
+        <ul className="grid gap-4 md:grid-cols-2">
+          {filtered.map(summary => (
+            <StudyCard
+              key={summary.study.id}
+              summary={summary}
+              onOpen={mode => onOpen(summary.study, mode)}
+              onDelete={() => onDelete(summary.study.id)}
+            />
+          ))}
+        </ul>
+      )}
+    </>
   )
 }
 
@@ -253,23 +367,23 @@ function StudyCard({
   const masteryPercent = Math.round(mastery * 100)
 
   return (
-    <li className="group relative flex flex-col rounded-lg border border-border-subtle bg-surface-1 transition-colors hover:border-border-strong">
+    <li className="group relative flex flex-col border border-border-strong bg-surface-1 transition-colors hover:border-text-primary">
       <button
         type="button"
-        onClick={() => onOpen('study')}
-        className="flex flex-1 items-start gap-3 rounded-t-lg p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-blue"
+        onClick={() => onOpen(lines === 0 ? 'edit' : 'study')}
+        className="flex flex-1 items-start gap-4 p-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-action"
       >
-        <ColorBadge color={study.color} className="mt-0.5 h-10 w-10" />
+        <ColorBadge color={study.color} className="h-11 w-11 text-2xl" />
         <div className="min-w-0 flex-1 pr-6">
-          <h3 className="truncate font-semibold text-text-primary group-hover:underline underline-offset-2">{study.name}</h3>
-          <p className="mt-0.5 text-xs text-text-muted">
+          <h3 className="truncate font-display text-2xl">{study.name}</h3>
+          <p className="mt-1 text-[11px] font-medium uppercase tracking-wider text-text-muted">
             {lines === 0 ? 'No lines yet' : `${lines} line${lines === 1 ? '' : 's'}`} · {formatAgo(lastPracticedAt)}
           </p>
-          {study.description && <p className="mt-1.5 line-clamp-2 text-sm text-text-secondary">{study.description}</p>}
+          {study.description && <p className="mt-2 line-clamp-2 text-sm text-text-secondary">{study.description}</p>}
           {lines > 0 && (
-            <div className="mt-3 flex items-center gap-2">
+            <div className="mt-4 flex items-center gap-3">
               <ProgressBar value={masteryPercent} tone="success" size="sm" label="Mastery" />
-              <span className="w-24 shrink-0 text-right text-[11px] tabular-nums text-text-secondary">{masteryPercent}% mastered</span>
+              <span className="shrink-0 font-mono text-[11px] tabular-nums text-text-secondary">{masteryPercent}%</span>
             </div>
           )}
         </div>
@@ -278,27 +392,22 @@ function StudyCard({
       <button
         type="button"
         onClick={onDelete}
-        className="absolute right-2 top-2 rounded-lg p-2 text-text-muted opacity-60 transition hover:bg-accent-danger/15 hover:text-accent-danger group-hover:opacity-100 focus-visible:opacity-100"
+        className="absolute right-2 top-2 p-2 text-text-muted opacity-60 transition hover:text-accent-danger group-hover:opacity-100 focus-visible:opacity-100"
         aria-label={`Delete ${study.name}`}
-        title="Delete study"
+        title="Delete opening"
       >
         <Trash2 className="h-4 w-4" />
       </button>
 
-      <div className="flex gap-1 border-t border-border-subtle p-2">
+      <div className="grid auto-cols-fr grid-flow-col border-t border-border-strong">
         {lines === 0 ? (
-          <QuickAction icon={Plus} label="Add moves" onClick={() => onOpen('edit')} />
+          <QuickAction icon={Pencil} label="Add moves" onClick={() => onOpen('edit')} primary />
         ) : (
           <>
             <QuickAction icon={BookOpen} label="Study" onClick={() => onOpen('study')} />
-            <QuickAction icon={Play} label="Practice" onClick={() => onOpen('practice')} />
+            <QuickAction icon={Play} label="Practice" onClick={() => onOpen('practice')} primary />
             {mistakesDue > 0 && (
-              <QuickAction
-                icon={AlertTriangle}
-                label={`Review ${mistakesDue}`}
-                onClick={() => onOpen('mistakes')}
-                className="text-accent-danger"
-              />
+              <QuickAction icon={AlertTriangle} label={`Review ${mistakesDue}`} onClick={() => onOpen('mistakes')} danger />
             )}
           </>
         )}
@@ -311,24 +420,121 @@ function QuickAction({
   icon: Icon,
   label,
   onClick,
-  className,
+  primary,
+  danger,
 }: {
   icon: typeof Play
   label: string
   onClick: () => void
-  className?: string
+  primary?: boolean
+  danger?: boolean
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        'flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-2 hover:text-text-primary',
-        className
+        'flex items-center justify-center gap-1.5 border-l border-border-strong px-2 py-2.5 text-[11px] font-semibold uppercase tracking-wider transition-colors first:border-l-0',
+        primary
+          ? 'text-action hover:bg-action hover:text-action-foreground'
+          : danger
+            ? 'text-accent-danger hover:bg-accent-danger/10'
+            : 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'
       )}
     >
       <Icon className="h-3.5 w-3.5" />
       {label}
     </button>
+  )
+}
+
+// ===== Trainings =====
+
+function TrainingsTab({
+  trainings,
+  studies,
+  onNew,
+  onEdit,
+  onDelete,
+  onOpen,
+  onGoToOpenings,
+}: {
+  trainings: CustomTraining[]
+  studies: OpeningStudy[]
+  onNew: () => void
+  onEdit: (training: CustomTraining) => void
+  onDelete: (id: string) => void
+  onOpen: (training: CustomTraining) => void
+  onGoToOpenings: () => void
+}) {
+  const playableStudies = studies.filter(s => s.moves.length > 0)
+
+  return (
+    <div>
+      <div className="mb-5 flex flex-col gap-4 border border-ink bg-ink p-5 text-ink-foreground sm:flex-row sm:items-center">
+        <Layers className="h-8 w-8 shrink-0" />
+        <div className="flex-1">
+          <p className="font-display text-2xl">Custom trainings</p>
+          <p className="mt-1 text-sm opacity-75">
+            Mix whole openings or hand-picked lines — White and Black together — into one practice session.
+          </p>
+        </div>
+        {playableStudies.length > 0 ? (
+          <ActionButton tone="primary" icon={Plus} onClick={onNew}>
+            New training
+          </ActionButton>
+        ) : (
+          <ActionButton tone="neutral" onClick={onGoToOpenings} className="border-ink-foreground/30 bg-transparent text-ink-foreground">
+            Add openings first
+          </ActionButton>
+        )}
+      </div>
+
+      {trainings.length === 0 ? (
+        <p className="py-8 text-center text-sm text-text-secondary">No trainings yet.</p>
+      ) : (
+        <ul className="grid gap-4 md:grid-cols-2">
+          {trainings.map(training => {
+            const source = trainingPracticeSource(training, studies)
+            const included = training.items
+              .map(item => studies.find(s => s.id === item.studyId))
+              .filter((s): s is OpeningStudy => !!s)
+            return (
+              <li key={training.id} className="group relative flex flex-col border border-border-strong bg-surface-1 transition-colors hover:border-text-primary">
+                <button type="button" onClick={() => onOpen(training)} className="flex-1 p-5 text-left">
+                  <div className="mb-3 flex items-center gap-1.5">
+                    <Dumbbell className="h-4 w-4 text-text-muted" />
+                    <span className="text-[11px] font-medium uppercase tracking-wider text-text-muted">
+                      {source.lines.length} lines · {included.length} opening{included.length === 1 ? '' : 's'}
+                      {training.shuffle && ' · shuffled'}
+                    </span>
+                  </div>
+                  <h3 className="pr-16 font-display text-2xl">{training.name}</h3>
+                  <ul className="mt-3 flex flex-wrap gap-1.5">
+                    {included.map(study => (
+                      <li key={study.id} className="flex items-center gap-1.5 border border-border-subtle px-2 py-1 text-xs text-text-secondary">
+                        <span aria-hidden>{study.color === 'white' ? '♔' : '♚'}</span>
+                        {study.name}
+                      </li>
+                    ))}
+                  </ul>
+                </button>
+                <div className="absolute right-2 top-2 flex opacity-60 transition group-hover:opacity-100">
+                  <button type="button" onClick={() => onEdit(training)} className="p-2 text-text-muted hover:text-text-primary" aria-label={`Edit ${training.name}`}>
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button type="button" onClick={() => onDelete(training.id)} className="p-2 text-text-muted hover:text-accent-danger" aria-label={`Delete ${training.name}`}>
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="grid border-t border-border-strong">
+                  <QuickAction icon={Play} label="Start training" onClick={() => onOpen(training)} primary />
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </div>
   )
 }

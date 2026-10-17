@@ -1,5 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { readJson, writeJson } from '@/lib/storage'
+import { applyBoardTheme, DEFAULT_BOARD_THEME } from '@/lib/board-themes'
 
 /**
  * User preferences, persisted in localStorage and observable from React
@@ -15,6 +16,14 @@ export interface Settings {
   engineEnabled: boolean
   /** Draw the engine's best move on the editor board */
   engineArrow: boolean
+  /** Board color theme id (see board-themes.ts) */
+  boardTheme: string
+  /** Show rank and file labels on the board */
+  showCoordinates: boolean
+  /** Show dots on the squares a selected piece can move to */
+  showLegalMoves: boolean
+  /** Name shown in the user area */
+  displayName: string
 }
 
 const STORAGE_KEY = 'chessop-settings'
@@ -24,6 +33,10 @@ const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
   engineEnabled: true,
   engineArrow: true,
+  boardTheme: DEFAULT_BOARD_THEME,
+  showCoordinates: true,
+  showLegalMoves: true,
+  displayName: '',
 }
 
 let current: Settings = { ...DEFAULT_SETTINGS, ...readJson<Partial<Settings>>(STORAGE_KEY, {}) }
@@ -68,7 +81,8 @@ export function initTheme(): void {
   const apply = () => {
     const resolved = resolveTheme()
     document.documentElement.dataset.theme = resolved
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', resolved === 'dark' ? '#16181b' : '#fafbfc')
+    applyBoardTheme(current.boardTheme)
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', resolved === 'dark' ? '#0b0b0b' : '#ffffff')
   }
   apply()
   listeners.add(apply)

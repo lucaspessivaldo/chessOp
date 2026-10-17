@@ -16,6 +16,9 @@ no account, no backend — your studies are stored in `localStorage`.
 
 ### Other features
 
+- Custom trainings: mix whole openings or hand-picked lines (White and Black together) into one practice session
+- Your area (`/settings`): board color themes, coordinates and legal-move dots, light/dark theme, engine and
+  Lichess settings, backup export/import of all your data
 - Stockfish 19 in the editor (WASM, lite single-threaded, ~1.9 MB loaded on demand): evaluation bar,
   top 3 lines and best-move arrow; click a line to add its move
 - PGN import (merge or replace) and export, with variations, comments and annotations (`!`, `?!`, …)
@@ -24,7 +27,7 @@ no account, no backend — your studies are stored in `localStorage`.
 - Mastery per study (share of lines whose last practice was perfect)
 - Keyboard shortcuts: `H` hint, `R` retry, `Enter`/`→` next line, `L` lines list;
   in the editor `←/→/Home/End`, `Ctrl+Z`/`Ctrl+Y`, `Ctrl+S`, `Del`
-- Responsive layout for phones and desktop, sound toggle
+- Monochrome black-and-white design with green actions, responsive for phones and desktop
 
 ### Lichess explorer
 
