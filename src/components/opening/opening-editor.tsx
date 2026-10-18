@@ -14,6 +14,8 @@ import {
   List,
   MessageSquare,
   Network,
+  PenLine,
+  Radar,
   Redo2,
   Save,
   Settings2,
@@ -33,8 +35,11 @@ import { useOpeningEditor } from '@/hooks/use-opening-editor'
 import { useOpeningStats } from '@/hooks/use-opening-stats'
 import { useEngineAnalysis } from '@/hooks/use-engine'
 import { useHotkeys } from '@/hooks/use-hotkeys'
+import { useRepertoireGapScan } from '@/hooks/use-repertoire-gaps'
+import type { RepertoireGap } from '@/lib/repertoire-gaps'
 import { useSettings } from '@/lib/settings'
 import {
+  addChildNode,
   deleteNode,
   findNodeById,
   generateNodeId,
@@ -48,6 +53,7 @@ import {
 } from '@/lib/opening-utils'
 import { createChess, getLegalDests, getTurnColor, isPromotionMove } from '@/chess/chess-utils'
 import { createNagShape } from '@/chess/nag-shapes'
+import { BRUSHES, toggleShape } from '@/lib/board-shapes'
 import { playSound, getMoveSound } from '@/lib/sounds'
 import type { PromotionPiece } from '@/types/chess'
 import { cn } from '@/lib/utils'
@@ -57,6 +63,8 @@ import { OpeningStatsPanel } from './opening-stats'
 import { PgnPanel } from './pgn-panel'
 import { EvalBar } from './eval-bar'
 import { EnginePanel } from './engine-panel'
+import { AnnotationOverlay } from './annotation-overlay'
+import { GapsPanel } from './gaps-panel'
 
 // React Flow + dagre are heavy: load the graph only when it's opened
 const OpeningTree = lazy(() => import('./opening-tree').then(m => ({ default: m.OpeningTree })))
@@ -69,7 +77,7 @@ interface OpeningEditorProps {
   onDirtyChange?: (dirty: boolean) => void
 }
 
-type EditorTab = 'moves' | 'explorer' | 'details'
+type EditorTab = 'moves' | 'explorer' | 'gaps' | 'details'
 
 const nagButtons = [
   { nag: '$1', symbol: '!', label: 'Good move' },
@@ -82,6 +90,7 @@ const nagButtons = [
 const tabs: { id: EditorTab; label: string; icon: typeof List }[] = [
   { id: 'moves', label: 'Moves', icon: List },
   { id: 'explorer', label: 'Explorer', icon: BarChart3 },
+  { id: 'gaps', label: 'Gaps', icon: Radar },
   { id: 'details', label: 'Details', icon: Settings2 },
 ]
 
@@ -103,6 +112,13 @@ export function OpeningEditor({ initialStudy, onSave, onCancel, onDirtyChange }:
   const [hoveredUci, setHoveredUci] = useState<string | null>(null)
   const [pendingPromotion, setPendingPromotion] = useState<{ from: Key; to: Key } | null>(null)
   const [commentDraft, setCommentDraft] = useState<{ nodeId: string; text: string } | null>(null)
+  // Drawing arrows and circles with a tap or a drag (right-click drawing also works on desktop)
+  const [drawMode, setDrawMode] = useState(false)
+  const [brush, setBrush] = useState(BRUSHES[0].id)
+  const [previewShape, setPreviewShape] = useState<BoardShape | null>(null)
+  const gapScan = useRepertoireGapScan()
+  // Missing move shown as an arrow while its position is on the board
+  const [gapPreview, setGapPreview] = useState<RepertoireGap | null>(null)
 
   // ===== Dirty tracking =====
   const [savedSnapshot, setSavedSnapshot] = useState(() => JSON.stringify({
@@ -230,6 +246,48 @@ export function OpeningEditor({ initialStudy, onSave, onCancel, onDirtyChange }:
     commit(updateNodeShapes(moves, currentNode.id, boardShapes))
   }, [currentNode, moves, commit])
 
+  const addShape = useCallback((shape: BoardShape) => {
+    if (!currentNode) return
+    commit(updateNodeShapes(moves, currentNode.id, toggleShape(currentNode.shapes ?? [], shape)))
+  }, [currentNode, moves, commit])
+
+  const clearShapes = useCallback(() => {
+    if (currentNode?.shapes?.length) commit(updateNodeShapes(moves, currentNode.id, undefined))
+  }, [currentNode, moves, commit])
+
+  const drawing = drawMode && !!currentNode
+
+  const showGap = useCallback((gap: RepertoireGap) => {
+    navigate(gap.path)
+    setGapPreview(gap.kind === 'popular' ? gap : null)
+  }, [navigate])
+
+  const addGap = useCallback((gap: RepertoireGap) => {
+    const board = createChess(gap.fen)
+    let move
+    try {
+      move = board.move(gap.san)
+    } catch {
+      move = null
+    }
+    if (!move) {
+      addToast(`Could not play ${gap.label} in this position`, 'error')
+      return
+    }
+    const siblings = gap.path.length === 0 ? moves : findNodeById(moves, gap.nodeId ?? '')?.children ?? []
+    const node = {
+      id: generateNodeId(),
+      san: move.san,
+      uci: `${move.from}${move.to}${move.promotion ?? ''}`,
+      fen: board.fen(),
+      children: [],
+      isMainLine: siblings.length === 0,
+    }
+    commit(addChildNode(moves, gap.nodeId, node), { path: [...gap.path, node.id] })
+    setGapPreview(null)
+    addToast(`${gap.label} added — now play your answer on the board`, 'success')
+  }, [moves, commit, addToast])
+
   // ===== Save =====
   const handleSave = useCallback(() => {
     if (!name.trim()) {
@@ -283,14 +341,22 @@ export function OpeningEditor({ initialStudy, onSave, onCancel, onDirtyChange }:
     Home: goToStart,
     End: goToEnd,
     Delete: currentNode ? () => setConfirmDelete(true) : undefined,
+    d: currentNode ? () => setDrawMode(on => !on) : undefined,
+    Escape: drawMode ? () => setDrawMode(false) : undefined,
   })
 
   // ===== Board config =====
   const autoShapes = useMemo((): DrawShape[] => {
     const shapes: DrawShape[] = []
+    if (drawing && previewShape) {
+      shapes.push({ orig: previewShape.orig as Key, dest: previewShape.dest as Key | undefined, brush: previewShape.brush })
+    }
+    if (gapPreview?.uci && gapPreview.fen === fen && !hoveredUci) {
+      shapes.push({ orig: gapPreview.uci.slice(0, 2) as Key, dest: gapPreview.uci.slice(2, 4) as Key, brush: 'red' })
+    }
     if (hoveredUci) {
       shapes.push({ orig: hoveredUci.slice(0, 2) as Key, dest: hoveredUci.slice(2, 4) as Key, brush: 'blue' })
-    } else if (engineArrow && bestLine?.pv[0]) {
+    } else if (engineArrow && bestLine?.pv[0] && !drawing) {
       const best = bestLine.pv[0]
       shapes.push({ orig: best.slice(0, 2) as Key, dest: best.slice(2, 4) as Key, brush: 'paleBlue' })
     }
@@ -299,7 +365,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel, onDirtyChange }:
       if (nagShape) shapes.push(nagShape)
     }
     return shapes
-  }, [hoveredUci, currentNode, engineArrow, bestLine])
+  }, [hoveredUci, currentNode, engineArrow, bestLine, drawing, previewShape, gapPreview, fen])
 
   const config = useMemo((): Config => ({
     fen,
@@ -422,6 +488,64 @@ export function OpeningEditor({ initialStudy, onSave, onCancel, onDirtyChange }:
             <Flag className="h-3.5 w-3.5" />
             {practiceStartNodeId === currentNode.id ? 'Entry point' : 'Set entry'}
           </button>
+        )}
+      </div>
+
+      <div>
+        <div className="mb-1.5 flex items-center justify-between gap-2">
+          <span className="flex items-center gap-1.5 text-xs text-text-secondary">
+            <PenLine className="h-3.5 w-3.5" />
+            Arrows &amp; circles
+            {(currentNode.shapes?.length ?? 0) > 0 && (
+              <span className="text-text-muted tabular-nums">· {currentNode.shapes!.length}</span>
+            )}
+          </span>
+          {(currentNode.shapes?.length ?? 0) > 0 && (
+            <button type="button" onClick={clearShapes} className="text-xs text-text-muted hover:text-accent-danger">
+              Clear
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setDrawMode(on => !on)}
+            aria-pressed={drawing}
+            title="Draw on the board (D)"
+            className={cn(
+              'flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium transition-colors',
+              drawing ? 'bg-ink text-ink-foreground' : 'bg-surface-2 text-text-secondary hover:bg-surface-3 hover:text-text-primary'
+            )}
+          >
+            <PenLine className="h-3.5 w-3.5" />
+            {drawing ? 'Done' : 'Draw'}
+          </button>
+          <div className="ml-1 flex gap-1" role="radiogroup" aria-label="Arrow color">
+            {BRUSHES.map(b => (
+              <button
+                type="button"
+                key={b.id}
+                role="radio"
+                aria-checked={brush === b.id}
+                aria-label={b.label}
+                title={b.label}
+                onClick={() => {
+                  setBrush(b.id)
+                  setDrawMode(true)
+                }}
+                className={cn(
+                  'h-6 w-6 transition-transform',
+                  brush === b.id ? 'scale-110 ring-2 ring-text-primary ring-offset-2 ring-offset-surface-1' : 'opacity-70 hover:opacity-100'
+                )}
+                style={{ backgroundColor: b.color }}
+              />
+            ))}
+          </div>
+        </div>
+        {drawing && (
+          <p className="mt-1.5 text-[11px] leading-snug text-text-muted">
+            Drag between two squares for an arrow, or tap a square twice for a circle. Draw it again to remove it.
+          </p>
         )}
       </div>
 
@@ -561,7 +685,7 @@ export function OpeningEditor({ initialStudy, onSave, onCancel, onDirtyChange }:
   )
 
   const tabBar = (
-    <div className="grid shrink-0 grid-cols-3 border-b border-border-subtle" role="tablist">
+    <div className="grid shrink-0 grid-cols-4 border-b border-border-subtle" role="tablist">
       {tabs.map(({ id, label, icon: Icon }) => (
         <button
           type="button"
@@ -594,7 +718,20 @@ export function OpeningEditor({ initialStudy, onSave, onCancel, onDirtyChange }:
     />
   )
 
-  const tabContent = tab === 'moves' ? movesTab : tab === 'explorer' ? explorerTab : detailsTab
+  const gapsTab = (
+    <GapsPanel
+      moves={moves}
+      rootFen={editor.rootFen}
+      color={color}
+      token={lichessToken}
+      scan={gapScan}
+      previewId={gapPreview?.fen === fen ? gapPreview.id : null}
+      onShow={showGap}
+      onAdd={addGap}
+    />
+  )
+
+  const tabContent = { moves: movesTab, explorer: explorerTab, gaps: gapsTab, details: detailsTab }[tab]
 
   const saveButtons = (
     <div className="flex gap-2">
@@ -656,7 +793,15 @@ export function OpeningEditor({ initialStudy, onSave, onCancel, onDirtyChange }:
       </Dialog>
 
       <GameLayout
-        board={<Chessground config={config} onMove={handleBoardMove} />}
+        board={
+          <div className="relative h-full w-full">
+            <Chessground config={config} onMove={handleBoardMove} />
+            {drawing && (
+              <AnnotationOverlay orientation={color} brush={brush} onShape={addShape} onPreview={setPreviewShape} />
+            )}
+          </div>
+        }
+        boardClassName={drawing ? 'ring-2 ring-action' : undefined}
         boardAside={engineEnabled && <EvalBar line={bestLine} orientation={color} />}
         belowBoard={navigationBar}
         mobileTopBar={

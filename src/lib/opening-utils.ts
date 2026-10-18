@@ -3,6 +3,7 @@ import type { Move as ChessMove } from '@jackstenglein/chess'
 import type { OpeningMoveNode, OpeningStudy, BoardShape } from '@/types/opening'
 import { NAG_SYMBOLS } from '@/types/opening'
 import { readJson, writeJson } from '@/lib/storage'
+import { shapesFromPgn, shapesToPgn } from '@/lib/board-shapes'
 
 const STORAGE_KEY = 'chessop-openings'
 
@@ -71,6 +72,7 @@ export function parsePgn(pgn: string): ParsedPgn {
       fen: move.after,
       comment: move.commentAfter?.trim() || undefined,
       nags: move.nags && move.nags.length > 0 ? [...move.nags] : undefined,
+      shapes: shapesFromPgn(move.commentDiag?.colorArrows, move.commentDiag?.colorFields),
       children: buildSiblings(move.next, isMainLine),
       isMainLine,
     }
@@ -105,12 +107,16 @@ export function parsePgnToTree(pgn: string): OpeningMoveNode[] {
   }
 }
 
+function hasComment(node: OpeningMoveNode): boolean {
+  return !!node.comment || (node.shapes?.length ?? 0) > 0
+}
+
 function escapeComment(comment: string): string {
   return comment.replace(/[{}]/g, '')
 }
 
 /**
- * Export an opening tree to PGN (variations, comments and NAGs included)
+ * Export an opening tree to PGN (variations, comments, NAGs and arrows included)
  */
 export function exportTreeToPgn(
   nodes: OpeningMoveNode[],
@@ -126,7 +132,9 @@ export function exportTreeToPgn(
     for (const nag of node.nags ?? []) {
       text += nag.startsWith('$') ? ` ${nag}` : ` ${nag}`
     }
-    if (node.comment) text += ` {${escapeComment(node.comment)}}`
+    const commands = shapesToPgn(node.shapes)
+    const comment = [commands, node.comment ? escapeComment(node.comment) : ''].filter(Boolean).join(' ')
+    if (comment) text += ` {${comment}}`
     return text
   }
 
@@ -137,10 +145,10 @@ export function exportTreeToPgn(
 
     const parts = [moveText(main, ply, forceNumber)]
     for (const variation of variations) {
-      const rest = renderSiblings(variation.children, ply + 1, !!variation.comment)
+      const rest = renderSiblings(variation.children, ply + 1, hasComment(variation))
       parts.push(`(${moveText(variation, ply, true)}${rest ? ` ${rest}` : ''})`)
     }
-    const continuation = renderSiblings(main.children, ply + 1, variations.length > 0 || !!main.comment)
+    const continuation = renderSiblings(main.children, ply + 1, variations.length > 0 || hasComment(main))
     if (continuation) parts.push(continuation)
     return parts.join(' ')
   }
@@ -476,6 +484,7 @@ export function mergeTrees(base: OpeningMoveNode[], incoming: OpeningMoveNode[])
         ...existing,
         comment: existing.comment ?? node.comment,
         nags: existing.nags ?? node.nags,
+        shapes: existing.shapes ?? node.shapes,
         children: mergeTrees(existing.children, node.children),
       }
     }

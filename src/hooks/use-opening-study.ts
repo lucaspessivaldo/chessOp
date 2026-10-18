@@ -46,7 +46,10 @@ export function useOpeningStudy({ study }: { study: OpeningStudy }) {
 
   const autoShapes = useMemo((): DrawShape[] => {
     const shapes: DrawShape[] = []
-    for (const shape of lastNode?.shapes ?? []) {
+    // Arrows drawn on the user's previous move stay visible after the opponent's automatic reply
+    const previousNode = player.moveIndex > 1 ? currentLine.nodes[player.moveIndex - 2] : undefined
+    const annotated = lastNode?.shapes?.length ? lastNode : player.isUserTurn ? previousNode : undefined
+    for (const shape of annotated?.shapes ?? []) {
       shapes.push({ orig: shape.orig as Key, dest: shape.dest as Key | undefined, brush: shape.brush })
     }
     if (lastNode?.nags?.length) {
@@ -61,7 +64,7 @@ export function useOpeningStudy({ study }: { study: OpeningStudy }) {
       })
     }
     return shapes
-  }, [lastNode, player.expectedUci])
+  }, [lastNode, player.expectedUci, player.moveIndex, player.isUserTurn, currentLine])
 
   const chessgroundConfig = useMemo(
     () => buildBoardConfig(player.state, { orientation: study.color, autoShapes }),

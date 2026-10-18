@@ -21,12 +21,17 @@ no account, no backend — your studies are stored in `localStorage`.
   Lichess settings, backup export/import of all your data
 - Stockfish 19 in the editor (WASM, lite single-threaded, ~1.9 MB loaded on demand): evaluation bar,
   top 3 lines and best-move arrow; click a line to add its move
-- PGN import (merge or replace) and export, with variations, comments and annotations (`!`, `?!`, …)
+- Repertoire gaps (editor **Gaps** tab): lines that end without your reply, and popular opponent moves
+  (Lichess explorer) you haven't prepared, ranked by how often you'll meet them; add one in a click
+- PGN import (merge or replace) and export, with variations, comments, annotations (`!`, `?!`, …) and
+  arrows/circles (`[%cal]` / `[%csl]`, as in Lichess studies)
 - Entry point: start practice from a given position (earlier moves become a single setup line)
-- Interactive tree graph of the repertoire, arrows/circles drawn on the board saved per move
+- Board annotations: arrows and circles in four colors, saved per move and shown in Study mode
+  (Draw button or `D` — tap or drag, works on phones; right-click drawing on desktop)
+- Interactive tree graph of the repertoire
 - Mastery per study (share of lines whose last practice was perfect)
 - Keyboard shortcuts: `H` hint, `R` retry, `Enter`/`→` next line, `L` lines list;
-  in the editor `←/→/Home/End`, `Ctrl+Z`/`Ctrl+Y`, `Ctrl+S`, `Del`
+  in the editor `←/→/Home/End`, `Ctrl+Z`/`Ctrl+Y`, `Ctrl+S`, `Del`, `D` draw
 - Monochrome black-and-white design with green actions, responsive for phones and desktop
 
 ### Lichess explorer

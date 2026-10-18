@@ -102,6 +102,13 @@ export class ExplorerError extends Error {
   }
 }
 
+/** The explorer writes castling as king-takes-rook (e1h1); the rest of the app uses e1g1 */
+function standardCastlingUci(uci: string, san: string): string {
+  if (!san.startsWith('O-O')) return uci
+  const rank = uci[1]
+  return san.startsWith('O-O-O') ? `e${rank}c${rank}` : `e${rank}g${rank}`
+}
+
 /**
  * Fetch opening statistics from Lichess Explorer API
  */
@@ -169,7 +176,7 @@ export async function fetchOpeningStats(
     draws: data.draws || 0,
     black: data.black || 0,
     moves: (data.moves || []).map((m: Record<string, unknown>) => ({
-      uci: m.uci as string,
+      uci: standardCastlingUci(m.uci as string, m.san as string),
       san: m.san as string,
       white: m.white as number || 0,
       draws: m.draws as number || 0,
