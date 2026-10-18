@@ -27,7 +27,7 @@ no account, no backend — your studies are stored in `localStorage`.
   arrows/circles (`[%cal]` / `[%csl]`, as in Lichess studies)
 - Entry point: start practice from a given position (earlier moves become a single setup line)
 - Board annotations: arrows and circles in four colors, saved per move and shown in Study mode
-  (Draw button or `D` — tap or drag, works on phones; right-click drawing on desktop)
+  only on the move they belong to (Draw button or `D` — tap or drag, works on phones; right-click on desktop)
 - Interactive tree graph of the repertoire
 - Mastery per study (share of lines whose last practice was perfect)
 - Keyboard shortcuts: `H` hint, `R` retry, `Enter`/`→` next line, `L` lines list;
